@@ -90,6 +90,9 @@ public sealed class EntityTool : ITool
             case 0x01AF:   // En_Wf Wolfos — switch-flag byte 0xFF = "none"; only the White variant sets it (z_en_wf.c:223)
                 if ((a.Variable >> 8) == 0) a.Variable = (ushort)((a.Variable & 0x00FF) | 0xFF00);
                 break;
+            case 0x00A7:   // En_Encount1 spawner — params<=0 self-kills; seed 1 alive / 1 total (z_en_encount1.c:34)
+                if (a.Variable == 0) a.Variable = (1 << 6) | 1;
+                break;
         }
     }
 

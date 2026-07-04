@@ -671,6 +671,38 @@ public static class ActorParamSchema
                       "By default the platform AUTO-cycles bottom↔middle (+140) on its own — no trigger. If THIS switch flag is set, it becomes the faster 'shortcut' that rises to +700. For a plain auto-platform, use a switch flag you leave unwired. Must be 0–63.",
                       Flag: FlagKind.Switch, Role: FlagRole.Reader),
         ], "Needs OBJECT_DDAN_OBJECTS in the scene's object list. Auto-oscillates on load; the flag only enables the higher 'shortcut' rise."),
+
+        // En_Encount1 (0x00A7) enemy spawner — z_en_encount1.c: spawnType=(params>>11)&0x1F, maxAlive=(params>>6)&0x1F, maxTotal=params&0x3F.
+        [0x00A7] = new Def("Enemy Spawner (En_Encount1)", [
+            new Field("Spawns", 11, 5, FieldKind.Enum, "Which enemy this spawner produces",
+                      ["Leever", "Tektite", "Stalchildren", "Wolfos"]),
+            new Field("Max alive at once", 6, 5, FieldKind.Int, "Cap on simultaneously-active spawns (0–31)"),
+            new Field("Total to spawn", 0, 6, FieldKind.Int, "How many it spawns before it stops (0–63)"),
+        ], "Continuously spawns the chosen enemy up to the caps. It kills itself if params are all-zero — set a count."),
+
+        // Door_Ana (0x009B) grotto/hole — z_door_ana.c: reveal type=(params>>8)&3 (0 open, 0x200 bit = bomb/hammer).
+        [0x009B] = new Def("Grotto / Hole (Door_Ana)", [
+            new Field("Reveal", 8, 2, FieldKind.Enum, "How the grotto is opened/found",
+                      ["Open hole", "Hidden (song / scarecrow)", "Bomb or Hammer to open", "Hidden + destructible"]),
+            new Field("Grotto id (destination)", 0, 8, FieldKind.Int, "Selects which grotto it leads to / its contents (grotto index)"),
+        ]),
+
+        // En_Floormas (0x008E) Floormaster — z_en_floormas.c: SPAWN_INVISIBLE=0x8000. (SPAWN_SMALL 0x10 = runtime split.)
+        [0x008E] = new Def("Floormaster (En_Floormas)", [
+            new Field("Invisible (Lens)", 15, 1, FieldKind.Flag, "Only visible with the Lens of Truth until it strikes"),
+        ]),
+
+        // En_Ik (0x0113) Iron Knuckle — z_en_ik.c: type=params (IkType 0–3).
+        [0x0113] = new Def("Iron Knuckle (En_Ik)", [
+            new Field("Type", 0, 2, FieldKind.Enum, "Armor variant; Nabooru is the possessed Spirit Temple mini-boss",
+                      ["Nabooru (possessed)", "Silver armor", "Black armor", "White armor"]),
+        ]),
+
+        // En_Heishi1 (0x008F) castle guard — z_en_heishi1.c: type=(params>>8)&0xFF, patrol path=params&0xFF.
+        [0x008F] = new Def("Castle Guard (En_Heishi1)", [
+            new Field("Guard type", 8, 8, FieldKind.Int, "Which guard / behaviour variant"),
+            new Field("Patrol path", 0, 8, FieldKind.Int, "Path index the guard walks (0–254)"),
+        ], "The sneak-past guards around Hyrule Castle. Give it a patrol Path actor to follow."),
     };
 
     // MM actor ids differ from OoT and its switch flags are 7 bits (0–127). Layouts taken verbatim
