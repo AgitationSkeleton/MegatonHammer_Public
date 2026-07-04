@@ -703,6 +703,41 @@ public static class ActorParamSchema
             new Field("Guard type", 8, 8, FieldKind.Int, "Which guard / behaviour variant"),
             new Field("Patrol path", 0, 8, FieldKind.Int, "Path index the guard walks (0–254)"),
         ], "The sneak-past guards around Hyrule Castle. Give it a patrol Path actor to follow."),
+
+        // Obj_Lightswitch (0x0150) sun switch — z_obj_lightswitch.c: switchFlag=(params>>8)&0x3F (read+set on light), variant=(params>>4)&3.
+        [0x0150] = new Def("Sun Switch (Obj_Lightswitch)", [
+            new Field("Variant", 4, 2, FieldKind.Int, "Sun-face variant (0–3)"),
+            new Field("Switch flag", 8, 6, FieldKind.Int, "Set when lit by the Mirror Shield's reflected sunlight — wire a gate to it (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+        ], "Shine reflected sunlight (Mirror Shield) on it to set its switch flag."),
+
+        // En_Goroiwa (0x0130) rolling boulder — z_en_goroiwa.c: path=params&0xFF, loopMode=(params>>8)&3 (0/1/3).
+        [0x0130] = new Def("Rolling Boulder (En_Goroiwa)", [
+            new Field("Path loop", 8, 2, FieldKind.Enum, "How it travels its path",
+                      ["One-way", "One-way (shatters at the end)", "(unused)", "Round trip"]),
+            new Field("Patrol path", 0, 8, FieldKind.Int, "Path actor it rolls along (0–254)"),
+        ], "Give it a Path to roll down; it crushes Link on contact."),
+
+        // Obj_Bean (0x0126) magic-bean plot — z_obj_bean.c: switchFlag=params&0x3F (read+set), ride path=(params>>8)&0x1F.
+        [0x0126] = new Def("Magic Bean Plot (Obj_Bean)", [
+            new Field("Switch flag", 0, 6, FieldKind.Int, "Marks the bean as planted/grown so it persists (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+            new Field("Ride path", 8, 5, FieldKind.Int, "Path the grown bean-leaf platform flies along when Link rides it (0–31)"),
+        ], "Plant a magic bean here; once grown it becomes a ride-able flying platform that follows the path."),
+
+        // Bg_Bombwall (0x00D0) bombable wall — z_bg_bombwall.c: switchFlag=params&0x3F (read+set on destroy).
+        [0x00D0] = new Def("Bombable Wall (Bg_Bombwall)", [
+            new Field("Switch flag", 0, 6, FieldKind.Int, "Set when blown up so it stays open; wire a gate to it, or leave unique (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+        ]),
+
+        // Door_Gerudo (0x0172) Gerudo Fortress door — z_door_gerudo.c: switchFlag=params&0x3F, frees-on collectible=(params>>8)&0x1F.
+        [0x0172] = new Def("Gerudo Fortress Door (Door_Gerudo)", [
+            new Field("Switch flag", 0, 6, FieldKind.Int, "Read/set so the door stays open once cleared (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+            new Field("Opens-on collectible flag", 8, 5, FieldKind.Int, "The door opens once this collectible flag is set (e.g. a freed carpenter) (0–31)",
+                      Flag: FlagKind.Collectible, Role: FlagRole.Reader),
+        ]),
     };
 
     // MM actor ids differ from OoT and its switch flags are 7 bits (0–127). Layouts taken verbatim
