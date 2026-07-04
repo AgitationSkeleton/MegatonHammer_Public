@@ -21,6 +21,11 @@
 
 #define FLAGS ACTOR_FLAG_4 /* keep active while off-screen so state persists mid-conversation */
 
+/* Megaton Hammer authors this actor with params = a dialogue slot (0-255); the entry message textId is
+ * this base + slot. Must match the editor (ActorParamSchema En_MhTalk Message field TextIdBase). */
+#define MH_DIALOGUE_TEXTID_BASE 0x1000
+#define MH_TALK_TEXTID(this) (u16)(MH_DIALOGUE_TEXTID_BASE + ((this)->actor.params & 0xFF))
+
 typedef struct EnMhTalk {
     /* 0x0000 */ Actor actor;
     /* ...    */ ColliderCylinder collider;
@@ -47,11 +52,11 @@ const MhDialogueEntry* MhDialogue_Find(u16 textId) {
 
 /* The textId this point currently offers: the fulfilled fallback if its done flag is set, else the entry. */
 static u16 EnMhTalk_CurrentTextId(EnMhTalk* this, PlayState* play) {
-    const MhDialogueEntry* e = MhDialogue_Find(this->actor.params & 0xFFFF);
+    const MhDialogueEntry* e = MhDialogue_Find(MH_TALK_TEXTID(this));
     if (e != NULL && e->doneFlag >= 0 && e->afterMsgId >= 0 && Flags_GetSwitch(play, e->doneFlag)) {
         return (u16)e->afterMsgId;
     }
-    return (u16)(this->actor.params & 0xFFFF);
+    return MH_TALK_TEXTID(this);
 }
 
 /* Apply one outcome on accept (choice confirmed / message advanced). Returns 1 if it opened a new box. */
@@ -117,7 +122,7 @@ void EnMhTalk_Update(Actor* thisx, PlayState* play) {
 
     if (Actor_TalkOfferAccepted(&this->actor, play)) {
         this->activeTextId = EnMhTalk_CurrentTextId(this, play);
-        this->entry = MhDialogue_Find(this->actor.params & 0xFFFF);
+        this->entry = MhDialogue_Find(MH_TALK_TEXTID(this));
         Message_StartTextbox(play, this->activeTextId, &this->actor);
         this->waitingResult = 1;
     } else {

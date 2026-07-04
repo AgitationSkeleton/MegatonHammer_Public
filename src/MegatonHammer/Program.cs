@@ -662,6 +662,13 @@ static class Program
             Chk(cData.Contains(", 12, 0x") || cData.Contains(", 12, 772"), "prompt row carries the done flag (12)");
             Chk(cData.Contains("{ -1, 12, 72, 20 }"), "'Yes' outcome row = give item 72 + charge 20 + flag 12");
             Chk(!Export.MhDialogueDataWriter.NeedsEntry(msgAfter), "plain fallback message needs no behaviour row");
+
+            // The portable dialogue-point actor is placeable + opens the Dialogue Editor (has a Message field).
+            var mhDef = Editor.ActorParamSchema.For(true, Editor.ActorDatabase.MhTalkId);
+            Chk(mhDef != null && mhDef.Fields.Any(f => f.Kind == Editor.ActorParamSchema.FieldKind.Message),
+                "En_MhTalk (0x0230) has a Message field -> the Dialogue Editor 'Edit...' button");
+            Chk(Editor.ActorDatabase.Load(true).Get(Editor.ActorDatabase.MhTalkId) != null,
+                "En_MhTalk is registered as a placeable editor actor (shows in PLACE ACTOR)");
             return;
         }
 

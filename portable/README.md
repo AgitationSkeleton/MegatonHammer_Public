@@ -26,10 +26,16 @@ Megaton Hammer's own SoH/2Ship forks. The editor authors the dialogue; this is h
 
 ## Integrate
 
-1. Give `En_MhTalk` a free `ACTOR_EN_MHTALK` id and add an overlay-table row for it.
+1. Register the overlay as **`ACTOR_EN_MHTALK` at actor id `0x0230`** (the id Megaton Hammer places it at —
+   `ActorDatabase.MhTalkId`) and add an overlay-table row for it. Using a different id? Change it in the
+   editor's actor DB to match.
 2. Add `z_en_mhtalk.c` and the editor-generated `mh_dialogue_data.c` to your build (and `mh_dialogue.h` to your include path).
-3. Place the actor with **params = the entry textId** (Megaton Hammer does this for you on export).
-4. Author the message text (colour/timing/SFX/prompt) in the normal message bank so `Message_StartTextbox(textId)` shows it.
+3. The editor places it with **params = a dialogue slot (0–255)**; the entry message textId is
+   **`0x1000 + slot`** (`MH_DIALOGUE_TEXTID_BASE`). The message text for that textId comes from your base's
+   message system (the runtime CustomMessage resource on SoH/2Ship, or your decomp message table) — that
+   textId range (`0x1000+`) is custom, so it won't collide with vanilla text.
+4. Author the message text (colour/timing/SFX/prompt) + outcomes in the Dialogue Editor; export writes both
+   the message bytes and `mh_dialogue_data.c`.
 
 The actor uses only stock decomp API (`Actor_OfferTalk`, `Message_StartTextbox`, `Message_GetState`,
 `Flags_Get/SetSwitch`, `Rupees_ChangeBy`, `Actor_OfferGetItem`). A few names differ slightly across bases

@@ -8,12 +8,23 @@ public sealed class ActorDatabase
 
     private readonly Dictionary<ushort, ActorInfo> _actors = [];
 
+    /// <summary>Megaton Hammer's own placeable custom actor: the portable "dialogue point" (En_MhTalk).
+    /// Register the matching overlay at this id in your base (see portable/README.md).</summary>
+    public const ushort MhTalkId = 0x0230;
+
+    private void RegisterCustom()
+    {
+        _actors[MhTalkId] = new ActorInfo(MhTalkId, "Dialogue Point (En_MhTalk)", "En_MhTalk",
+            new Dictionary<ushort, string>());
+    }
+
     public static ActorDatabase Load(bool isOoT)
     {
         var db   = new ActorDatabase();
+        db.RegisterCustom();   // always available, even on a public build with no XML DB
         string game = isOoT ? "OOT" : "MM";
         string? path = AppPaths.SourceFile("SharpOcarina-main", "XML", game, "ActorNames.xml");
-        if (path == null) return db;   // no reference sources (e.g. public build) -> empty DB, editor still runs
+        if (path == null) return db;   // no reference sources (e.g. public build) -> DB has just the custom actors
 
         try
         {

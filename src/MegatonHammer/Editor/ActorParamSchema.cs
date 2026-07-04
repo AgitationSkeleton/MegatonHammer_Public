@@ -357,6 +357,14 @@ public static class ActorParamSchema
                       Flag: FlagKind.Switch, Role: FlagRole.Both),
         ]),
 
+        // En_MhTalk — Megaton Hammer's own portable "dialogue point" (register the ovl_En_MhTalk overlay at
+        // actor id 0x0230 in your base; see portable/README.md). params (low 8 bits) = a dialogue slot; the
+        // entry textId is 0x1000 + slot. This is the general way to give ANY NPC / sign / point full custom
+        // dialogue + outcomes (existing NPCs like Talon have no message param — their dialogue is hardcoded).
+        [ActorDatabase.MhTalkId] = new Def("Dialogue Point (En_MhTalk)", [
+            new Field("Message", 0, 8, FieldKind.Message, "The conversation shown when talked to (textId 0x1000 + value) — click Edit to author it", TextIdBase: 0x1000),
+        ], "Megaton Hammer's fork-independent talk actor. Place it (beside an NPC, on a sign, or as its own point) and author the whole conversation + outcomes in the Dialogue Editor. Export writes the message bytes + mh_dialogue_data.c."),
+
         // Elf_Msg (invisible trigger region) — z_elf_msg.c: messageId=[0,8], switchFlag=[8,6] (0x3F = none).
         // Elf_Msg (invisible message/inspect region) — z_elf_msg.c: textId=(params&0xFF)+0x100 when bit
         // 0x8000 set (message mode); switchFlag=[8,6].
