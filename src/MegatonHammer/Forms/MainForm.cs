@@ -2000,6 +2000,7 @@ public sealed class MainForm : Form, IMessageFilter
             visgroups,
             new ToolStripSeparator(),
             Item("Flag Connections (logic)…", Keys.None, (_, _) => OpenFlagConnections()),
+            Item("Export Dialogue Data (.c)…", Keys.None, (_, _) => ExportDialogueData()),
             Item("Check for Problems…", Keys.Alt | Keys.P, (_, _) => OpenSceneCheck()));
 
         var help = Menu("Help",
@@ -2071,6 +2072,28 @@ public sealed class MainForm : Form, IMessageFilter
         RedrawAll();
         if (_statusLabel != null)
             _statusLabel.Text = $"Inserted “{preset.Name}” ({placed.Count} actors) near the player spawn — drag it into place.";
+    }
+
+    // Writes mh_dialogue_data.c (the behaviour table the portable ovl_En_MhTalk actor reads). Presentation
+    // is already in the message bytes; this is only for dialogue that gives items / charges / branches / etc.
+    private void ExportDialogueData()
+    {
+        int rows = _document.Scene.Messages.Count(Export.MhDialogueDataWriter.NeedsEntry);
+        if (rows == 0)
+        {
+            MessageBox.Show(this, "No dialogue has behaviour to export yet (add a prompt, an outcome, a sound, or a fulfilled-state fallback in the Dialogue Editor).\n\nPlain text/colour/timing already lives in the message data and needs no table.",
+                "Export Dialogue Data", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        using var sfd = new SaveFileDialog { Title = "Export dialogue behaviour table",
+            Filter = "C source (*.c)|*.c", FileName = "mh_dialogue_data.c" };
+        if (sfd.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            System.IO.File.WriteAllText(sfd.FileName, Export.MhDialogueDataWriter.Write(_document.Scene.Messages));
+            if (_statusLabel != null) _statusLabel.Text = $"Exported {rows} dialogue row(s) → {System.IO.Path.GetFileName(sfd.FileName)}  (drop it in with ovl_En_MhTalk — see portable/README.md)";
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Export failed", MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     private void NewMap()

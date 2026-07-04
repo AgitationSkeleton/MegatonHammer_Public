@@ -654,6 +654,14 @@ static class Program
             Chk(msgB.Outcome2.NextMsgId == 0x0303, "'No' branches to another message (Display MsgBox #)");
             Chk(msgB.DoneFlag == doneFlag && msgB.AfterMsgId == 0x0304, "fulfilled state -> fallback message wired");
             Chk(!yes.IsEmpty && msgAfter.Outcome1.IsEmpty, "outcome emptiness detection works");
+
+            // The portable mh_dialogue_data.c export: behaviour rows only, matching the actor's table format.
+            string cData = Export.MhDialogueDataWriter.Write(new[] { msgA, msgB, msgAfter });
+            Chk(cData.Contains("gMhDialogueTable") && cData.Contains("gMhDialogueCount"), "data export has the table + count");
+            Chk(cData.Contains("0x0302, 0x0000, -1, 1,"), "prompt row present (textId/sfx/gesture/isPrompt)");
+            Chk(cData.Contains(", 12, 0x") || cData.Contains(", 12, 772"), "prompt row carries the done flag (12)");
+            Chk(cData.Contains("{ -1, 12, 72, 20 }"), "'Yes' outcome row = give item 72 + charge 20 + flag 12");
+            Chk(!Export.MhDialogueDataWriter.NeedsEntry(msgAfter), "plain fallback message needs no behaviour row");
             return;
         }
 

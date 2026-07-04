@@ -23,16 +23,21 @@ public sealed class DialogueEditorDialog : Form
     private readonly Label _idLabel;
     private readonly TextBox _text, _choice1, _choice2;
     private readonly RadioButton _kMsg, _kPrompt;
-    private readonly NumericUpDown _sfx, _gesture, _doneFlag, _afterMsg;
+    private readonly NumericUpDown _sfx, _doneFlag, _afterMsg;
+    private readonly ComboBox _gestureCombo;
+    private readonly NpcGestures.Gesture[] _gestures;
+    private readonly string[] _itemNames;
     private readonly OutcomeControls _o1, _o2;
     private readonly Label _o1Head, _o2Head;
     private bool _loading;
 
     public int? SelectedId { get; private set; }
 
-    public DialogueEditorDialog(ZScene scene, int baseId, int maxId, int currentId)
+    public DialogueEditorDialog(ZScene scene, int baseId, int maxId, int currentId, ushort actorId = 0, bool isMM = false)
     {
         _scene = scene; _baseId = baseId; _maxId = maxId;
+        _itemNames = isMM ? GetItemTable.MM : GetItemTable.OoT;
+        _gestures = NpcGestures.For(isMM, actorId) ?? NpcGestures.Generic();
         Text = "Dialogue Editor";
         FormBorderStyle = FormBorderStyle.SizableToolWindow;
         StartPosition = FormStartPosition.CenterParent;
@@ -94,10 +99,13 @@ public sealed class DialogueEditorDialog : Form
         _sfx = Spin(rx + 142, 234, -1, 0xFFFF, 96); _sfx.Hexadecimal = true;
         _sfx.ValueChanged += (_, _) => { if (!_loading && Cur is { } m) m.Sfx = (int)_sfx.Value; };
         Controls.Add(_sfx);
-        Controls.Add(Lab("Gesture (-1 default):", rx + 250, 236, 116));
-        _gesture = Spin(rx + 368, 234, -1, 31, 60);
-        _gesture.ValueChanged += (_, _) => { if (!_loading && Cur is { } m) m.Gesture = (int)_gesture.Value; };
-        Controls.Add(_gesture);
+        Controls.Add(Lab("Gesture:", rx + 250, 236, 52));
+        _gestureCombo = new ComboBox { Left = rx + 302, Top = 234, Width = 126, DropDownStyle = ComboBoxStyle.DropDownList,
+            BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat };
+        foreach (var g in _gestures) _gestureCombo.Items.Add(g);
+        _gestureCombo.SelectedIndexChanged += (_, _) =>
+        { if (!_loading && Cur is { } m && _gestureCombo.SelectedItem is NpcGestures.Gesture g) m.Gesture = g.Index; };
+        Controls.Add(_gestureCombo);
 
         Controls.Add(Sep(rx, 262, 470));
 
@@ -105,8 +113,8 @@ public sealed class DialogueEditorDialog : Form
         _o1Head = new Label { Left = rx, Top = 270, Width = 220, ForeColor = Accent, Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Text = "On advance:" };
         _o2Head = new Label { Left = rx + 236, Top = 270, Width = 220, ForeColor = Accent, Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Text = "Option 2 (No):" };
         Controls.Add(_o1Head); Controls.Add(_o2Head);
-        _o1 = new OutcomeControls(this, rx, 292, () => Cur?.Outcome1, () => _loading);
-        _o2 = new OutcomeControls(this, rx + 236, 292, () => Cur?.Outcome2, () => _loading);
+        _o1 = new OutcomeControls(this, rx, 292, () => Cur?.Outcome1, () => _loading, _itemNames);
+        _o2 = new OutcomeControls(this, rx + 236, 292, () => Cur?.Outcome2, () => _loading, _itemNames);
 
         // ── Fulfilled state ──
         Controls.Add(Sep(rx, 430, 470));
@@ -165,7 +173,9 @@ public sealed class DialogueEditorDialog : Form
             _text.Text = m.Text;
             _kMsg.Checked = m.Kind == MhMsgKind.Message; _kPrompt.Checked = m.Kind == MhMsgKind.Prompt;
             _choice1.Text = m.Choice1; _choice2.Text = m.Choice2;
-            _sfx.Value = Math.Clamp(m.Sfx, -1, 0xFFFF); _gesture.Value = Math.Clamp(m.Gesture, -1, 31);
+            _sfx.Value = Math.Clamp(m.Sfx, -1, 0xFFFF);
+            int gi = 0; for (int i = 0; i < _gestures.Length; i++) if (_gestures[i].Index == m.Gesture) { gi = i; break; }
+            _gestureCombo.SelectedIndex = gi;
             _doneFlag.Value = Math.Clamp(m.DoneFlag, -1, 4095); _afterMsg.Value = Math.Clamp(m.AfterMsgId, -1, 0xFFFF);
             _o1.Load(m.Outcome1); _o2.Load(m.Outcome2);
         }
@@ -176,7 +186,7 @@ public sealed class DialogueEditorDialog : Form
     private void RefreshEnabled()
     {
         bool has = Cur != null, prompt = has && Cur!.Kind == MhMsgKind.Prompt;
-        _text.Enabled = _kMsg.Enabled = _kPrompt.Enabled = _sfx.Enabled = _gesture.Enabled =
+        _text.Enabled = _kMsg.Enabled = _kPrompt.Enabled = _sfx.Enabled = _gestureCombo.Enabled =
             _doneFlag.Enabled = _afterMsg.Enabled = has;
         _choice1.Enabled = _choice2.Enabled = prompt;
         _o1Head.Text = prompt ? "Option 1 (Yes):" : "On advance:";
@@ -221,14 +231,16 @@ public sealed class DialogueEditorDialog : Form
     /// <summary>The four outcome fields for one option column (branch / flag / item / charge rupees).</summary>
     private sealed class OutcomeControls
     {
-        private readonly NumericUpDown _next, _flag, _item, _cost;
+        private readonly NumericUpDown _next, _flag, _cost;
+        private readonly ComboBox _item;
         private readonly CheckBox _charge;
+        private readonly int _maxItem;
         private readonly System.Func<MhOutcome?> _get;
         private readonly System.Func<bool> _loading;
 
-        public OutcomeControls(DialogueEditorDialog dlg, int x, int y, System.Func<MhOutcome?> get, System.Func<bool> loading)
+        public OutcomeControls(DialogueEditorDialog dlg, int x, int y, System.Func<MhOutcome?> get, System.Func<bool> loading, string[] itemNames)
         {
-            _get = get; _loading = loading;
+            _get = get; _loading = loading; _maxItem = itemNames.Length - 1;
             dlg.Add(OLab("Go to MsgBox #:", x, y, 96));
             _next = Spin(x + 100, y - 2, -1, 0xFFFF, 80); _next.Hexadecimal = true;
             _next.ValueChanged += (_, _) => { if (!_loading() && _get() is { } o) o.NextMsgId = (int)_next.Value; };
@@ -237,9 +249,11 @@ public sealed class DialogueEditorDialog : Form
             _flag = Spin(x + 100, y + 24, -1, 4095, 80);
             _flag.ValueChanged += (_, _) => { if (!_loading() && _get() is { } o) o.FireFlag = (int)_flag.Value; };
             dlg.Add(_flag);
-            dlg.Add(OLab("Give Item id:", x, y + 52, 96));
-            _item = Spin(x + 100, y + 50, -1, 0x7F, 80);
-            _item.ValueChanged += (_, _) => { if (!_loading() && _get() is { } o) o.GiveItem = (int)_item.Value; };
+            dlg.Add(OLab("Give Item:", x, y + 52, 96));
+            _item = new ComboBox { Left = x + 68, Top = y + 50, Width = 148, DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat };
+            _item.Items.AddRange(itemNames);   // index 0 = "None (empty)"
+            _item.SelectedIndexChanged += (_, _) => { if (!_loading() && _get() is { } o) o.GiveItem = _item.SelectedIndex <= 0 ? -1 : _item.SelectedIndex; };
             dlg.Add(_item);
             _charge = new CheckBox { Text = "Charge rupees:", Left = x, Top = y + 78, Width = 108, ForeColor = FgNormal, AutoSize = true };
             _charge.CheckedChanged += (_, _) => { if (!_loading() && _get() is { } o) { o.ChargeRupees = _charge.Checked; _cost!.Enabled = _charge.Checked; } };
@@ -253,7 +267,7 @@ public sealed class DialogueEditorDialog : Form
         {
             _next.Value = Math.Clamp(o.NextMsgId, -1, 0xFFFF);
             _flag.Value = Math.Clamp(o.FireFlag, -1, 4095);
-            _item.Value = Math.Clamp(o.GiveItem, -1, 0x7F);
+            _item.SelectedIndex = o.GiveItem <= 0 ? 0 : Math.Min(o.GiveItem, _maxItem);
             _charge.Checked = o.ChargeRupees; _cost.Value = Math.Clamp(o.RupeeCost, 0, 9999); _cost.Enabled = o.ChargeRupees;
         }
 
