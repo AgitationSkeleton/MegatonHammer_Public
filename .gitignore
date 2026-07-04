@@ -36,3 +36,6 @@ levelout/
 *.log
 Thumbs.db
 .DS_Store
+
+# Fork full-snapshot backups (not the minimal delta; bake in machine paths)
+forks/patches/*resetpoint*.patch

@@ -33,9 +33,9 @@ SoH\mh_configure.cmd   &&  SoH\mh_build.cmd
 2Ship\mh_configure.cmd &&  2Ship\mh_build.cmd
 ```
 
-`mh_configure.cmd` / `mh_build.cmd` assume MSVC Build Tools at `C:\BuildTools`, a pre-cloned
-`vcpkg` at `D:\Copilot_OOT\WorkFolders\vcpkg`, and a staged ROM for asset extraction. Adjust the
-paths at the top of those scripts for a different machine.
+`mh_configure.cmd` / `mh_build.cmd` find Visual Studio automatically (via `vswhere`), take your
+`vcpkg` location from the `VCPKG_ROOT` environment variable, and use `cmake`/`ninja` from PATH. Set
+`VCPKG_ROOT` to your vcpkg checkout and have a staged ROM available for asset extraction.
 
 ## The custom change (`mh_playtest`)
 
