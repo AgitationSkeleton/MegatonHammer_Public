@@ -1,0 +1,27 @@
+0x000A	En box	Type|12|4|Int|None|None|0|
+0x000E	En okuta	Numshots|8|8|Int|None|None|0|
+0x000F	Bg ydan sp	Burnswitchflag|6|6|Int|Switch|Both|0|
+0x0023	En holl	Type|6|3|Int|None|None|0|
+0x002E	Door shutter	Type|6|4|Int|None|None|0|
+0x0040	Bg hidan dalm	Switchflag|8|8|Int|Switch|Both|0|
+0x0049	Bg hidan curtain	Treasureflag|6|6|Int|Chest|Both|0|
+0x0080	En trap	Upperparams|8|8|Int|None|None|0|
+0x0090	En rd	Flags|8|8|Int|None|None|0|
+0x0091	En po sisters	Unk 194|8|2|Int|None|None|0|
+0x0093	Bg po event	Type|8|4|Int|None|None|0|
+0x0094	Obj mure	Ptn|8|3|Int|None|None|0|	Svnum|5|2|Int|None|None|0|
+0x00AF	Bg haka meganebg	Unk 168|8|8|Int|None|None|0|
+0x00B0	Bg haka ship	Switchflag|8|8|Int|Switch|Both|0|
+0x00BD	Bg haka huta	Unk 16a|8|8|Int|None|None|0|
+0x00BE	Bg haka zou	Switchflag|8|8|Int|Switch|Both|0|
+0x00C8	Bg bdan objects	Switchflag|8|6|Int|Switch|Both|0|
+0x00DE	En ba	Upperparams|8|8|Int|None|None|0|
+0x00EF	Bg ice shelter	Type|8|3|Int|None|None|0|
+0x00F7	Bg haka gate	Switchflag|8|8|Int|Switch|Both|0|
+0x0105	Bg po syokudai	Flamecolor|8|8|Int|None|None|0|
+0x0113	En ik	Switch flag|8|8|Int|Switch|Both|0|
+0x011E	Obj ice poly	Unk 151|8|8|Int|None|None|0|
+0x012B	Obj elevator	Temp f0|8|4|Int|None|None|0|
+0x0178	En heishi4	Unk 27c|8|8|Int|None|None|0|
+0x018D	Bg spot05 soko	Switchflag|8|8|Int|Switch|Both|0|
+0x01AF	En wf	Switchflag|8|8|Int|Switch|Both|0|

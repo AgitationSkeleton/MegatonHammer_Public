@@ -18,4 +18,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\*.png" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Baked, portable actor-param schemas (regenerate via the dumpschemas command); shipped so no-decomp builds get named fields. -->
+    <Content Include="Data\*.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

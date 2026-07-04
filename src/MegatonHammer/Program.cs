@@ -544,6 +544,68 @@ static class Program
             return;
         }
 
+        // Bake the decomp-derived schemas to shipped Data/ files (portable to no-decomp builds): --dumpschemas
+        if (args.Length >= 1 && args[0] == "--dumpschemas")
+        {
+            // Locate the project's Data/ folder (walk up from the running dll to the dir holding the csproj).
+            string dataDir;
+            var d = new System.IO.DirectoryInfo(Editor.AppPaths.BaseDir);
+            for (int i = 0; i < 12 && d != null; i++, d = d.Parent)
+                if (System.IO.File.Exists(System.IO.Path.Combine(d.FullName, "MegatonHammer.csproj"))) break;
+            dataDir = System.IO.Path.Combine(d?.FullName ?? Editor.AppPaths.BaseDir, "Data");
+            System.IO.Directory.CreateDirectory(dataDir);
+            void Dump(bool oot)
+            {
+                var defs = Editor.ActorParamSchemaExtractor.For(oot);
+                if (defs.Count == 0) { Console.WriteLine($"[dumpschemas] {(oot ? "OoT" : "MM")}: extractor empty (decomp not found — set MH_SOURCES)"); return; }
+                string file = System.IO.Path.Combine(dataDir, Editor.BakedSchemas.FileName(oot));
+                System.IO.File.WriteAllText(file, Editor.BakedSchemas.Serialize(defs));
+                int enums = defs.Values.Sum(dd => dd.Fields.Count(f => f.Options != null));
+                Console.WriteLine($"[dumpschemas] {(oot ? "OoT" : "MM")}: {defs.Count} actors ({enums} enum dropdowns) -> {file}");
+            }
+            Dump(true); Dump(false);
+            return;
+        }
+
+        // Report actor-schema coverage (curated vs auto-derived vs raw hex) per game: MegatonHammer --schemacoverage
+        if (args.Length >= 1 && args[0] == "--schemacoverage")
+        {
+            void Report(bool oot)
+            {
+                string game = oot ? "oot-master" : "mm-main";
+                string tag = oot ? "OoT" : "MM";
+                string? tbl = Editor.AppPaths.SourceFile(game, "include", "tables", "actor_table.h");
+                var ids = new List<(int id, string name)>();
+                if (tbl != null && System.IO.File.Exists(tbl))
+                    foreach (var line in System.IO.File.ReadLines(tbl))
+                    {
+                        var m = System.Text.RegularExpressions.Regex.Match(line, @"/\*\s*0x([0-9A-Fa-f]+)\s*\*/\s*DEFINE_ACTOR\w*\(\s*(\w+)\s*,");
+                        if (m.Success) ids.Add((Convert.ToInt32(m.Groups[1].Value, 16), m.Groups[2].Value));
+                    }
+                var curated = Editor.ActorParamSchema.CuratedDefs(oot).Select(kv => (int)kv.Key).ToHashSet();
+                var extracted = Editor.ActorParamSchemaExtractor.For(oot).Keys.Select(k => (int)k).ToHashSet();
+                int nCur = 0, nExt = 0, nRaw = 0;
+                var rawList = new List<string>();
+                foreach (var (id, name) in ids)
+                {
+                    if (curated.Contains(id)) nCur++;
+                    else if (extracted.Contains(id)) nExt++;
+                    else { nRaw++; rawList.Add($"0x{id:X4} {name}"); }
+                }
+                Console.WriteLine($"[coverage] {tag}: {ids.Count} actors | curated(dropdowns) {nCur} | auto-derived(named) {nExt} | RAW HEX {nRaw}");
+                int nBaked = Editor.BakedSchemas.For(oot).Count;
+                var baked = Editor.BakedSchemas.For(oot).Keys.Select(k => (int)k).ToHashSet();
+                int publicFriendly = ids.Count(x => curated.Contains(x.id) || baked.Contains(x.id));
+                Console.WriteLine($"[coverage] {tag}: friendly (dev, decomp present) = {nCur + nExt} ({100.0 * (nCur + nExt) / System.Math.Max(1, ids.Count):0.0}%)");
+                Console.WriteLine($"[coverage] {tag}: friendly (PUBLIC build, curated {nCur} + baked {nBaked}) = {publicFriendly} ({100.0 * publicFriendly / System.Math.Max(1, ids.Count):0.0}%)");
+                var outp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"schema-raw-{tag}.txt");
+                System.IO.File.WriteAllLines(outp, rawList);
+                Console.WriteLine($"[coverage] {tag}: raw-hex actor list -> {outp}");
+            }
+            Report(true); Report(false);
+            return;
+        }
+
         // Validate every hand-curated actor param schema for internal consistency: MegatonHammer --schematest
         if (args.Length >= 1 && args[0] == "--schematest")
         {

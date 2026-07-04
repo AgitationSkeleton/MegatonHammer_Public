@@ -1,0 +1,179 @@
+0x0005	En door	Type|7|3|Int|None|None|0|
+0x0006	En box	Type|12|4|Int|None|None|0|	Item|5|7|Int|None|None|0|
+0x000A	En wallmas	Switch flag|8|8|Int|Switch|Both|0|
+0x0010	En elf	Collectible flag|9|7|Int|Collectible|Both|0|
+0x0018	En holl	Type|7|3|Int|None|None|0|
+0x001C	En viewer	8000|9|7|Int|None|None|0|	1fc|2|7|Int|None|None|0|
+0x001E	Door shutter	380|7|3|Int|None|None|0|
+0x0028	En river sound	Path index|8|8|Int|None|None|0|
+0x0035	En m thunder	Magic cost|8|8|Int|None|None|0|
+0x0038	Door warp1	Ff00 1|8|8|Int|None|None|0|
+0x0039	Obj syokudai	Group size|7|4|Int|None|None|0|
+0x003B	En dekunuts	Ff00|8|8|Int|None|None|0|
+0x0041	En wood02	Ff00|8|8|Int|None|None|0|
+0x0047	En vm	Ff00|8|8|Int|None|None|0|
+0x004C	En rd	Flags|8|8|Int|None|None|0|
+0x004F	Obj mure	Chnum|12|4|Int|None|None|0|	Ptn|8|3|Int|None|None|0|	Svnum|5|2|Int|None|None|0|
+0x005B	En encount1	Type|11|5|Int|None|None|0|	Spawn active max|6|5|Int|None|None|0|
+0x0067	En in	Path index|9|6|Int|None|None|0|
+0x006B	En horse game check	Ff00|8|8|Int|None|None|0|
+0x0073	En fr	Targetmode|7|4|Int|None|None|0|
+0x007A	Obj oshihiki	Switch flag|8|7|Int|Switch|Both|0|	Ff00|8|8|Int|None|None|0|	F0|4|4|Int|None|None|0|
+0x007C	Bg umajump	Path index|8|8|Int|None|None|0|
+0x0080	Item etcetera	Treasureflag|8|5|Int|Chest|Both|0|
+0x0082	Obj tsubo	Type|7|2|Int|None|None|0|
+0x008B	Elf msg	Switch flag|8|7|Int|Switch|Both|0|
+0x008E	Obj ice poly	Switch flag|8|8|Int|Switch|Both|0|
+0x0090	En kusa	Param 0c|12|1|Flag|None|None|0|	Rand collectible id|8|4|Int|None|None|0|	Collectible id|8|7|Int|None|None|0|	Param fc|2|6|Int|None|None|0|
+0x0091	Obj bean	3f00|8|6|Int|None|None|0|	80|7|1|Flag|None|None|0|
+0x0092	Obj bombiwa	100|8|1|Flag|None|None|0|
+0x0093	Obj switch	7f00|8|7|Int|None|None|0|
+0x0095	Obj lift	7|8|3|Int|None|None|0|	Switch flag|1|7|Int|Switch|Both|0|
+0x0096	Obj hsblock	Switch flag|8|7|Int|Switch|Both|0|	6|6|2|Int|None|None|0|	5|5|1|Flag|None|None|0|
+0x009C	En daiku	Path index|8|8|Int|None|None|0|
+0x00AF	En owl	Type|7|5|Int|None|None|0|
+0x00B0	En ishi	Flag|9|7|Int|None|None|0|	100|8|1|Flag|None|None|0|	70|4|3|Int|None|None|0|	F0|4|4|Int|None|None|0|	8|3|1|Flag|None|None|0|	4|2|1|Flag|None|None|0|	2|1|1|Flag|None|None|0|
+0x00B2	Obj lightswitch	Switch flag|8|7|Int|Switch|Both|0|	Type|4|2|Int|None|None|0|	Invisible|3|1|Flag|None|None|0|
+0x00B5	En fu	Ff00|8|8|Int|None|None|0|
+0x00BF	En js	Path index|10|6|Int|None|None|0|	Exit index|4|6|Int|None|None|0|
+0x00C6	Elf msg2	Switch flag|8|7|Int|Switch|Both|0|
+0x00C7	Bg f40 swlift	Index|8|8|Int|None|None|0|
+0x00CB	Obj makeoshihiki	Path index|7|7|Int|None|None|0|
+0x00D3	Obj roomtimer	Switch flag|9|7|Int|Switch|Both|0|
+0x00E2	En dg	Path index|10|6|Int|None|None|0|	Index|5|5|Int|None|None|0|
+0x00E3	En si	Chest flag|2|6|Int|Chest|Both|0|
+0x00E4	Obj comb	80|7|1|Flag|None|None|0|	10|4|1|Flag|None|None|0|
+0x00ED	En skb	F0|4|4|Int|None|None|0|
+0x00EF	En gs	Switch flag|5|7|Int|Switch|Both|0|
+0x00F0	Obj sound	Type|8|8|Int|None|None|0|	Sfx type|7|1|Flag|None|None|0|
+0x00F8	En zo	Path index|9|6|Int|None|None|0|
+0x00F9	Obj makekinsuta	1f|8|5|Int|None|None|0|
+0x00FA	En ge3	Path|10|6|Int|None|None|0|	Exit|4|5|Int|None|None|0|
+0x0100	Door spiral	Type|8|2|Int|None|None|0|	Direction|7|1|Flag|None|None|0|
+0x0102	Obj pzlblock	700|8|3|Int|None|None|0|
+0x0103	Obj toge	700|8|3|Int|None|None|0|
+0x010D	Obj grass unit	Droptable|8|5|Int|None|None|0|
+0x0112	En encount3	Param f80|7|5|Int|None|None|0|
+0x0116	En warp tag	3c0|6|4|Int|None|None|0|
+0x0117	En aob 01	Starting dog path index|9|6|Int|None|None|0|
+0x011C	En bom bowl man	Path index|8|8|Int|None|None|0|	F0|4|4|Int|None|None|0|
+0x011D	En syateki man	Path index|8|8|Int|None|None|0|
+0x011F	Bg icicle	Paramshigh|8|8|Int|None|None|0|	Paramsmid|2|6|Int|None|None|0|
+0x0120	En syateki crow	Index|8|8|Int|None|None|0|	Speed mod|4|4|Int|None|None|0|
+0x0122	En cne 01	Path index|9|6|Int|None|None|0|
+0x0123	En bba 01	Path index|9|6|Int|None|None|0|
+0x0125	Bg spdweb	Switch flag|8|7|Int|Switch|Both|0|
+0x0130	Bg dy yoseizo	Switchflag|9|7|Int|Switch|Both|0|
+0x0135	En sob1	Path index|5|5|Int|None|None|0|
+0x013A	En raf	Type|12|4|Int|None|None|0|	Revive timer|7|5|Int|None|None|0|
+0x013C	Obj raillift	Starting point|7|5|Int|None|None|0|
+0x013E	Obj flowerpot	7f00|8|7|Int|None|None|0|
+0x013F	Obj spinyroll	380|7|3|Int|None|None|0|
+0x0141	En syateki wf	Index|8|8|Int|None|None|0|	Point to howl|4|4|Int|None|None|0|
+0x0143	Obj iceblock	Snap rot|1|1|Flag|None|None|0|
+0x0145	En syateki dekunuts	Additional path index limit|8|8|Int|None|None|0|	Index|4|4|Int|None|None|0|
+0x0146	Elf msg3	Switch flag|8|7|Int|Switch|Both|0|
+0x014B	En pr	Ff00|8|8|Int|None|None|0|
+0x0153	En elfgrp	Switch flag params|9|7|Int|Switch|Both|0|
+0x0156	Obj vspinyroll	380|7|3|Int|None|None|0|
+0x0159	En test3	Param 1e0|5|4|Int|None|None|0|
+0x015A	En test4	Big bells sfx volume index|5|4|Int|None|None|0|
+0x015B	En bat	Switch flag|8|8|Int|Switch|Both|0|	Paramflags|5|3|Int|None|None|0|	Type|0|5|Int|None|None|0|
+0x015D	En wiz	Type|8|8|Int|None|None|0|
+0x0162	Obj fireshield	1f00|8|5|Int|None|None|0|	Switch flag|7|7|Int|Switch|Both|0|
+0x0163	Bg ladder	Switch flag|8|8|Int|Switch|Both|0|
+0x0164	En mkk	Ff00|8|8|Int|None|None|0|
+0x016D	Obj hugebombiwa	100|8|1|Flag|None|None|0|
+0x0174	Bg dblue movebg	Switch flag|4|8|Int|Switch|Both|0|
+0x0179	Obj driftice	E00|9|3|Int|None|None|0|	1fc|2|7|Int|None|None|0|
+0x017E	Bg crace movebg	Switch flag|4|7|Int|Switch|Both|0|
+0x017F	En dno	Race started switch flag|7|7|Int|Switch|Both|0|
+0x0180	En pr2	Ff0|4|8|Int|None|None|0|
+0x0184	En egol	Switch flag|6|7|Int|Switch|Both|0|
+0x0185	Obj mine	Type|12|2|Int|None|None|0|	Path speed|8|3|Int|None|None|0|
+0x018D	En az	Param f00|8|4|Int|None|None|0|
+0x018F	Bg hakugin post	Switch flag|8|7|Int|Switch|Both|0|
+0x0190	Dm opstage	Cue type offset|8|8|Int|None|None|0|
+0x0199	Dm char07	Spotlightflags|8|5|Int|None|None|0|
+0x019B	Dm char09	Path index|4|4|Int|None|None|0|
+0x019E	En mnk	Path index|11|5|Int|None|None|0|	Type|7|4|Int|None|None|0|
+0x019F	En egblock	Type|12|4|Int|None|None|0|	Param f80|7|5|Int|None|None|0|
+0x01A4	En ma4	Path index|8|8|Int|None|None|0|
+0x01A5	En twig	Param fe0|9|7|Int|None|None|0|	Param 1f0|4|5|Int|None|None|0|
+0x01AA	Obj ocarinalift	1f|7|5|Int|None|None|0|
+0x01B0	En elforg	Flag|9|7|Int|None|None|0|	Non dungeon area|6|3|Int|None|None|0|
+0x01C8	Obj bigicicle	Ff00|8|8|Int|None|None|0|
+0x01C9	En lift nuts	Path index|8|8|Int|None|None|0|
+0x01CA	En tk	Switch flag|4|7|Int|Switch|Both|0|
+0x01CD	Obj lupygamelift	7|7|5|Int|None|None|0|
+0x01CF	Obj lightblock	Destroyed switch flag|8|7|Int|Switch|Both|0|
+0x01D0	Mir ray2	Switch flag|9|7|Int|Switch|Both|0|
+0x01D4	En snowwd	Drop table|7|5|Int|None|None|0|
+0x01D7	Elf msg4	Switch flag|8|7|Int|Switch|Both|0|
+0x01D8	Elf msg5	Switch flag|8|7|Int|Switch|Both|0|
+0x01DA	En talk gibud	Switch flag|4|8|Int|Switch|Both|0|
+0x01DC	Obj snowball	7f00|8|7|Int|None|None|0|
+0x01DE	En gb2	Switch flag|3|8|Int|Switch|Both|0|
+0x01E3	Obj hakaisi	Switch flag|8|8|Int|Switch|Both|0|
+0x01E4	Bg hakugin switch	Switch flag|8|7|Int|Switch|Both|0|	10|4|1|Flag|None|None|0|
+0x01E6	En snowman	Attack range|8|8|Int|None|None|0|
+0x01E8	En po sisters	Type|8|2|Int|None|None|0|
+0x01ED	Obj wind	Type|7|5|Int|None|None|0|
+0x01EE	En racedog	Path index|10|6|Int|None|None|0|	Index|5|5|Int|None|None|0|
+0x01EF	En kendo js	Ff00|8|8|Int|None|None|0|
+0x01F4	Obj spidertent	Switch flag|8|7|Int|Switch|Both|0|
+0x01F5	En zoraegg	Switch flag|9|7|Int|Switch|Both|0|
+0x01F8	En maruta	Ff00|8|8|Int|None|None|0|
+0x01F9	Obj snowball2	7f00|8|7|Int|None|None|0|
+0x01FF	En kgy	Switch flag|9|7|Int|Switch|Both|0|
+0x0201	En gk	Switch flag|8|6|Int|Switch|Both|0|	Path index|4|4|Int|None|None|0|
+0x0205	En ot	Switch flag|7|7|Int|Switch|Both|0|
+0x0206	En dragon	Python index|7|5|Int|None|None|0|
+0x0212	En rail skb	Ff00|8|8|Int|None|None|0|
+0x0213	En jg	Path index|10|6|Int|None|None|0|
+0x0215	Obj um	Type|8|8|Int|None|None|0|
+0x021A	Bg ikana rotaryroom	Switch flag 2|8|7|Int|Switch|Both|0|	Switch flag 1|1|7|Int|Switch|Both|0|
+0x021B	Bg dblue balance	300|8|2|Int|None|None|0|
+0x021C	Bg dblue waterfall	100|8|1|Flag|None|None|0|
+0x021D	En kaizoku	Switch flag|6|7|Int|Switch|Both|0|
+0x021E	En ge2	Type|5|3|Int|None|None|0|
+0x021F	En ma yts	Type|12|4|Int|None|None|0|
+0x0220	En ma yto	Type|12|4|Int|None|None|0|
+0x022B	Obj y2shutter	Type|7|1|Flag|None|None|0|
+0x022C	Obj boat	Path index|7|5|Int|None|None|0|
+0x022D	Obj taru	7f00|8|7|Int|None|None|0|
+0x022E	Obj hunsui	F80|7|5|Int|None|None|0|
+0x0232	Elf msg6	F0|4|4|Int|None|None|0|
+0x0233	Obj nozoki	Switch flag2|9|7|Int|Switch|Both|0|	180|7|2|Int|None|None|0|
+0x0234	En toto	Switch flag 2|7|7|Int|Switch|Both|0|
+0x0235	En railgibud	Path index|8|8|Int|None|None|0|
+0x0236	En baba	Path index|8|6|Int|None|None|0|
+0x0237	En suttari	Path index|9|6|Int|None|None|0|
+0x0238	En zod	Entrance index|9|7|Int|None|None|0|
+0x0242	En s goro	Switch flag|4|7|Int|Switch|Both|0|
+0x0245	Bg f40 block	Switch flag|9|7|Int|Switch|Both|0|	Path index|2|7|Int|None|None|0|
+0x0246	Bg f40 switch	Switch flag|9|7|Int|Switch|Both|0|
+0x024C	En scopenuts	3e0|5|5|Int|None|None|0|
+0x024D	En scopecrow	3e0|5|5|Int|None|None|0|
+0x0252	En zov	Fe00|9|7|Int|None|None|0|
+0x0255	Bg ikana bombwall	100|8|1|Flag|None|None|0|
+0x0257	Bg ikana shutter	100|8|1|Flag|None|None|0|
+0x025D	En pamera	Path index|4|8|Int|None|None|0|
+0x025E	Obj hsstump	Ishidden|12|4|Int|None|None|0|
+0x025F	En hidden nuts	Path index|7|5|Int|None|None|0|
+0x0265	En hit tag	Switch flag|9|7|Int|Switch|Both|0|
+0x026A	En daiku2	8000|15|1|Flag|None|None|0|	Path index|7|6|Int|None|None|0|
+0x0273	Bg ikana dharma	Switch flag|8|7|Int|Switch|Both|0|
+0x027B	En rz	Path index|9|6|Int|None|None|0|
+0x027C	En scopecoin	Rupee flag|4|7|Int|None|None|0|
+0x027E	En bomjima	F0|4|4|Int|None|None|0|
+0x027F	En bomjimb	Ff00|8|8|Int|None|None|0|	F0|4|4|Int|None|None|0|
+0x0280	En bombers	F0|4|4|Int|None|None|0|
+0x0285	Bg ikninside	Switch flag|9|7|Int|Switch|Both|0|
+0x028A	Obj kzsaku	Switch flag|8|7|Int|Switch|Both|0|
+0x028C	En kitan	9|9|7|Int|None|None|0|
+0x0295	Demo syoten	7e00|9|6|Int|None|None|0|
+0x029A	En invadepoh demo	Cueid offset|11|3|Int|None|None|0|	Path index|4|7|Int|None|None|0|
+0x029B	Obj danpeilift	Starting point|7|5|Int|None|None|0|
+0x02AE	Obj swprize	Type|8|2|Int|None|None|0|
+0x02AF	En invisible ruppe	Switch flag|2|7|Int|Switch|Both|0|

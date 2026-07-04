@@ -816,7 +816,10 @@ public static class ActorParamSchema
     {
         var curated = (isOoT ? OoT : MM).GetValueOrDefault(actorId);
         if (curated != null) return curated;
-        return ActorParamSchemaExtractor.For(isOoT).GetValueOrDefault(actorId);
+        // Live extractor when the decomp is present on disk (freshest); otherwise the shipped baked file
+        // (portable — a public build / end-user install has no decomp but still gets named fields + dropdowns).
+        return ActorParamSchemaExtractor.For(isOoT).GetValueOrDefault(actorId)
+            ?? BakedSchemas.For(isOoT).GetValueOrDefault(actorId);
     }
 
     public static bool Has(bool isOoT, ushort actorId) => For(isOoT, actorId) != null;
