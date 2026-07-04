@@ -329,27 +329,58 @@ public sealed class EntityConfigDialog : Form
     // A "Dialogue" row for a catalogued NPC without a message param: a dropdown of its vanilla lines + a
     // Customize button that overrides the chosen line's text via the Dialogue Editor (keeps the NPC's own
     // behaviour; just replaces the words — vanilla-portable).
+    // A combo entry for one vanilla line, marked "✎ … (custom)" when the mapper has overridden that textId.
+    private sealed class LineItem
+    {
+        public readonly DialogueCatalog.Line Line;
+        public readonly bool Custom;
+        public LineItem(DialogueCatalog.Line line, bool custom) { Line = line; Custom = custom; }
+        public override string ToString() => Custom ? $"✎ {Line}  (custom)" : Line.ToString();
+    }
+
     private void AddCatalogDialogueRow(DialogueCatalog.Line[] lines)
     {
         var lbl = new Label { Text = "Dialogue", Dock = DockStyle.Fill, ForeColor = FgNormal,
             Font = UiFonts.Get("Segoe UI", 8.5f), Margin = new Padding(2), TextAlign = ContentAlignment.MiddleLeft };
         var host = new Panel { Dock = DockStyle.Fill, Height = 26, Margin = new Padding(0) };
-        var edit = new Button { Text = "Customize…", Dock = DockStyle.Right, Width = 82, Height = 24,
-            BackColor = Color.FromArgb(60, 60, 63), ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, Font = UiFonts.Get("Segoe UI", 8f) };
-        var combo = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList,
-            BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, Font = UiFonts.Get("Consolas", 8.5f), Margin = new Padding(2) };
-        foreach (var l in lines) combo.Items.Add(l);
-        combo.SelectedIndex = 0;
-        _tip.SetToolTip(combo, "This NPC's vanilla lines (what it says in the game). Pick one, then Customize… to replace it.");
-        _tip.SetToolTip(edit, "Override the selected vanilla line with your own text — keeps the NPC's behaviour, just changes the words.");
+        var edit = new Button { Text = "Customize…", Dock = DockStyle.Right, Width = 78, Height = 24,
+            Margin = new Padding(6, 0, 0, 0), BackColor = Color.FromArgb(60, 60, 63), ForeColor = FgNormal,
+            FlatStyle = FlatStyle.Flat, Font = UiFonts.Get("Segoe UI", 8f) };
+        var combo = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList, DropDownWidth = 320,
+            BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, Font = UiFonts.Get("Consolas", 8.5f), Margin = new Padding(2, 0, 0, 0) };
+
+        bool IsCustom(int textId) => _doc?.Scene.Messages.Any(m => m.Id == textId && m.IsOverride) == true;
+        void Fill()   // (re)mark each line as vanilla or custom, preserving the selection
+        {
+            int sel = combo.SelectedIndex < 0 ? 0 : combo.SelectedIndex;
+            combo.BeginUpdate();
+            combo.Items.Clear();
+            foreach (var l in lines) combo.Items.Add(new LineItem(l, IsCustom(l.TextId)));
+            combo.SelectedIndex = System.Math.Min(sel, combo.Items.Count - 1);
+            combo.EndUpdate();
+        }
+        Fill();
+        _tip.SetToolTip(combo, "This NPC's vanilla lines. A line marked ✎ (custom) uses YOUR text and replaces the "
+            + "vanilla words at export; unmarked lines stay vanilla. Pick a line, then Customize… to make it custom.");
+        _tip.SetToolTip(edit, "Write your own text for the selected line. On Save it becomes a custom override that "
+            + "replaces the NPC's vanilla words (its behaviour is unchanged). Portable — no engine fork required.");
         edit.Click += (_, _) =>
         {
-            if (_doc == null || combo.SelectedItem is not DialogueCatalog.Line line) return;
-            var bm = _doc.Scene.Messages.FirstOrDefault(m => m.Id == line.TextId);
-            if (bm == null) { bm = new MhMessage(line.TextId, "New dialogue."); _doc.Scene.Messages.Add(bm); }
+            if (_doc == null || combo.SelectedItem is not LineItem li) return;
+            var line = li.Line;
+            var existing = _doc.Scene.Messages.FirstOrDefault(m => m.Id == line.TextId);
+            bool wasNew = existing == null;
+            var bm = existing ?? new MhMessage(line.TextId, "New dialogue.");
+            if (wasNew) _doc.Scene.Messages.Add(bm);
+            bool prevOverride = bm.IsOverride;
             bm.IsOverride = true;
             using var dlg = new DialogueEditorDialog(_doc.Scene, line.TextId, line.TextId, line.TextId, _actor.Number, !_isOoT);
-            dlg.ShowDialog(this);
+            if (dlg.ShowDialog(this) != DialogResult.OK)   // cancelled: don't leave a stray placeholder override
+            {
+                bm.IsOverride = prevOverride;
+                if (wasNew) _doc.Scene.Messages.Remove(bm);
+            }
+            Fill();   // reflect the new custom/vanilla state in the dropdown
         };
         host.Controls.Add(edit); host.Controls.Add(combo);
         int row = _logicHost.RowCount;

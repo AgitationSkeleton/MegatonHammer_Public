@@ -685,7 +685,9 @@ static class Program
             // Per-NPC vanilla dialogue catalog: contextual "Default Dialogue" lines for talkable NPCs.
             Chk(Editor.DialogueCatalog.For(false, 0x0084) is { Length: > 0 }, "dialogue catalog has Talon (En_Ta 0x0084) vanilla lines");
             Chk(Editor.DialogueCatalog.For(false, 0x01CE) is { Length: > 0 }, "dialogue catalog has Zora (En_Zo 0x01CE) vanilla lines");
-            Chk(Editor.DialogueCatalog.For(false, 0x0146)![0].TextId == 0x1001, "catalog maps Saria (0x0146) to her greeting textId 0x1001");
+            Chk(Editor.DialogueCatalog.For(false, 0x0146)![0].TextId == 0x1002, "catalog maps Saria (0x0146) to her greeting textId 0x1002");
+            Chk(Editor.DialogueCatalog.For(true, 0x0202) is { Length: > 0 }, "MM catalog has Anju (En_An 0x0202) vanilla lines");
+            Chk(Editor.DialogueCatalog.For(true, 0x01A4)![0].TextId == 0x334D, "MM catalog maps Romani (En_Ma4 0x01A4) to 0x334D");
             return;
         }
 

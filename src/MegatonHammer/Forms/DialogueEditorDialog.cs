@@ -17,11 +17,26 @@ public sealed class DialogueEditorDialog : Form
     private static readonly Color FgNormal = Color.FromArgb(210, 210, 210);
     private static readonly Color Accent = Color.FromArgb(140, 190, 255);
 
+    // Visible-character caps. A single OoT/MM message box decodes to ~200 bytes; use ^ for a new box.
+    private const int MsgMax = 480;      // whole message (across ^ box breaks)
+    private const int ChoiceMax = 40;    // a single prompt choice line
+
+    // The on-screen colours for the %r/%g/%b/%y/%p/%w markup codes (index 5 = %w = the default white).
+    private static readonly (char Code, Color Color)[] Palette =
+    {
+        ('r', Color.FromArgb(230, 90, 90)), ('g', Color.FromArgb(90, 200, 110)),
+        ('b', Color.FromArgb(110, 160, 255)), ('y', Color.FromArgb(230, 210, 90)),
+        ('p', Color.FromArgb(200, 140, 230)), ('w', Color.FromArgb(230, 230, 230)),
+    };
+    private static Color DefaultInk => Palette[5].Color;
+
     private readonly ZScene _scene;
     private readonly int _baseId, _maxId;
     private readonly ListBox _list;
     private readonly Label _idLabel;
-    private readonly TextBox _text, _choice1, _choice2;
+    private readonly Label _counter;
+    private readonly RichTextBox _text;   // WYSIWYG: shows colour, hides the %r/%w codes
+    private readonly TextBox _choice1, _choice2;
     private readonly RadioButton _kMsg, _kPrompt;
     private readonly NumericUpDown _doneFlag;
     private readonly ComboBox _gestureCombo, _sfxCombo, _afterCombo;
@@ -30,6 +45,7 @@ public sealed class DialogueEditorDialog : Form
     private readonly OutcomeControls _o1, _o2;
     private readonly Label _o1Head, _o2Head;
     private bool _loading;
+    private bool _syncing;   // true while MarkupToRich is populating the RichTextBox (suppress handlers)
 
     public int? SelectedId { get; private set; }
 
@@ -63,25 +79,29 @@ public sealed class DialogueEditorDialog : Form
             Font = new Font("Consolas", 9f, FontStyle.Bold), Text = "(no message)" };
         Controls.Add(_idLabel);
 
-        // ── Colour / Timing / structure toolbar (inserts markup) ──
+        // ── Colour / Timing / structure toolbar. Colour buttons tint the selected text (WYSIWYG); the
+        //    %r/%w codes are never shown — they're re-derived from the colours when the box is saved. ──
         Controls.Add(Lab("Colour:", rx, 36, 46));
         int cx = rx + 50;
-        foreach (var (mk, col, name) in new[] {
-            ("%r", Color.FromArgb(230,90,90), "red"), ("%g", Color.FromArgb(90,200,110), "green"),
-            ("%b", Color.FromArgb(110,160,255), "blue"), ("%y", Color.FromArgb(230,210,90), "yellow"),
-            ("%p", Color.FromArgb(200,140,230), "purple"), ("%w", Color.FromArgb(230,230,230), "white") })
-        { var b = MarkBtn(name[..1].ToUpper(), cx, 34, col, mk); Controls.Add(b); cx += 26; }
+        foreach (var (col, letter) in new[] {
+            (Palette[0].Color, "R"), (Palette[1].Color, "G"), (Palette[2].Color, "B"),
+            (Palette[3].Color, "Y"), (Palette[4].Color, "P"), (Palette[5].Color, "W") })
+        { Controls.Add(ColourBtn(letter, cx, 34, col)); cx += 26; }
         var bBox = MarkBtn("Box", cx + 6, 34, FgNormal, "^"); bBox.Width = 40; Controls.Add(bBox);
         Controls.Add(Lab("Timing:", rx, 60, 48));
         var bSlow = MarkBtn("slow ~2", rx + 52, 58, FgNormal, "~2"); bSlow.Width = 60;
         var bFast = MarkBtn("fast ~0", rx + 116, 58, FgNormal, "~0"); bFast.Width = 60;
         Controls.Add(bSlow); Controls.Add(bFast);
+        _counter = new Label { Left = rx + 372, Top = 62, Width = 98, Height = 16, ForeColor = Color.Gray,
+            TextAlign = ContentAlignment.MiddleRight, Font = new Font("Consolas", 8f), Text = $"0 / {MsgMax}" };
+        Controls.Add(_counter);
 
-        // ── Message text ──
-        _text = new TextBox { Left = rx, Top = 84, Width = 470, Height = 96, Multiline = true,
-            ScrollBars = ScrollBars.Vertical, BackColor = BgInput, ForeColor = FgNormal,
-            BorderStyle = BorderStyle.FixedSingle, Font = new Font("Consolas", 9.5f) };
-        _text.TextChanged += (_, _) => { if (!_loading && Cur is { } m) m.Text = _text.Text; };
+        // ── Message text: a RichTextBox that renders colour markup instead of showing the raw codes ──
+        _text = new RichTextBox { Left = rx, Top = 84, Width = 470, Height = 96, BackColor = BgInput,
+            ForeColor = DefaultInk, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Consolas", 9.5f),
+            AcceptsTab = false, HideSelection = false, MaxLength = MsgMax };
+        _text.TextChanged += (_, _) => { if (!_syncing) UpdateCounter(); };
+        _text.Leave += (_, _) => { if (!_loading && !_syncing) SyncText(); };
         Controls.Add(_text);
 
         // ── Kind: Message vs Prompt ──
@@ -91,8 +111,8 @@ public sealed class DialogueEditorDialog : Form
         _kPrompt.CheckedChanged += (_, _) => { if (!_loading && _kPrompt.Checked && Cur is { } m) { m.Kind = MhMsgKind.Prompt;  RefreshEnabled(); } };
         Controls.Add(_kMsg); Controls.Add(_kPrompt);
 
-        _choice1 = SmallText(rx + 60, 208, 120); _choice1.TextChanged += (_, _) => { if (!_loading && Cur is { } m) m.Choice1 = _choice1.Text; };
-        _choice2 = SmallText(rx + 250, 208, 120); _choice2.TextChanged += (_, _) => { if (!_loading && Cur is { } m) m.Choice2 = _choice2.Text; };
+        _choice1 = SmallText(rx + 60, 208, 120); _choice1.MaxLength = ChoiceMax; _choice1.TextChanged += (_, _) => { if (!_loading && Cur is { } m) m.Choice1 = _choice1.Text; };
+        _choice2 = SmallText(rx + 250, 208, 120); _choice2.MaxLength = ChoiceMax; _choice2.TextChanged += (_, _) => { if (!_loading && Cur is { } m) m.Choice2 = _choice2.Text; };
         Controls.Add(Lab("Choice 1:", rx, 210, 56)); Controls.Add(_choice1);
         Controls.Add(Lab("Choice 2:", rx + 192, 210, 56)); Controls.Add(_choice2);
 
@@ -148,7 +168,7 @@ public sealed class DialogueEditorDialog : Form
             Height = 28, BackColor = Color.FromArgb(0, 122, 204), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
         var cancel = new Button { Text = "Close", DialogResult = DialogResult.Cancel, Location = new Point(598, 488), Width = 76,
             Height = 28, BackColor = Color.FromArgb(60, 60, 65), ForeColor = FgNormal, FlatStyle = FlatStyle.Flat };
-        ok.Click += (_, _) => { if (Cur is { } m) SelectedId = m.Id; };
+        ok.Click += (_, _) => { SyncText(); if (Cur is { } m) SelectedId = m.Id; };
         Controls.Add(ok); Controls.Add(cancel);
         AcceptButton = ok; CancelButton = cancel;
 
@@ -210,15 +230,108 @@ public sealed class DialogueEditorDialog : Form
         return int.TryParse(t, System.Globalization.NumberStyles.HexNumber, null, out int v) && v >= 0 ? v : -1;
     }
 
-    // Insert markup at the text caret.
+    // Insert a structural marker (^ new box, ~N timing) at the caret, preserving surrounding colour runs.
     private void Insert(string mk)
     {
         if (!_text.Enabled) return;
-        int p = _text.SelectionStart;
-        _text.Text = _text.Text.Insert(p, mk);
-        _text.SelectionStart = p + mk.Length;
+        _text.SelectedText = mk;   // RichTextBox: replaces the selection / inserts at the caret
         _text.Focus();
+        SyncText();
     }
+
+    // Colour the selected text (or set the colour for what's typed next). WYSIWYG — no %-code is shown.
+    private void ApplyColour(Color col)
+    {
+        if (!_text.Enabled) return;
+        _text.SelectionColor = col;
+        _text.Focus();
+        SyncText();
+    }
+
+    // ── Markup <-> RichTextBox (the WYSIWYG bridge) ──
+
+    // Render stored markup ("Hi %rLink%w!") into the RichTextBox as coloured runs; & -> newline, codes hidden.
+    private void MarkupToRich(string markup)
+    {
+        _syncing = true;
+        _text.Clear();
+        _text.SelectionColor = DefaultInk;
+        var run = new System.Text.StringBuilder();
+        Color cur = DefaultInk;
+        void Flush()
+        {
+            if (run.Length == 0) return;
+            _text.SelectionStart = _text.TextLength; _text.SelectionLength = 0;
+            _text.SelectionColor = cur; _text.AppendText(run.ToString()); run.Clear();
+        }
+        for (int i = 0; i < markup.Length; i++)
+        {
+            char c = markup[i];
+            if (c == '%' && i + 1 < markup.Length && TryColour(char.ToLowerInvariant(markup[i + 1]), out var col))
+            { Flush(); cur = col; i++; continue; }
+            if (c == '&') { run.Append('\n'); continue; }   // newline marker -> a real line break
+            run.Append(c);                                   // literal text incl. ^ box and ~N timing markers
+        }
+        Flush();
+        _text.SelectionStart = _text.TextLength; _text.SelectionLength = 0; _text.SelectionColor = DefaultInk;
+        _syncing = false;
+        UpdateCounter();
+    }
+
+    // Re-derive the stored markup from the RichTextBox's coloured runs (newlines -> &, colour changes -> %x).
+    private string RichToMarkup()
+    {
+        var sb = new System.Text.StringBuilder();
+        string text = _text.Text;
+        int ss = _text.SelectionStart, sl = _text.SelectionLength;
+        char last = 'w';   // default ink is white; a leading white run emits no code
+        SendMessage(_text.Handle, WM_SETREDRAW, IntPtr.Zero, IntPtr.Zero);   // suppress flicker during the scan
+        try
+        {
+            for (int i = 0; i < text.Length; i++)
+            {
+                char ch = text[i];
+                if (ch == '\r') continue;
+                if (ch == '\n') { sb.Append('&'); continue; }
+                _text.Select(i, 1);
+                char code = ColourCode(_text.SelectionColor) ?? 'w';
+                if (code != last) { sb.Append('%').Append(code); last = code; }
+                sb.Append(ch);
+            }
+        }
+        finally
+        {
+            _text.Select(ss, sl);
+            SendMessage(_text.Handle, WM_SETREDRAW, (IntPtr)1, IntPtr.Zero);
+            _text.Invalidate();
+        }
+        return sb.ToString();
+    }
+
+    private void SyncText() { if (Cur is { } m) m.Text = RichToMarkup(); }
+
+    private void UpdateCounter()
+    {
+        int n = _text.TextLength;
+        _counter.Text = $"{n} / {MsgMax}";
+        _counter.ForeColor = n >= MsgMax ? Color.FromArgb(230, 120, 120) : n > MsgMax - 60 ? Color.Goldenrod : Color.Gray;
+    }
+
+    private static bool TryColour(char code, out Color col)
+    {
+        foreach (var (c, k) in Palette) if (c == code) { col = k; return true; }
+        col = DefaultInk; return false;
+    }
+
+    private static char? ColourCode(Color col)
+    {
+        foreach (var (c, k) in Palette) if (k.R == col.R && k.G == col.G && k.B == col.B) return c;
+        return null;   // unknown ink -> treated as default (no code)
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    private const int WM_SETREDRAW = 0x000B;
 
     private void Reload(int selectId)
     {
@@ -239,7 +352,7 @@ public sealed class DialogueEditorDialog : Form
         if (Cur is { } m)
         {
             _idLabel.Text = $"MsgBox  textId 0x{m.Id:X3}   (range 0x{_baseId:X3}-0x{_maxId:X3})";
-            _text.Text = m.Text;
+            MarkupToRich(m.Text);
             _kMsg.Checked = m.Kind == MhMsgKind.Message; _kPrompt.Checked = m.Kind == MhMsgKind.Prompt;
             _choice1.Text = m.Choice1; _choice2.Text = m.Choice2;
             SelectSfx(m.Sfx);
@@ -284,6 +397,13 @@ public sealed class DialogueEditorDialog : Form
         var b = new Button { Text = t, Left = x, Top = y, Width = 24, Height = 22, BackColor = Color.FromArgb(50, 50, 53),
             ForeColor = fg, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 8f, FontStyle.Bold), Margin = new Padding(0) };
         b.Click += (_, _) => Insert(markup);
+        return b;
+    }
+    private Button ColourBtn(string t, int x, int y, Color col)
+    {
+        var b = new Button { Text = t, Left = x, Top = y, Width = 24, Height = 22, BackColor = Color.FromArgb(50, 50, 53),
+            ForeColor = col, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 8f, FontStyle.Bold), Margin = new Padding(0) };
+        b.Click += (_, _) => ApplyColour(col);
         return b;
     }
     private static Label Lab(string t, int x, int y, int w) => new() { Text = t, Left = x, Top = y, Width = w, ForeColor = FgNormal };
