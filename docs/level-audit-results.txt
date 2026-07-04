@@ -1,0 +1,681 @@
+﻿
+================  AUDIT: OoT (SoH)  ================
+  [00] Deku Tree                  rm=12 act=119 trans=12 spawn=2 env=7 exit=2(unmapped=0) | build=OK 268b/12rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [01] Dodongos Cavern            rm=17 act=178 trans=23 spawn=2 env=5 exit=2(unmapped=0) | build=OK 308b/17rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [02] Jabu Jabu                  rm=16 act=115 trans=22 spawn=2 env=4 exit=2(unmapped=0) setups=1[Adult Night] | build=OK 300b/16rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [03] Forest Temple              rm=23 act=152 trans=29 spawn=3 env=15 exit=2(unmapped=0) | build=OK 356b/23rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [04] Fire Temple                rm=27 act=276 trans=37 spawn=2 env=4 exit=2(unmapped=0) | build=OK 388b/27rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [05] Water Temple               rm=23 act=204 trans=27 spawn=1 env=5 exit=2(unmapped=0) | build=OK 356b/23rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [06] Spirit Temple              rm=29 act=301 trans=33 spawn=4 env=4 exit=4(unmapped=0) | build=OK 404b/29rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [07] Shadow Temple              rm=23 act=235 trans=23 spawn=2 env=4 exit=2(unmapped=0) | build=OK 356b/23rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [08] Bottom Of The Well         rm=7 act=131 trans=15 spawn=1 env=4 exit=1(unmapped=0) | build=OK 228b/7rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [09] Ice Cavern                 rm=12 act=153 trans=12 spawn=2 env=6 exit=1(unmapped=0) setups=1[Adult Night] | build=OK 268b/12rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [0A] Ganons Tower               rm=10 act=72 trans=9 spawn=3 env=11 exit=2(unmapped=0) | build=OK 252b/10rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [0B] Gerudo Training Ground     rm=11 act=162 trans=22 spawn=1 env=4 exit=1(unmapped=0) | build=OK 260b/11rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [0C] Thieves Hideout            rm=6 act=75 trans=0 spawn=13 env=4 exit=13(unmapped=0) | build=OK 220b/6rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [0D] Inside Ganons Castle       rm=20 act=256 trans=21 spawn=9 env=26 exit=2(unmapped=0) | build=OK 332b/20rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [0E] Ganons Tower Collapse Interior rm=5 act=85 trans=1 spawn=8 env=5 exit=8(unmapped=0) | build=OK 212b/5rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [0F] Inside Ganons Castle Collapse rm=2 act=21 trans=1 spawn=2 env=6 exit=2(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [10] Treasure Box Shop          rm=7 act=23 trans=7 spawn=1 env=5 exit=1(unmapped=0) | build=OK 228b/7rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [11] Deku Tree Boss             rm=2 act=9 trans=1 spawn=1 env=6 exit=1(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [12] Dodongos Cavern Boss       rm=2 act=8 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [13] Jabu Jabu Boss             rm=2 act=7 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [14] Forest Temple Boss         rm=2 act=1 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [15] Fire Temple Boss           rm=2 act=2 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [16] Water Temple Boss          rm=2 act=1 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [17] Spirit Temple Boss         rm=4 act=25 trans=3 spawn=3 env=10 exit=1(unmapped=0) setups=3[Adult Night/Cutscene Setup 1/Cutscene Setup 2] | build=OK 204b/4rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [18] Shadow Temple Boss         rm=2 act=7 trans=1 spawn=1 env=1 exit=1(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [19] Ganondorf Boss             rm=1 act=65 trans=1 spawn=1 env=17 exit=0(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [1A] Ganons Tower Collapse Exterior rm=1 act=10 trans=0 spawn=8 env=4 exit=7(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [1B] Market Entrance Day        rm=1 act=2 trans=1 spawn=3 env=1 exit=3(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [1C] Market Entrance Night      rm=1 act=2 trans=1 spawn=3 env=1 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [1D] Market Entrance Ruins      rm=1 act=1 trans=1 spawn=3 env=1 exit=3(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [1E] Back Alley Day             rm=1 act=5 trans=3 spawn=5 env=1 exit=5(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [1F] Back Alley Night           rm=1 act=5 trans=3 spawn=5 env=1 exit=5(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [20] Market Day                 rm=1 act=39 trans=6 spawn=11 env=1 exit=11(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [21] Market Night               rm=1 act=27 trans=6 spawn=11 env=1 exit=11(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [22] Market Ruins               rm=1 act=8 trans=0 spawn=11 env=1 exit=3(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [23] Temple Of Time Exterior Day rm=1 act=5 trans=0 spawn=2 env=4 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [24] Temple Of Time Exterior Night rm=1 act=7 trans=0 spawn=2 env=1 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [25] Temple Of Time Exterior Ruins rm=1 act=5 trans=0 spawn=2 env=1 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [26] Know It All Bros House     rm=1 act=8 trans=0 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [27] Twins House                rm=1 act=4 trans=0 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [28] Midos House                rm=1 act=7 trans=0 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [29] Sarias House               rm=1 act=6 trans=0 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [2A] Kakariko Center Guest House rm=1 act=11 trans=1 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [2B] Back Alley House           rm=1 act=5 trans=1 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [2C] Bazaar                     rm=1 act=4 trans=0 spawn=2 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [2D] Kokiri Shop                rm=1 act=5 trans=0 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [2E] Goron Shop                 rm=1 act=2 trans=0 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [2F] Zora Shop                  rm=1 act=3 trans=0 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [30] Potion Shop Kakariko       rm=1 act=3 trans=0 spawn=3 env=1 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [31] Potion Shop Market         rm=1 act=3 trans=0 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [32] Bombchu Shop               rm=1 act=2 trans=0 spawn=2 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [33] Happy Mask Shop            rm=1 act=4 trans=0 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [34] Links House                rm=1 act=3 trans=0 spawn=2 env=1 exit=1(unmapped=0) setups=2[Adult Night/Cutscene Setup 1] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [35] Dog Lady House             rm=1 act=3 trans=1 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [36] Stable                     rm=1 act=9 trans=1 spawn=2 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [37] Impas House                rm=1 act=7 trans=1 spawn=2 env=1 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [38] Lakeside Laboratory        rm=1 act=7 trans=1 spawn=2 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [39] Carpenters Tent            rm=1 act=6 trans=0 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [3A] Gravekeepers Hut           rm=1 act=1 trans=1 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x05:windSettings, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [3B] Great Fairys Fountain Magic rm=1 act=5 trans=0 spawn=3 env=5 exit=1(unmapped=0) setups=3[Adult Night/Cutscene Setup 1/Cutscene Setup 2] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [3C] Fairys Fountain            rm=1 act=1 trans=0 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [3D] Great Fairys Fountain Spells rm=1 act=4 trans=0 spawn=3 env=7 exit=1(unmapped=0) setups=3[Adult Night/Cutscene Setup 1/Cutscene Setup 2] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [3E] Grottos                    rm=14 act=82 trans=0 spawn=14 env=8 exit=1(unmapped=0) | build=OK 284b/14rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [3F] Redead Grave               rm=1 act=4 trans=0 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [40] Grave With Fairys Fountain rm=1 act=6 trans=0 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [41] Royal Familys Tomb         rm=3 act=16 trans=2 spawn=2 env=4 exit=1(unmapped=0) setups=2[Adult Night/Cutscene Setup 1] | build=OK 196b/3rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [42] Shooting Gallery           rm=1 act=2 trans=1 spawn=2 env=4 exit=1(unmapped=0) setups=3[Adult Night/Cutscene Setup 1/Cutscene Setup 2] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [43] Temple Of Time             rm=2 act=16 trans=1 spawn=8 env=13 exit=1(unmapped=0) setups=11[Adult Night/Cutscene Setup 1/Cutscene Setup 2/Cutscene Setup 3/Cutscene Setup 4/Cutscene Setup 5/Cutscene Setup 6/Cutscene Setup 7/Cutscene Setup 8/Cutscene Setup 9/Cutscene Setup 10] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [44] Chamber Of The Sages       rm=1 act=8 trans=0 spawn=1 env=6 exit=0(unmapped=0) setups=3[Adult Night/Cutscene Setup 1/Cutscene Setup 2] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [45] Castle Courtyard Guards Day rm=1 act=11 trans=0 spawn=2 env=4 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [46] Castle Courtyard Guards Night rm=1 act=2 trans=0 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [47] Cutscene Map               rm=1 act=1 trans=0 spawn=1 env=4 exit=0(unmapped=0) setups=9[Adult Night/Cutscene Setup 1/Cutscene Setup 2/Cutscene Setup 3/Cutscene Setup 4/Cutscene Setup 5/Cutscene Setup 6/Cutscene Setup 7/Cutscene Setup 8] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [48] Windmill And Dampes Grave  rm=7 act=59 trans=7 spawn=3 env=5 exit=2(unmapped=0) | build=OK 228b/7rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [49] Fishing Pond               rm=1 act=1 trans=1 spawn=1 env=12 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [4A] Castle Courtyard Zelda     rm=1 act=9 trans=0 spawn=2 env=4 exit=1(unmapped=0) setups=3[Adult Night/Cutscene Setup 1/Cutscene Setup 2] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [4B] Bombchu Bowling Alley      rm=1 act=5 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [4C] Lon Lon Buildings          rm=3 act=25 trans=3 spawn=3 env=4 exit=2(unmapped=0) | build=OK 196b/3rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [4D] Market Guard House         rm=1 act=52 trans=1 spawn=1 env=4 exit=1(unmapped=0) setups=1[Child Night] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x18:altHeaders, 0x19:censorFlag
+  [4E] Potion Shop Granny         rm=1 act=3 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [4F] Ganon Boss                 rm=1 act=26 trans=0 spawn=1 env=13 exit=0(unmapped=0) setups=1[Adult Night] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [50] House Of Skulltula         rm=1 act=12 trans=1 spawn=1 env=1 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [51] Hyrule Field               rm=1 act=73 trans=0 spawn=18 env=17 exit=9(unmapped=0) setups=11[Child Day/Child Night/Adult Night/Cutscene Setup 1/Cutscene Setup 2/Cutscene Setup 3/Cutscene Setup 4/Cutscene Setup 5/Cutscene Setup 6/Cutscene Setup 7/Cutscene Setup 8] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x05:windSettings, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [52] Kakariko Village           rm=1 act=57 trans=9 spawn=16 env=12 exit=14(unmapped=0) setups=8[Child Day/Child Night/Adult Day/Adult Night/Cutscene Setup 1/Cutscene Setup 2/Cutscene Setup 3/Cutscene Setup 4] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [53] Graveyard                  rm=2 act=69 trans=2 spawn=8 env=21 exit=7(unmapped=0) setups=5[Child Day/Child Night/Adult Day/Adult Night/Cutscene Setup 1] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [54] Zoras River                rm=2 act=78 trans=1 spawn=5 env=12 exit=4(unmapped=0) setups=1[Child Night] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x18:altHeaders, 0x19:censorFlag
+  [55] Kokiri Forest              rm=3 act=99 trans=2 spawn=12 env=12 exit=9(unmapped=1) setups=12[Child Night/Adult Day/Adult Night/Cutscene Setup 1/Cutscene Setup 2/Cutscene Setup 3/Cutscene Setup 4/Cutscene Setup 5/Cutscene Setup 6/Cutscene Setup 7/Cutscene Setup 8/Cutscene Setup 9] | build=OK 196b/3rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [56] Sacred Forest Meadow       rm=1 act=27 trans=0 spawn=3 env=12 exit=2(unmapped=0) setups=3[Child Night/Adult Night/Cutscene Setup 1] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [57] Lake Hylia                 rm=1 act=56 trans=2 spawn=9 env=12 exit=5(unmapped=0) setups=3[Child Night/Adult Night/Cutscene Setup 1] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [58] Zoras Domain               rm=2 act=40 trans=2 spawn=5 env=12 exit=4(unmapped=0) setups=2[Child Night/Adult Night] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [59] Zoras Fountain             rm=1 act=24 trans=0 spawn=6 env=12 exit=4(unmapped=0) setups=5[Child Day/Child Night/Adult Night/Cutscene Setup 1/Cutscene Setup 2] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [5A] Gerudo Valley              rm=1 act=39 trans=0 spawn=5 env=12 exit=4(unmapped=0) setups=4[Child Night/Adult Night/Cutscene Setup 1/Cutscene Setup 2] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [5B] Lost Woods                 rm=10 act=61 trans=9 spawn=10 env=12 exit=6(unmapped=0) setups=2[Child Night/Adult Night] | build=OK 252b/10rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [5C] Desert Colossus            rm=1 act=39 trans=0 spawn=8 env=12 exit=5(unmapped=0) setups=3[Child Night/Adult Night/Cutscene Setup 1] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x05:windSettings, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [5D] Gerudos Fortress           rm=2 act=36 trans=1 spawn=18 env=12 exit=16(unmapped=0) setups=5[Child Night/Adult Day/Adult Night/Cutscene Setup 1/Cutscene Setup 2] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [5E] Haunted Wasteland          rm=2 act=46 trans=1 spawn=2 env=12 exit=2(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x05:windSettings, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [5F] Hyrule Castle              rm=1 act=59 trans=1 spawn=5 env=12 exit=3(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag
+  [60] Death Mountain Trail       rm=1 act=52 trans=0 spawn=6 env=12 exit=5(unmapped=0) setups=6[Child Night/Adult Night/Cutscene Setup 1/Cutscene Setup 2/Cutscene Setup 3/Cutscene Setup 4] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x05:windSettings, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [61] Death Mountain Crater      rm=2 act=40 trans=1 spawn=5 env=12 exit=4(unmapped=0) setups=3[Child Night/Adult Night/Cutscene Setup 1] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [62] Goron City                 rm=4 act=110 trans=3 spawn=4 env=1 exit=4(unmapped=0) setups=3[Child Night/Adult Night/Cutscene Setup 1] | build=OK 204b/4rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [63] Lon Lon Ranch              rm=1 act=25 trans=3 spawn=11 env=12 exit=7(unmapped=0) setups=11[Child Day/Child Night/Adult Day/Adult Night/Cutscene Setup 1/Cutscene Setup 2/Cutscene Setup 3/Cutscene Setup 4/Cutscene Setup 5/Cutscene Setup 6/Cutscene Setup 7] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+  [64] Outside Ganons Castle      rm=1 act=13 trans=0 spawn=3 env=5 exit=3(unmapped=0) setups=1[Adult Night] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x05:windSettings, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag
+
+  -- OoT (SoH) totals: 101 scenes, 388 rooms, importFail=0, buildFail=0 --
+  warps: 275 collision exits (1 unmapped), scenes with alt setups=32, multi-env=68, cutscene cmd=30, path list=34
+  SCENE header commands across the game (present / parsed / exported):
+    0x00 spawnList        in 101 scenes  PRESERVED
+    0x01 actorList        in   2 scenes  LOST (parsed, not re-emitted)
+    0x03 collision        in 101 scenes  PRESERVED
+    0x04 roomList         in 101 scenes  PRESERVED
+    0x06 entranceList     in 101 scenes  synthesized
+    0x07 specialFiles     in  95 scenes  PRESERVED
+    0x0D pathList         in  34 scenes  IGNORED (dropped on import)
+    0x0E transitions      in  62 scenes  LOST (parsed, not re-emitted)
+    0x0F lightSettings    in 101 scenes  PRESERVED
+    0x11 skybox           in 101 scenes  PRESERVED
+    0x13 exitList         in 100 scenes  LOST (parsed, not re-emitted)
+    0x14 endHeader        in 101 scenes  synthesized
+    0x15 soundSettings    in 101 scenes  PRESERVED
+    0x17 cutscene         in  30 scenes  IGNORED (dropped on import)
+    0x18 altHeaders       in  32 scenes  LOST (parsed, not re-emitted)
+    0x19 censorFlag       in 101 scenes  IGNORED (dropped on import)
+  ROOM header commands across the game (present / parsed / exported):
+    0x01 actorList        in 101 rooms   PRESERVED
+    0x05 windSettings     in   6 rooms   IGNORED (dropped on import)
+    0x08 roomBehavior     in 101 rooms   synthesized
+    0x0A mesh             in 101 rooms   PRESERVED
+    0x0B objectList       in 101 rooms   LOST (parsed, not re-emitted)
+    0x10 timeSettings     in 101 rooms   synthesized
+    0x12 skyboxMod        in 101 rooms   synthesized
+    0x14 endHeader        in 101 rooms   synthesized
+    0x16 echoSettings     in 101 rooms   synthesized
+    0x18 altHeaders       in  32 rooms   IGNORED (dropped on import)
+
+================  AUDIT: MM (2Ship)  ================
+  [00] Southern Swamp (Clear)     rm=3 act=89 trans=5 spawn=11 env=20 exit=9(unmapped=0) | build=OK 196b/3rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [07] Grottos                    rm=15 act=159 trans=0 spawn=17 env=16 exit=7(unmapped=0) | build=OK 292b/15rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [08] Cutscene Map               rm=1 act=13 trans=0 spawn=2 env=4 exit=0(unmapped=0) setups=11[Child Day/Child Night/Adult Day/Adult Night/Cutscene Setup 1/Cutscene Setup 2/Cutscene Setup 3/Cutscene Setup 4/Cutscene Setup 5/Cutscene Setup 6/Cutscene Setup 7] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [0A] Magic Hags' Potion Shop    rm=1 act=3 trans=1 spawn=1 env=20 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [0B] Majora's Lair              rm=1 act=3 trans=0 spawn=1 env=6 exit=0(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [0C] Beneath the Graveyard      rm=5 act=42 trans=4 spawn=2 env=5 exit=2(unmapped=0) | build=OK 212b/5rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [0D] Curiosity Shop             rm=2 act=13 trans=2 spawn=4 env=4 exit=2(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [10] Ranch House and Barn       rm=3 act=41 trans=3 spawn=3 env=4 exit=2(unmapped=0) | build=OK 196b/3rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [11] Honey and Darling's Shop   rm=1 act=5 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [12] Mayor's Residence          rm=4 act=28 trans=4 spawn=2 env=20 exit=1(unmapped=0) | build=OK 204b/4rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [13] Ikana Canyon               rm=5 act=89 trans=5 spawn=15 env=28 exit=12(unmapped=0) setups=4[Child Day/Child Night/Adult Day/Adult Night] | build=OK 212b/5rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0C:unused0C, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [14] Pirates' Fortress          rm=1 act=36 trans=5 spawn=13 env=20 exit=10(unmapped=0) setups=2[Child Day/Child Night] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [15] Milk Bar                   rm=1 act=18 trans=1 spawn=1 env=4 exit=1(unmapped=0) setups=4[Child Day/Child Night/Adult Day/Adult Night] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [16] Stone Tower Temple         rm=12 act=223 trans=13 spawn=1 env=29 exit=1(unmapped=0) | build=OK 268b/12rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [17] Treasure Chest Shop        rm=1 act=5 trans=1 spawn=2 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [18] Stone Tower Temple (Inverted) rm=12 act=177 trans=15 spawn=2 env=29 exit=3(unmapped=0) | build=OK 268b/12rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0C:unused0C, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [19] Clock Tower Rooftop        rm=1 act=17 trans=0 spawn=4 env=29 exit=0(unmapped=0) setups=3[Child Day/Child Night/Adult Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0C:unused0C, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [1A] Before the Portal to Termina rm=2 act=32 trans=2 spawn=5 env=7 exit=2(unmapped=0) setups=1[Child Day] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [1B] Woodfall Temple            rm=13 act=229 trans=21 spawn=3 env=12 exit=3(unmapped=0) | build=OK 276b/13rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [1C] Path to Mountain Village   rm=1 act=50 trans=0 spawn=2 env=20 exit=2(unmapped=0) setups=1[Child Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [1D] Ancient Castle of Ikana    rm=10 act=110 trans=12 spawn=7 env=28 exit=7(unmapped=0) | build=OK 252b/10rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [1E] Deku Scrub Playground      rm=1 act=27 trans=0 spawn=2 env=4 exit=0(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [1F] Odolwa's Lair              rm=1 act=26 trans=1 spawn=1 env=4 exit=0(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [20] Town Shooting Gallery      rm=1 act=15 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [21] Snowhead Temple            rm=14 act=293 trans=32 spawn=1 env=13 exit=2(unmapped=0) | build=OK 284b/14rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [22] Milk Road                  rm=1 act=23 trans=0 spawn=7 env=20 exit=4(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [23] Pirates' Fortress Interior rm=15 act=148 trans=17 spawn=11 env=4 exit=11(unmapped=0) | build=OK 292b/15rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [24] Swamp Shooting Gallery     rm=1 act=6 trans=1 spawn=1 env=20 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [25] Pinnacle Rock              rm=1 act=46 trans=0 spawn=3 env=24 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0C:unused0C, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [26] Fairy's Fountain           rm=5 act=18 trans=0 spawn=10 env=17 exit=5(unmapped=0) setups=1[Child Day] | build=OK 212b/5rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [27] Swamp Spider House         rm=6 act=119 trans=8 spawn=1 env=4 exit=1(unmapped=0) | build=OK 220b/6rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [28] Oceanside Spider House     rm=6 act=109 trans=5 spawn=1 env=4 exit=1(unmapped=0) | build=OK 220b/6rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0C:unused0C, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [29] Astral Observatory         rm=2 act=34 trans=2 spawn=3 env=4 exit=2(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [2A] The Moon - Deku Trial      rm=2 act=18 trans=1 spawn=1 env=4 exit=0(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [2B] Deku Palace                rm=3 act=108 trans=5 spawn=11 env=20 exit=5(unmapped=0) | build=OK 196b/3rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [2C] Mountain Smithy            rm=1 act=10 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [2D] Termina Field              rm=1 act=221 trans=1 spawn=15 env=29 exit=10(unmapped=0) setups=9[Child Day/Child Night/Adult Day/Adult Night/Cutscene Setup 1/Cutscene Setup 2/Cutscene Setup 3/Cutscene Setup 4/Cutscene Setup 5] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [2E] Post Office                rm=1 act=12 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [2F] Marine Research Lab        rm=1 act=23 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [30] Damp�'s House              rm=2 act=30 trans=3 spawn=2 env=4 exit=1(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [32] Goron Shrine               rm=2 act=52 trans=1 spawn=3 env=4 exit=2(unmapped=0) setups=1[Child Day] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [33] Zora Hall                  rm=1 act=32 trans=5 spawn=9 env=4 exit=7(unmapped=0) setups=1[Child Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0C:unused0C, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [34] Trading Post               rm=1 act=15 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [35] Romani Ranch               rm=1 act=54 trans=4 spawn=12 env=29 exit=5(unmapped=0) setups=6[Child Day/Child Night/Adult Day/Adult Night/Cutscene Setup 1/Cutscene Setup 2] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [36] Twinmold's Lair            rm=1 act=2 trans=0 spawn=1 env=4 exit=0(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [37] Great Bay Coast            rm=1 act=158 trans=1 spawn=14 env=20 exit=9(unmapped=0) setups=2[Child Day/Child Night] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [38] Zora Cape                  rm=1 act=83 trans=0 spawn=11 env=20 exit=6(unmapped=0) setups=1[Child Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0C:unused0C, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [39] Lottery Shop               rm=1 act=6 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [3B] Pirates' Fortress Exterior rm=1 act=24 trans=1 spawn=7 env=20 exit=5(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [3C] Fisherman's Hut            rm=1 act=5 trans=0 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [3D] Goron Shop                 rm=1 act=3 trans=0 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [3E] Deku King's Chamber        rm=1 act=25 trans=0 spawn=4 env=4 exit=3(unmapped=0) setups=1[Child Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [3F] The Moon - Goron Trial     rm=2 act=45 trans=1 spawn=2 env=4 exit=0(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [40] Road to Southern Swamp     rm=1 act=49 trans=1 spawn=3 env=20 exit=3(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [41] Doggy Racetrack            rm=1 act=15 trans=1 spawn=2 env=29 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [42] Cucco Shack                rm=1 act=25 trans=1 spawn=2 env=29 exit=1(unmapped=0) setups=1[Child Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [43] Ikana Graveyard            rm=2 act=95 trans=2 spawn=6 env=28 exit=5(unmapped=0) setups=1[Child Day] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [44] Goht's Lair                rm=1 act=15 trans=1 spawn=1 env=4 exit=0(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [45] Southern Swamp (Poisoned)  rm=3 act=115 trans=5 spawn=11 env=24 exit=9(unmapped=0) | build=OK 196b/3rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [46] Woodfall                   rm=1 act=52 trans=0 spawn=5 env=24 exit=2(unmapped=0) setups=2[Child Day/Child Night] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [47] The Moon - Zora Trial      rm=1 act=8 trans=0 spawn=2 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [48] Goron Village (Spring)     rm=2 act=13 trans=1 spawn=5 env=24 exit=2(unmapped=0) setups=1[Child Day] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [49] Great Bay Temple           rm=16 act=299 trans=20 spawn=2 env=8 exit=1(unmapped=0) | build=OK 300b/16rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [4A] Waterfall Rapids           rm=1 act=161 trans=0 spawn=4 env=24 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [4B] Beneath the Well           rm=14 act=218 trans=13 spawn=2 env=4 exit=2(unmapped=0) | build=OK 284b/14rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [4C] Zora Hall Rooms            rm=5 act=19 trans=5 spawn=7 env=4 exit=5(unmapped=0) | build=OK 212b/5rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [4D] Goron Village (Winter)     rm=2 act=64 trans=1 spawn=5 env=24 exit=4(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x05:windSettings, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [4E] Goron Graveyard            rm=1 act=11 trans=0 spawn=2 env=20 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [4F] Sakon's Hideout            rm=2 act=50 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [50] Mountain Village (Winter)  rm=1 act=58 trans=1 spawn=9 env=20 exit=5(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [51] Ghost Hut                  rm=1 act=3 trans=0 spawn=3 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [52] Deku Shrine                rm=9 act=169 trans=8 spawn=1 env=4 exit=1(unmapped=0) | build=OK 244b/9rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [53] Road to Ikana              rm=1 act=78 trans=0 spawn=4 env=28 exit=3(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0C:unused0C, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [54] Swordsman's School         rm=1 act=13 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [55] Music Box House            rm=1 act=9 trans=1 spawn=1 env=5 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [56] Igos du Ikana's Lair       rm=2 act=15 trans=1 spawn=1 env=13 exit=1(unmapped=0) setups=1[Child Day] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [57] Tourist Information        rm=1 act=5 trans=1 spawn=3 env=20 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [58] Stone Tower                rm=1 act=93 trans=0 spawn=4 env=28 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [59] Stone Tower (Inverted)     rm=1 act=36 trans=0 spawn=2 env=28 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [5A] Mountain Village (Spring)  rm=2 act=78 trans=3 spawn=9 env=24 exit=5(unmapped=0) setups=1[Child Day] | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [5B] Path to Snowhead           rm=1 act=32 trans=0 spawn=2 env=20 exit=2(unmapped=0) setups=1[Child Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [5C] Snowhead                   rm=1 act=52 trans=0 spawn=4 env=20 exit=4(unmapped=0) setups=1[Child Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x05:windSettings, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [5D] Path to Goron Village (Winter) rm=1 act=68 trans=0 spawn=3 env=20 exit=3(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [5E] Path to Goron Village (Spring) rm=1 act=30 trans=0 spawn=3 env=20 exit=3(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [5F] Gyorg's Lair               rm=1 act=9 trans=1 spawn=2 env=4 exit=0(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [60] Secret Shrine              rm=6 act=84 trans=5 spawn=1 env=5 exit=1(unmapped=0) | build=OK 220b/6rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [61] Stock Pot Inn              rm=5 act=67 trans=6 spawn=6 env=5 exit=2(unmapped=0) setups=1[Child Day] | build=OK 212b/5rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [62] Great Bay (Cutscene)       rm=1 act=8 trans=0 spawn=1 env=20 exit=0(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [63] Clock Tower Interior       rm=2 act=14 trans=1 spawn=7 env=11 exit=2(unmapped=0) | build=OK 188b/2rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [64] Woods of Mystery           rm=9 act=88 trans=12 spawn=1 env=20 exit=1(unmapped=0) | build=OK 244b/9rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [65] Lost Woods                 rm=3 act=9 trans=1 spawn=2 env=8 exit=1(unmapped=0) setups=3[Child Day/Child Night/Adult Day] | build=OK 196b/3rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [66] The Moon - Link Trial      rm=8 act=26 trans=7 spawn=1 env=4 exit=0(unmapped=0) | build=OK 236b/8rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [67] The Moon                   rm=1 act=21 trans=0 spawn=1 env=4 exit=0(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [68] Bomb Shop                  rm=1 act=8 trans=1 spawn=1 env=4 exit=1(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [69] Giants' Chamber            rm=1 act=6 trans=0 spawn=1 env=4 exit=0(unmapped=0) setups=10[Child Day/Child Night/Adult Day/Adult Night/Cutscene Setup 1/Cutscene Setup 2/Cutscene Setup 3/Cutscene Setup 4/Cutscene Setup 5/Cutscene Setup 6] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [6A] Gorman Track               rm=1 act=76 trans=0 spawn=6 env=20 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x05:windSettings, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [6B] Goron Racetrack            rm=1 act=75 trans=0 spawn=3 env=20 exit=16(unmapped=0) setups=1[Child Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [6C] East Clock Town            rm=1 act=64 trans=7 spawn=12 env=29 exit=12(unmapped=1) setups=2[Child Day/Child Night] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [6D] West Clock Town            rm=1 act=40 trans=6 spawn=9 env=29 exit=9(unmapped=0) setups=1[Child Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [6E] North Clock Town           rm=1 act=33 trans=0 spawn=8 env=29 exit=4(unmapped=0) setups=1[Child Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+  [6F] South Clock Town           rm=1 act=50 trans=1 spawn=11 env=29 exit=9(unmapped=0) setups=3[Child Day/Child Night/Adult Day] | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList, 0x18:altHeaders
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x17:cutscene, 0x18:altHeaders, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM, 0x1E:minimapChestMM
+  [70] Laundry Pool               rm=1 act=28 trans=1 spawn=2 env=29 exit=2(unmapped=0) | build=OK 180b/1rm
+        LOST on recompile: 0x0B:objectList, 0x0E:transitions, 0x13:exitList
+        IGNORED on import: 0x02:actorCutscene, 0x06:entranceList, 0x08:roomBehavior, 0x0D:pathList, 0x10:timeSettings, 0x12:skyboxMod, 0x16:echoSettings, 0x19:censorFlag, 0x1A:texAnimMM, 0x1B:actorCsListMM, 0x1C:minimapMM
+
+  -- MM (2Ship) totals: 102 scenes, 299 rooms, importFail=0, buildFail=0 --
+  warps: 292 collision exits (1 unmapped), scenes with alt setups=31, multi-env=102, cutscene cmd=62, path list=66
+  SCENE header commands across the game (present / parsed / exported):
+    0x00 spawnList        in 102 scenes  PRESERVED
+    0x01 actorList        in   1 scenes  LOST (parsed, not re-emitted)
+    0x02 actorCutscene    in  89 scenes  IGNORED (dropped on import)
+    0x03 collision        in 102 scenes  PRESERVED
+    0x04 roomList         in 102 scenes  PRESERVED
+    0x06 entranceList     in 102 scenes  synthesized
+    0x07 specialFiles     in  82 scenes  PRESERVED
+    0x0C unused0C         in   8 scenes  IGNORED (dropped on import)
+    0x0D pathList         in  66 scenes  IGNORED (dropped on import)
+    0x0E transitions      in  70 scenes  LOST (parsed, not re-emitted)
+    0x0F lightSettings    in 102 scenes  PRESERVED
+    0x11 skybox           in 102 scenes  PRESERVED
+    0x13 exitList         in  93 scenes  LOST (parsed, not re-emitted)
+    0x14 endHeader        in 102 scenes  synthesized
+    0x15 soundSettings    in 102 scenes  PRESERVED
+    0x17 cutscene         in  62 scenes  IGNORED (dropped on import)
+    0x18 altHeaders       in  31 scenes  LOST (parsed, not re-emitted)
+    0x19 censorFlag       in 102 scenes  IGNORED (dropped on import)
+    0x1A texAnimMM        in 102 scenes  IGNORED (dropped on import)
+    0x1B actorCsListMM    in 102 scenes  IGNORED (dropped on import)
+    0x1C minimapMM        in 102 scenes  IGNORED (dropped on import)
+    0x1E minimapChestMM   in  32 scenes  IGNORED (dropped on import)
+  ROOM header commands across the game (present / parsed / exported):
+    0x01 actorList        in 102 rooms   PRESERVED
+    0x05 windSettings     in   3 rooms   IGNORED (dropped on import)
+    0x08 roomBehavior     in 102 rooms   synthesized
+    0x0A mesh             in 102 rooms   PRESERVED
+    0x0B objectList       in 102 rooms   LOST (parsed, not re-emitted)
+    0x10 timeSettings     in 102 rooms   synthesized
+    0x12 skyboxMod        in 102 rooms   synthesized
+    0x14 endHeader        in 102 rooms   synthesized
+    0x16 echoSettings     in 102 rooms   synthesized
+    0x18 altHeaders       in  31 rooms   IGNORED (dropped on import)

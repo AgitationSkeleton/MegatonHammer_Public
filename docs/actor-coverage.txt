@@ -1,0 +1,838 @@
+==================== ACTOR COVERAGE: OoT (SoH) ====================
+scenes walked: 101
+distinct actor types placed: 318
+  with editor name (ActorDatabase): 318/318
+  with typed param schema (SmartEdit): 16/318
+
+-- UNNAMED actor ids: none — every placed actor resolves to a real editor name. --
+
+-- top placed actors WITHOUT a typed param schema (302) — SmartEdit candidates --
+   0x0008  uses= 209  Flame
+   0x005E  uses= 140  Torch
+   0x0112  uses= 119  Invisible Collectable
+   0x0125  uses= 118  Grass Clump, doesn't regrow
+   0x0117  uses=  96  Silver Rupee/Large Rotating Pot
+   0x0013  uses=  90  Keese
+   0x01C7  uses=  90  Ice Stalagmite/Stalagtite
+   0x014E  uses=  72  Rock
+   0x003B  uses=  68  Ambient Sound Effects
+   0x0185  uses=  65  Checkable Spot
+   0x004C  uses=  60  Bomb Flower
+   0x00B5  uses=  50  Flying Rubble
+   0x0077  uses=  49  Greenery
+   0x0106  uses=  45  Floor of Ganondorf's Room
+   0x000C  uses=  44  Proximity Activated Firewall
+   0x01B9  uses=  40  Gossip Stone
+   0x0026  uses=  37  Wooden Post with Red Cloth
+   0x0069  uses=  36  Bubble
+   0x012D  uses=  35  Stone Hookshot Target
+   0x0080  uses=  35  Sliding Spike Trap
+   0x0090  uses=  33  Redead/Gibdo
+   0x0141  uses=  32  Square Signpost
+   0x00FF  uses=  31  Push Block
+   0x009B  uses=  31  Hole in Ground Exit
+   0x001B  uses=  29  Tektite
+   0x0039  uses=  29  Gameplay_keep Objects
+   0x016E  uses=  28  Hylians
+   0x0037  uses=  26  Skulltula
+   0x0094  uses=  25  Fish, Bugs, or Butterflies
+   0x01D1  uses=  24  Time Block
+   0x0054  uses=  23  Armos
+   0x0059  uses=  22  Bombable Wall
+   0x008A  uses=  22  Beamos
+   0x01B4  uses=  22  Invisible/Transparent Platforms
+   0x0195  uses=  21  Grounded Business Scrub
+   0x011D  uses=  21  Flying Magic Pot
+   0x0169  uses=  21  Brick Pillar (Spirit Temple)
+   0x0151  uses=  21  Circle of Bushes
+   0x01AE  uses=  20  Gorons and Biggoron
+   0x00BC  uses=  20  Shadow temple objects
+
+-- all placed actor types (by usage) --
+   id      uses scenes  name                                    schema
+   0x0111    362     32  Breakable Pot                           yes
+   0x0008    209     19  Flame                                   
+   0x002E    182     24  Lifting Wooden Door                     yes
+   0x000A    158     27  Treasure Chest                          yes
+   0x005E    140     21  Torch                                   
+   0x0015    134     27  Collectable Item                        yes
+   0x0112    119     18  Invisible Collectable                   
+   0x0125    118     13  Grass Clump, doesn't regrow             
+   0x0009    113     33  Wooden Door                             yes
+   0x0117     96      6  Silver Rupee/Large Rotating Pot         
+   0x0023     94     26  Room Changing Black Plane               yes
+   0x0013     90     11  Keese                                   
+   0x01C7     90      2  Ice Stalagmite/Stalagtite               
+   0x012A     76      9  Dungeon Switches                        yes
+   0x0095     73     18  Skullwalltula/Golden Skulltula          yes
+   0x014E     72     14  Rock                                    
+   0x01A0     69     14  Crate                                   yes
+   0x003B     68     39  Ambient Sound Effects                   
+   0x0185     65     21  Checkable Spot                          
+   0x004C     60      6  Bomb Flower                             
+   0x00B5     50      2  Flying Rubble                           
+   0x0077     49      8  Greenery                                
+   0x0106     45      1  Floor of Ganondorf's Room               
+   0x000C     44      2  Proximity Activated Firewall            
+   0x0127     43      9  Bombable Rock                           yes
+   0x011B     42     10  Navi Information Spot                   yes
+   0x01B9     40     19  Gossip Stone                            
+   0x0026     37      4  Wooden Post with Red Cloth              
+   0x0069     36      7  Bubble                                  
+   0x0080     35      8  Sliding Spike Trap                      
+   0x012D     35      8  Stone Hookshot Target                   
+   0x0173     35     10  Targetable Navi Spot                    yes
+   0x0090     33      8  Redead/Gibdo                            
+   0x0141     32     14  Square Signpost                         
+   0x009B     31     15  Hole in Ground Exit                     
+   0x00FF     31      8  Push Block                              
+   0x001B     29      5  Tektite                                 
+   0x0039     29     11  Gameplay_keep Objects                   
+   0x016E     28      9  Hylians                                 
+   0x0037     26      6  Skulltula                               
+   0x0094     25     12  Fish, Bugs, or Butterflies              
+   0x01D1     24      9  Time Block                              
+   0x0054     23      3  Armos                                   
+   0x0059     22      6  Bombable Wall                           
+   0x008A     22      6  Beamos                                  
+   0x01B4     22      2  Invisible/Transparent Platforms         
+   0x011D     21      4  Flying Magic Pot                        
+   0x0151     21     10  Circle of Bushes                        
+   0x0169     21      2  Brick Pillar (Spirit Temple)            
+   0x0195     21      6  Grounded Business Scrub                 
+   0x0019     20      4  Cucco                                   
+   0x00BC     20      2  Shadow temple objects                   
+   0x0163     20      6  Kokiri                                  
+   0x01AE     20      4  Gorons and Biggoron                     
+   0x0034     19      1  Biri                                    
+   0x00AE     19      2  Fake/Invisible Objects                  
+   0x002D     18      1  Shabom                                  
+   0x0038     18      4  Torch Slug                              
+   0x009D     18      2  Gravestone                              
+   0x0183     18     13  Fire Arrow Shot/Sun's Song Fairy        
+   0x0064     17      2  Dragon Head Statue                      
+   0x012E     17     13  Play Ocarina Here Spot                  
+   0x0130     17      5  Rolling Boulder                         
+   0x0040     16      2  Lower Part of Megaton Statue            
+   0x0049     16      6  Flame Circle                            
+   0x000E     15      6  Octorok                                 
+   0x00EF     15      2  Large Red Ice                           
+   0x0011     14      6  Wallmaster                              
+   0x0055     14      3  Deku Baba                               
+   0x019B     14      5  Dog                                     
+   0x01B1     14      1  Ganon Battle Rubble                     
+   0x006B     13      1  Flying Floor Tile                       
+   0x00C5     13      2  Shell Blade                             
+   0x0150     13      2  Light Activated Sun Switch/Sun Block    
+   0x0025     12      4  Lizalfos                                
+   0x003C     12      2  Normal Horse                            
+   0x008F     12      2  Castle Courtyard Guards                 
+   0x0097     12      5  Environmental effects                   
+   0x0121     12      2  Freezard                                
+   0x014F     12      3  Grave Flower                            
+   0x01AF     12      7  Wolfos                                  
+   0x01D2     12      3  Bronze Boulder                          yes
+   0x0065     11      1  Water Temple Water                      yes
+   0x006F     11      1  Metal Gate                              
+   0x009C     11      3  Graveyard Objects                       
+   0x00DD     11      7  Like-Like                               
+   0x00EC     11      1  Spike Enemy                             
+   0x014D     11      7  Kaepora Gaebora                         
+   0x0174     11      1  Ganon's Tower Collapsing                
+   0x0177     11      3  Metal Bars                              
+   0x0179     11      3  Adult Zelda                             
+   0x0002     10      5  Stalfos                                 
+   0x000F     10      2  Webs                                    
+   0x0046     10      2  Sink Stone Platform                     
+   0x00A5     10      2  Deadhand's Arms                         
+   0x00C7     10      2  Withered Deku Baba                      
+   0x0126     10      9  Bean Planting Spot                      
+   0x019E     10      2  Beehive                                 
+   0x01C1     10      3  Fake Stomping Door                      
+   0x002F      9      1  Baby Dodongo                            
+   0x0142      9      1  Hyrule Castle Guard                     
+   0x0178      9      7  Hyrule Guard                            
+   0x0187      9      6  Room Timer                              
+   0x018C      9      1  Stingray                                
+   0x01C6      9      6  Cow                                     
+   0x01CE      9      3  Zora                                    
+   0x01CF      9      8  Skulltula Sprouting from Bean Spot      
+   0x003D      8      8  Shopkeeper                              
+   0x008B      8      5  Spiritual Stones/Goddesses/Triforce     
+   0x00C2      8      8  Shop Shelves                            
+   0x00F7      8      1  Shadow Temple Truth Spinner             
+   0x0107      8      2  Milk Crate                              
+   0x0133      8      2  Carpenter                               
+   0x0139      8      5  Block Save Point                        
+   0x0160      8      1  Whirlpool Effect                        
+   0x0186      8      2  Patrolling Gerudo                       
+   0x01C9      8      7  Scarecrow Song Spot                     
+   0x001D      7      1  Peahat                                  
+   0x003A      7      1  Stinger                                 
+   0x00E6      7      1  Switch from Inside Lord Jabu-Jabu       
+   0x0105      7      1  Golden Torch Stand (Poe Sisters)        
+   0x0114      7      1  Iron Knuckle Armor Pieces               
+   0x01A7      7      1  Ganon's Tower Magic Barrier             
+   0x01CC      7      2  Zelda's Path in Ganon Castle Escape?    
+   0x0060      6      1  Deku Scrub                              
+   0x006E      6      6  Warp Pad                                
+   0x00AF      6      1  Invisible Objects/Metal Gate            
+   0x00CB      6      3  Ingo                                    
+   0x00ED      6      1  Frog Song Spot and Frogs                
+   0x0110      6      3  Small Wooden Crate                      yes
+   0x0123      6      1  Rotating Windmill Mechanism             
+   0x0155      6      1  Treasure Chests from Treasure Box Game  
+   0x015F      6      1  Water Spout                             
+   0x0188      6      1  Cursed Skulltula People                 
+   0x0189      6      1  Uncursed Skulltula People               
+   0x01BB      6      1  Metal Gate                              
+   0x01BC      6      3  Carpenters in Kakariko                  
+   0x01D6      6      2  Time Block Spawning Spot                
+   0x0035      5      1  Taliparisan                             
+   0x008C      5      3  Temple of Time Objects                  
+   0x008E      5      3  Floormaster                             
+   0x0093      5      1  Poe Puzzle Block                        
+   0x00A1      5      2  Young Ruto                              
+   0x00B7      5      2  Sun Block Switch                        
+   0x00B8      5      1  Gerudo Valley Objects                   
+   0x00BD      5      1  Coffin Lid                              
+   0x00BE      5      2  Bird Statue/Bombables                   
+   0x00DF      5      1  Blocking Tentacle from Jabu-Jabu        
+   0x00E5      5      5  Death Mountain Cloud Ring               
+   0x0113      5      3  Iron Knuckle                            
+   0x0115      5      1  Skullkid                                
+   0x0147      5      3  Checkable Spot                          
+   0x018D      5      1  Sacred Forest Meadow Water and Gate     
+   0x0192      5      1  Green Deku Scrubs                       
+   0x0041      4      1  Huge Stone Spike Platform               
+   0x0050      4      1  Back and Forth Moving Platform          
+   0x0062      4      1  Statue Eyes                             
+   0x0068      4      1  Twisted Hallway                         
+   0x0084      4      4  Talon                                   
+   0x00B3      4      3  Gate Guards                             
+   0x00BB      4      1  Open Topped Skull Statue                
+   0x00C3      4      4  Nabooru                                 
+   0x00C8      4      1  Jabu-Jabu Objects                       
+   0x00CF      4      1  Cracked Stone Platform                  
+   0x00E3      4      1  Golden Gate                             
+   0x00E7      4      4  Young Malon                             
+   0x00F0      4      2  Blue Fire Flame                         
+   0x00F6      4      1  Anubis                                  
+   0x00FA      4      1  Moving Brick Wall                       
+   0x0165      4      3  Weather Effects                         
+   0x0172      4      1  Metal Grate Door                        
+   0x0197      4      1  Gerudo Fighter                          
+   0x01BA      4      1  Bombable Stone Wall                     
+   0x01C8      4      1  2D Ice Bars                             
+   0x0012      3      1  Dodongo                                 
+   0x0018      3      3  Fairy                                   
+   0x002B      3      1  Gohma Larva                             
+   0x0043      3      1  Fire Temple Stone Block                 
+   0x0044      3      2  Spinning Flame Thrower Statue           
+   0x0058      3      1  Rising Stone Platform                   
+   0x0092      3      2  Golden Gauntlets Rock                   
+   0x00A7      3      3  Enemy Spawner                           
+   0x00A9      3      3  Impa                                    
+   0x00B1      3      2  Spinning Scythe Statues                 
+   0x00B6      3      1  Flobbery Muscle Block                   
+   0x00D0      3      1  2D Bombable Wall                        
+   0x00D2      3      3  Adult Ruto                              
+   0x00D5      3      1  Lake Hylia Objects                      
+   0x00DE      3      1  Tentacle from Inside Lord Jabu-Jabu     
+   0x00E4      3      1  Forest Temple Well Water                
+   0x00F9      3      1  Giant Rolling Boulder                   
+   0x0138      3      2  White Clothed Gerudo                    
+   0x0146      3      3  Saria                                   
+   0x0158      3      1  Large Circular Mirror (Spirit Temple)   
+   0x01B5      3      1  Web Blocked Light Window                
+   0x01C0      3      1  Guay                                    
+   0x01D5      3      1  Young Link Silver Block                 
+   0x000B      2      2  Great Fairy                             
+   0x0045      2      1  Stationary Flame Thrower Statue         
+   0x0048      2      2  Sheik                                   
+   0x0051      2      1  Rotating Spike Cylinder                 
+   0x0063      2      1  Bari                                    
+   0x006A      2      1  Temple of Time Windows                  
+   0x0087      2      1  Forest Temple Elevator                  
+   0x008D      2      1  Large Firewall                          
+   0x0098      2      2  Darunia                                 
+   0x0099      2      1  Fire Dancer                             
+   0x00A4      2      2  Deadhand                                
+   0x00A8      2      2  Sage Darunia (Cutscene)                 
+   0x00B4      2      2  Falling Rock Spawner                    
+   0x00B9      2      1  Statue from Darunia's Room              
+   0x00BF      2      1  Crater Smoke Cone                       
+   0x00C9      2      2  Sage Saria (Cutscene)                   
+   0x00CC      2      1  Koume and Kotake                        
+   0x00D4      2      2  Water Noise                             
+   0x00E8      2      2  Boss Ganondorf                          
+   0x00F5      2      2  Sages, Balls of Light (Cutscene)        
+   0x00FD      2      1  Climbable Mesh Wall                     
+   0x0102      2      2  Windmill Sails                          
+   0x0120      2      1  Zora's Domain Waterfall                 
+   0x0124      2      1  Zora Diving Game                        
+   0x0132      2      2  Head Carpenter                          
+   0x013C      2      2  Cucco Lady                              
+   0x0157      2      1  Hanging Platform (Spirit Temple)        
+   0x016D      2      2  Mido                                    
+   0x017D      2      2  Push Block (Has Savepoint)              
+   0x018E      2      1  Stone Platform                          
+   0x01AC      2      2  Honey and Darling                       
+   0x01AD      2      1  Haggling Townspeople                    
+   0x01B6      2      1  2D Stone Wall                           
+   0x01B7      2      1  Large Square Ice Block                  
+   0x01BD      2      1  Bombchu Bowling Alley Wall              
+   0x01CD      2      1  Circular Piece of Stone Wall            
+   0x0021      1      1  Fish                                    
+   0x0027      1      1  King Dodongo                            
+   0x0028      1      1  Queen Gohma                             
+   0x002A      1      1  Cutscene Actors                         
+   0x003E      1      1  Deku Tree's Jaw                         
+   0x003F      1      1  Dodongo Skull's Jaw                     
+   0x0047      1      1  Fire Temple Stone Block                 
+   0x004A      1      1  Drawbridge                              
+   0x004E      1      1  Elevator Platform                       
+   0x0052      1      1  Phantom Ganon                           
+   0x005A      1      1  Lord Jabu Jabu                          
+   0x005C      1      1  Stone Stairs                            
+   0x005D      1      1  Blue Warp                               
+   0x0061      1      1  Large Rotating Stone Ring               
+   0x006C      1      1  Master Sword                            
+   0x0071      1      1  Hammer Steps in Fire Temple             
+   0x0086      1      1  Lowering Circular Platform              
+   0x0088      1      1  Rotating Room                           
+   0x0089      1      1  Forest Temple Ceiling                   
+   0x0096      1      1  Flying Volvagia                         
+   0x009A      1      1  Child Epona                             
+   0x00A6      1      1  Rauru                                   
+   0x00B0      1      1  Shadow Temple Ship                      
+   0x00BA      1      1  Barinade                                
+   0x00C0      1      1  Shooting Gallery Game                   
+   0x00C4      1      1  Morpha                                  
+   0x00CD      1      1  Giant Boulder Blocking Dodongo's Cavern 
+   0x00D1      1      1  Ice Platform                            
+   0x00D6      1      1  Moveable Ice Block                      
+   0x00D7      1      1  Bottom of the well water level changer  
+   0x00D9      1      1  Adult Malon                             
+   0x00DC      1      1  Twinrova                                
+   0x00E9      1      1  Bongo Bongo                             
+   0x00F8      1      1  Hyrule Castle Gate                      
+   0x00FC      1      1  Rotating Cobra Mirror                   
+   0x00FE      1      1  Fishing Game, Fish, and Fisherman       
+   0x0100      1      1  Death Mountain Trail Gate               
+   0x0103      1      1  Kakariko Village Well Crossbeams        
+   0x0104      1      1  Kakariko Well Water                     
+   0x0108      1      1  Lon Lon Ranch Horse Jumping Fence       
+   0x010F      1      1  GI Collectables (Shields, Bottles, etc) 
+   0x011C      1      1  Eye Switch and Flame that Follows Link  
+   0x011F      1      1  Zora's River Waterfall                  
+   0x0122      1      1  Dampe's Ghost                           
+   0x012C      1      1  Square Collapsing Platform              
+   0x0136      1      1  Dark Link's Illusion Room               yes
+   0x013D      1      1  Medigoron                               
+   0x013E      1      1  Bean Seller                             
+   0x0148      1      1  Rainbow Bridge                          
+   0x0149      1      1  Potion Shop Lady                        
+   0x014A      1      1  Lake Hylia Doctor                       
+   0x014B      1      1  Bombchu Bowling Girl                    
+   0x0153      1      1  Windmill Man                            
+   0x0156      1      1  Large Stone Face (Spirit Temple)        
+   0x0159      1      1  Light Blocking Rock (Spirit Temple)     
+   0x015A      1      1  Circular, Lifting Metal Shutter (Spirit Temple)
+   0x015B      1      1  Bombable Rock Wall (Spirit Temple)      
+   0x015C      1      1  Giant Three Sided Goron Statue          
+   0x0164      1      1  King Zora                               
+   0x0167      1      1  Kakariko Village Rooftop Man            
+   0x016A      1      1  Bombchu Salesman                        
+   0x016C      1      1  Graveyard Boy                           
+   0x017A      1      1  Ganon                                   
+   0x017B      1      1  Scarecrow                               
+   0x017C      1      1  Treasure Chest Shop Man                 
+   0x0181      1      1  Treasure Chest (Variable chosen by Hole)
+   0x0190      1      1  Gerudo Fortress wooden gate             
+   0x0191      1      1  Gerudo Training Area Gate               
+   0x019A      1      1  Child Chasing Cucco in Hyrule Market    
+   0x019D      1      1  Semi-Built Shooting Gallery             
+   0x019F      1      1  Nayru Fountain Bombable Wall            
+   0x01A1      1      1  Deku Stage Cutscene                     
+   0x01A3      1      1  Deku Panel                              
+   0x01A4      1      1  Man in Purple Pants and White Top       
+   0x01A5      1      1  Bombchu Bowling Alley Game              
+   0x01A8      1      1  Zora's Fountain Bombable Wall           
+   0x01A9      1      1  Death Mountain Crater Bombable Wall     
+   0x01AB      1      1  Tower of Rupees                         
+   0x01B3      1      1  Sinkable Lava Platform                  
+   0x01BF      1      1  Haunted Wasteland Guiding Poe           
+   0x01C2      1      1  Refilling Oasis                         
+   0x01C4      1      1  Goron Room Door                         
+   0x01CA      1      1  Bonooru the Scarecrow                   
+   0x01D3      1      1  Princess Zelda (Child - Cutscene)       
+   0x01D4      1      1  Running Man (Adult)                     
+
+==================== ACTOR COVERAGE: MM (2Ship) ====================
+scenes walked: 102
+distinct actor types placed: 414
+  with editor name (ActorDatabase): 414/414
+  with typed param schema (SmartEdit): 9/414
+
+-- UNNAMED actor ids: none — every placed actor resolves to a real editor name. --
+
+-- top placed actors WITHOUT a typed param schema (405) — SmartEdit candidates --
+   0x0090  uses= 217  Cut-able Grass
+   0x0039  uses= 200  Torch Stand
+   0x01A5  uses= 143  Beaver Race Ring
+   0x0183  uses= 138  Deku Flower
+   0x001E  uses= 123  Dungeon Door
+   0x00B0  uses= 114  Rock
+   0x0170  uses= 110  Dripping Water
+   0x015A  uses= 109  Three-Day Timer
+   0x0164  uses= 106  Black and White Boes
+   0x01DC  uses= 103  Large Snowball
+   0x01B9  uses=  94  Lilypad
+   0x0018  uses=  85  Black Room Transition Plane
+   0x0004  uses=  73  Flame
+   0x0216  uses=  73  Leever
+   0x00A8  uses=  68  Square Signpost
+   0x01F9  uses=  66  Small Snowball
+   0x00EF  uses=  62  Gossip Stone
+   0x022D  uses=  53  Barrel
+   0x0041  uses=  52  Greenery
+   0x00E5  uses=  51  Wooden Crate
+   0x0050  uses=  49  Skullwalltula
+   0x007C  uses=  46  Horse Jumping Fence
+   0x017C  uses=  46  The Moon
+   0x010D  uses=  44  Grass Cluster
+   0x004F  uses=  43  Fish, Bugs, Butterflies
+   0x011F  uses=  43  Icicle
+   0x0185  uses=  42  Spiked Metal Mine
+   0x003B  uses=  42  Mad Scrub
+   0x00BC  uses=  41  En_Weather_Tag
+   0x019C  uses=  41  Clock Tower and Light Beam
+   0x00F0  uses=  40  Sound Effects II
+   0x01AB  uses=  37  En_Time_Tag
+   0x0081  uses=  37  Small Wooden Crate
+   0x023B  uses=  34  Mushroom Scent Cloud
+   0x003E  uses=  33  Blue Bubble
+   0x0261  uses=  31  En_Talk
+   0x0138  uses=  31  Goron
+   0x0055  uses=  30  Grotto Hole
+   0x0091  uses=  29  Magic Bean Plant
+   0x0099  uses=  28  Snowball and Rolling Boulder [?]
+
+-- all placed actor types (by usage) --
+   id      uses scenes  name                                    schema
+   0x0082    522     42  Pot                                     yes
+   0x0090    217     19  Cut-able Grass                          
+   0x0039    200     23  Torch Stand                             
+   0x000E    173     35  Collectable Item                        yes
+   0x0006    149     32  Treasure Chest                          yes
+   0x01A5    143      1  Beaver Race Ring                        
+   0x0183    138     26  Deku Flower                             
+   0x001E    123     21  Dungeon Door                            
+   0x00B0    114     11  Rock                                    
+   0x0170    110      7  Dripping Water                          
+   0x015A    109     67  Three-Day Timer                         
+   0x0164    106      8  Black and White Boes                    
+   0x01DC    103      7  Large Snowball                          
+   0x01B9     94      4  Lilypad                                 
+   0x0005     90     43  Wooden Door                             yes
+   0x0018     85     21  Black Room Transition Plane             
+   0x0004     73     14  Flame                                   
+   0x0216     73      3  Leever                                  
+   0x0093     72     10  Dungeon Switches                        yes
+   0x00A8     68     24  Square Signpost                         
+   0x01F9     66      8  Small Snowball                          
+   0x00EF     62     21  Gossip Stone                            
+   0x022D     53      5  Barrel                                  
+   0x0041     52      7  Greenery                                
+   0x00E5     51     12  Wooden Crate                            
+   0x0050     49      3  Skullwalltula                           
+   0x007C     46     11  Horse Jumping Fence                     
+   0x017C     46     32  The Moon                                
+   0x010D     44      8  Grass Cluster                           
+   0x004F     43     17  Fish, Bugs, Butterflies                 
+   0x011F     43      4  Icicle                                  
+   0x003B     42      3  Mad Scrub                               
+   0x0185     42      5  Spiked Metal Mine                       
+   0x00BC     41     25  En_Weather_Tag                          
+   0x019C     41     22  Clock Tower and Light Beam              
+   0x00F0     40     23  Sound Effects II                        
+   0x0081     37      5  Small Wooden Crate                      
+   0x01AB     37     20  En_Time_Tag                             
+   0x023B     34      7  Mushroom Scent Cloud                    
+   0x003E     33      5  Blue Bubble                             
+   0x0138     31      5  Goron                                   
+   0x0261     31     10  En_Talk                                 
+   0x0055     30     16  Grotto Hole                             
+   0x0091     29      9  Magic Bean Plant                        
+   0x0099     28      6  Snowball and Rolling Boulder [?]        
+   0x008B     27      8  Elf_Msg                                 yes
+   0x0026     26     10  Directional Sign and Square Sign [Early]
+   0x0100     26      6  Spiral Staircase                        
+   0x0174     26      1  Great Bay Temple Gears                  
+   0x0024     25      8  Skulltula                               
+   0x00E4     25      6  Beehive                                 
+   0x014A     25      4  Chuchu                                  
+   0x015E     25      4  Wizzrobe Warp Platform                  
+   0x008E     24      6  Ice Sparkle Effect                      
+   0x01C0     24      3  Lens of Truth Platform                  
+   0x0232     24      5  Elf_Msg6                                
+   0x0265     24     10  En_Hit_Tag                              
+   0x0092     23      6  Bombable Rock                           
+   0x016F     23      5  Real Bombchu                            
+   0x01F5     23      3  Zora Egg                                
+   0x0297     23      4  Rainbow Hookshot Pillar                 
+   0x021E     22      4  Patrolling Pirate Guard                 
+   0x02AF     22      3  Invisible - Rupee                       
+   0x0033     21      8  Deku Baba                               
+   0x019E     21      4  Monkey                                  
+   0x0036     20     11  Bg_Breakwall                            
+   0x0066     20      6  Deku Baba                               
+   0x00C6     20      9  Elf_Msg2                                yes
+   0x0155     20      2  Nejiron                                 
+   0x018B     20      8  Spring Water                            
+   0x000C     19      5  Keese                                   
+   0x00CA     18     15  Scarecrow                               
+   0x0162     18      8  Circle of Flames                        
+   0x01CD     18      1  Deku Scrub Playground Elevator          
+   0x0228     18      2  Zora (Land)                             
+   0x0229     18      3  Fork-Branched Tree                      
+   0x0246     18      1  Elegy Statue Switch                     
+   0x0017     17      7  Fish                                    
+   0x015B     17      4  Bad Bat                                 
+   0x017E     17      1  Deku Shrine Door                        
+   0x01F0     17      1  Captain Keeta Race Gatepost             
+   0x0280     17      3  Bomber II [?]                           
+   0x006C     16      2  Like Like                               
+   0x00F1     16      6  Guay                                    
+   0x0112     16      2  Circle of Light [?]                     
+   0x004C     15      2  Redead                                  
+   0x0096     15      5  Stone Hookshot Pillar                   
+   0x00B2     15      6  Sun Switch                              yes
+   0x00EC     15      6  Wolfos                                  
+   0x028B     15      2  Chateau Romani Delivery Bottle          
+   0x02AE     15      9  Obj_Swprize                             
+   0x0172     14      1  Proximity-Activated Firewall            
+   0x01E6     14      2  Big and Small Eeno                      
+   0x0221     14      2  South Clock Town Objects                
+   0x0245     14      3  Stone Tower Temple Shifting Block       
+   0x0015     13      1  Butterfly                               
+   0x006B     13      1  En_Horse_Game_Check                     
+   0x0102     13      2  Majora Pushblock                        
+   0x0109     13      4  Dragonfly                               
+   0x012D     13      3  Bio Deku Baba                           
+   0x0192     13      8  Tatl and Tael (Cutscenes) II [?]        
+   0x01B1     13      3  Stray Fairy Bubble                      
+   0x01DA     13      1  Gibdo (Ikana Well)                      
+   0x0223     13     13  Owl Statue                              
+   0x008A     12      1  Deku Scrub Guard (Royal Chamber)        
+   0x0179     12      1  Drifting Ice Platform                   
+   0x01E7     12      2  TG_Sw                                   
+   0x0233     12      2  Obj_Nozoki                              
+   0x0274     12      7  Traveling Business Scrub                
+   0x029B     12      2  Deku Shrine and Snowhead Temple Elevator [?]
+   0x002F     11      2  Bomb Flower                             
+   0x0116     11      2  Warp to Trial Entrance                  
+   0x017A     11      1  Deku Scrub Guard (Palace Gardens)       
+   0x0186     11      2  Poisoned/Purified Water Elements        
+   0x018D     11      1  Beaver Bros.                            
+   0x01CA     11      2  Dampé                                   
+   0x01CF     11      4  Dissolvable Light Block                 
+   0x01D4     11      3  Snow-Covered Tree                       
+   0x01F4     11      1  Tent-Shaped Spider Web                  
+   0x0294     11      1  Stockpot Inn Window                     
+   0x001C     10      3  En_Viewer                               
+   0x0028     10      8  Sound Effects I                         
+   0x005B     10      5  En_Encount1                             
+   0x009D     10      1  Cucco Chick                             
+   0x013E     10      5  Potted Plant                            
+   0x01D7     10      5  Elf_Msg4                                
+   0x01D8     10      5  Elf_Msg5                                
+   0x01ED     10      4  Wind Funnel                             
+   0x020A     10      8  Cow Figurine                            
+   0x0012      9      5  Tektite                                 
+   0x0038      9      9  Blue Warp                               
+   0x003C      9      1  Red Bubble                              
+   0x00B3      9      5  Grass and Rock Cluster                  
+   0x00BF      9      5  Moon Child                              
+   0x00ED      9      1  Stalchild                               
+   0x00F3      9      4  Cow                                     
+   0x0125      9      5  Spiderweb                               
+   0x013F      9      3  Spiked Log (Horizontal)                 
+   0x014F      9      1  Octorok (Shooting Gallery)              
+   0x0158      9      3  En_Test2                                
+   0x0180      9      3  Skullfish                               
+   0x0190      9      1  Opening Cutscene Objects                
+   0x01B0      9      5  Stray Fairy                             
+   0x01D0      9      4  Mirror Shield Reflectable Spotlight [?] 
+   0x01E3      9      1  Gravestone                              
+   0x01E4      9      3  Goron Link Switch                       
+   0x0230      9      4  Mirror Shield Light Ray II [?]          
+   0x023C      9      2  Palm Tree                               
+   0x0022      8      4  Frog                                    
+   0x0051      8      8  Environment Effects 2?                  
+   0x008D      8      2  Flying Pot                              
+   0x008F      8      2  Freezard                                
+   0x009C      8      2  Carpenter (Clock Town)                  
+   0x011B      8      1  En_Encount4                             
+   0x0163      8      6  Ladder                                  
+   0x018F      8      1  Snowhead Temple Central Pillar          
+   0x01D1      8      4  Dexihand                                
+   0x01D5      8      8  Postman (Delivering Letters)            
+   0x0200      8      2  En_Invadepoh                            
+   0x0202      8      5  Anju (Gameplay)                         
+   0x020C      8      1  Bg_Sinkai_Kabe                          
+   0x0210      8      1  Oceanside Spider House Skull Kid Painting
+   0x022E      8      2  Geyser                                  
+   0x0016      7      4  Bug                                     
+   0x0019      7      4  Dinolfos                                
+   0x00A4      7      4  Gorman                                  
+   0x00FC      7      3  Bronze Boulder                          
+   0x013A      7      1  Carnivorous Lilypad                     
+   0x013C      7      2  Elevator (Deku Palace and Woodfall Temple) [?]
+   0x0159      7      7  Kafei                                   
+   0x0176      7      7  Tingle (Gameplay)                       
+   0x01BA      7      2  Snapper                                 
+   0x023D      7      1  Swarm of Moths                          
+   0x007A      6      1  Pushable Block                          
+   0x00D8      6      5  Cutscene Trigger                        
+   0x014D      6      4  Clock Town 2D Chimney Backdrop          
+   0x0171      6      5  Keaton Grass Cluster                    
+   0x01C8      6      2  Ice Block                               
+   0x0208      6      2  Big Poe                                 
+   0x0220      6      2  Cremia                                  
+   0x0235      6      1  Gibdo (Ikana Canyon)                    
+   0x0244      6      2  Jugglers                                
+   0x027B      6      2  Rosa Sister                             
+   0x02A5      6      1  Stalchild (Oceanside Spider House)      
+   0x0008      5      3  Octorok                                 
+   0x000B      5      2  Dodongo                                 
+   0x001A      5      2  Red Flag on Post                        
+   0x002D      5      1  Death Armos                             
+   0x0047      5      3  Beamos                                  
+   0x0064      5      2  Shellblade                              
+   0x00AF      5      3  Owl                                     
+   0x00E2      5      4  Dog                                     
+   0x0130      5      1  Great Fairy                             
+   0x0153      5      1  Group of Stray Fairies                  
+   0x015D      5      4  Wizzrobe                                
+   0x0191      5      5  Skull Kid                               
+   0x01A8      5      2  Big Octo                                
+   0x01B6      5      1  Clock Tower Gear                        
+   0x01DB      5      2  Giant                                   
+   0x01E9      5      3  Hiploop                                 
+   0x01F2      5      3  Postbox                                 
+   0x0219      5      2  Stone Tower Temple Mirror               
+   0x021C      5      1  Great Bay Temple Water Spout            
+   0x022C      5      2  Pirates' Fortress Boat                  
+   0x0237      5      4  Sakon                                   
+   0x025E      5      2  Hookshot Stump                          
+   0x027F      5      3  Jim II [?]                              
+   0x000A      4      1  Wallmaster                              
+   0x0032      4      1  Armos                                   
+   0x0049      4      3  Environment Effects                     
+   0x0061      4      1  Clock Tower Helix Path                  
+   0x00B1      4      1  Orange Graveyard Flower                 
+   0x00D3      4      3  Obj_Roomtimer                           
+   0x0103      4      1  Blade Trap                              
+   0x0156      4      1  Spiked Log (Vertical)                   
+   0x0193      4      1  Woodfall Temple Rises Cutscene Objects  
+   0x0197      4      4  Masks (Cutscenes)                       
+   0x019B      4      1  Giant Bee (Cutscenes)                   
+   0x01B7      4      3  Kotake (Broom) [?]                      
+   0x01B8      4      4  Clock Tower Roof Door                   
+   0x01C7      4      4  Soldier (Gate Guard)                    
+   0x0201      4      3  Goron Elder's Son                       
+   0x020B      4      3  En_Sth                                  
+   0x0211      4      1  Oceanside Spider House Drawers and Bookshelf
+   0x0215      4      3  Cremia's Cart                           
+   0x021B      4      1  Great Bay Temple See-Saw                
+   0x0222      4      1  Great Bay Temple Elevator               
+   0x0242      4      2  Goron (Goron Shrine and Bomb Shop) [?]  
+   0x0256      4      2  Stone Tower Temple Light Ray [?]        
+   0x0267      4      1  Flock of Seagulls                       
+   0x0277      4      1  Goron (Goron Racetrack)                 
+   0x0084      3      2  Iron Knuckle                            
+   0x008C      3      1  En_Honotrap                             
+   0x00A7      3      2  Boat Cruise Canoe                       
+   0x00F9      3      1  Obj_Makekinsuta                         
+   0x011D      3      3  Shooting Gallery Proprietors [?]        
+   0x0135      3      3  En_Sob1                                 
+   0x015C      3      3  Mikau's Grave and Song Pedestals [Early]
+   0x0161      3      1  Elegy Statue Light Beam [?]             
+   0x016D      3      3  Powder Keg Boulder                      
+   0x0182      3      3  Garo Master II [?]                      
+   0x0187      3      1  Koume (Gameplay) [?]                    
+   0x019A      3      3  Turtle (Cutscenes) [?]                  
+   0x01BE      3      2  Woodfall Prison Ivy                     
+   0x01C2      3      1  Fisherman (Great Bay)                   
+   0x01DE      3      3  Ghost Hut Proprietor                    
+   0x01F3      3      1  Poe                                     
+   0x01FA      3      3  Darmani's Ghost II [?]                  
+   0x0212      3      1  Circle of Stalchildren                  
+   0x021D      3      1  Pirate [?]                              
+   0x021F      3      1  Romani II [?]                           
+   0x0224      3      1  Mikau                                   
+   0x0225      3      1  Deku Moon Trial Rotating Platform       
+   0x022B      3      1  Pirates' Fortress Interior Door         
+   0x0236      3      2  Bomb Shop Proprietor's Mother           
+   0x0247      3      2  Composer Brothers                       
+   0x0248      3      2  Guru-Guru                               
+   0x0253      3      2  Anju's Mother (Gameplay)                
+   0x0255      3      1  Stone Tower Temple Bombable Floor Tile and Wall
+   0x025B      3      1  Sharp's Cave                            
+   0x025C      3      1  Ikana Canyon Objects                    
+   0x0278      3      1  Igos du Ikana and Henchmen's Heads      
+   0x027C      3      1  En_Scopecoin                            
+   0x000D      2      2  Child Epona (Cutscenes)                 
+   0x0011      2      2  Cucco                                   
+   0x0027      2      2  Stone Tower Temple Inverter             yes
+   0x002A      2      1  Middle-Aged Man                         
+   0x0067      2      1  Gorman Bros.                            
+   0x009F      2      2  Pirate Lieutenant                       
+   0x00A0      2      1  Obj_Blockstop                           
+   0x00CB      2      1  Obj_Makeoshihiki                        
+   0x00E8      2      2  Rupee Cluster                           
+   0x0105      2      1  Armos Statue                            
+   0x012C      2      2  Wart                                    
+   0x0146      2      2  Elf_Msg3                                
+   0x014B      2      2  Desbreko                                
+   0x0165      2      1  Great Fairy's Mask and Great Fairy's Sword
+   0x017F      2      2  Deku Butler                             
+   0x0184      2      2  Eyegore                                 
+   0x01A0      2      1  Deku Scrub Guard (Palace Entrance) [?]  
+   0x01A1      2      1  Snowhead Temple Bombable Wall           
+   0x01A2      2      2  Clock Tower Doors                       
+   0x01BD      2      1  Business Scrub (Flying) [?]             
+   0x01C1      2      2  Treasure Chest Game Employee            
+   0x01C4      2      1  Curiosity Shop Proprietor               
+   0x01C9      2      1  Deku Scrub Playground Employee          
+   0x01CC      2      1  West Clock Town Steps                   
+   0x01D3      2      1  Dampé's House Objects                   
+   0x01D6      2      2  2D Music Staff                          
+   0x01E2      2      1  Dampé's House Facade                    
+   0x01EF      2      1  Swordsman                               
+   0x01F1      2      1  Marine Research Lab Fish                
+   0x01FC      2      2  Deku Princess                           
+   0x0204      2      1  Giant Bee (Gameplay)                    
+   0x0205      2      2  Seahorse                                
+   0x021A      2      1  Stone Tower Temple Rotating Room        
+   0x0231      2      2  Japas                                   
+   0x0234      2      2  Toto                                    
+   0x0238      2      2  Tijo                                    
+   0x0241      2      2  Evan                                    
+   0x0243      2      2  Anju's Grandmother (Gameplay)           
+   0x024C      2      2  Business Scrub (Telescope)              
+   0x024D      2      1  Guay (Observatory Telescope)            
+   0x024F      2      1  Turtle's Tsunami                        
+   0x0252      2      2  Lulu                                    
+   0x0254      2      1  Music Box House Cupboard Doors          
+   0x025D      2      2  Pamela                                  
+   0x0260      2      1  Zora (Water)                            
+   0x0262      2      2  Madame Aroma (Gameplay)                 
+   0x0263      2      1  Mr. Barten                              
+   0x026A      2      1  Carpenter (Milk Road)                   
+   0x026B      2      2  Mutoh (Gameplay)                        
+   0x026C      2      1  Captain Viscen                          
+   0x026D      2      1  Soldier (Mayor's House)                 
+   0x0271      2      1  Cremia and Romani's Dinner              
+   0x0275      2      2  Skull Kid Moon-Summoning Effects [?]    
+   0x0276      2      2  Link the Goron                          
+   0x0279      2      1  En_Sth2                                 
+   0x0283      2      2  Moon's Tear                             
+   0x0284      2      1  Obj_Mu_Pict                             
+   0x0291      2      1  Takkuri                                 
+   0x0298      2      1  Link Moon Trial Bombable and Climbable Walls
+   0x02A6      2      1  Dm_Tag                                  
+   0x02A7      2      1  Brown Bird                              
+   0x0007      1      1  Gekko and Snapper Miniboss              
+   0x0010      1      1  Healing Fairy and Tatl (Gameplay)       
+   0x0014      1      1  Peahat                                  
+   0x0043      1      1  Gomess                                  
+   0x004A      1      1  Floormaster                             
+   0x005F      1      1  Majora Balloon                          
+   0x0065      1      1  Mad Jelly                               
+   0x00A5      1      1  Magic Bean Seller                       
+   0x00A6      1      1  Grog                                    
+   0x00AE      1      1  Marine Scientist                        
+   0x00B5      1      1  Honey and Darling                       
+   0x00B9      1      1  Rock Sirloin                            
+   0x00CE      1      1  Treasure Chest (Grotto)                 
+   0x00D4      1      1  Cursed Skulltula Man                    
+   0x00FA      1      1  Aveil                                   
+   0x00FE      1      1  Postman's Letter to Himself             
+   0x0115      1      1  Igos du Ikana and Henchmen [?]          
+   0x0117      1      1  Mamamu Yan                              
+   0x011C      1      1  Bomber I [?]                            
+   0x0124      1      1  Shikashi                                
+   0x0128      1      1  En_Mt_tag                               
+   0x0129      1      1  Odolwa                                  
+   0x012A      1      1  Twinmold                                
+   0x012B      1      1  Gyorg                                   
+   0x012F      1      1  Majora                                  
+   0x013D      1      1  Wooden Flower                           
+   0x0142      1      1  Ice Pushblock                           
+   0x014E      1      1  Stock Pot Inn Bell                      
+   0x0154      1      1  Deku Door/Spotlights                    
+   0x0157      1      1  Romani Ranch Chimney Smoke              
+   0x0168      1      1  Boat Cruise Target Spot                 
+   0x016A      1      1  Deku King                               
+   0x0177      1      1  Bank Teller, Sakon, Twin Jugglers       
+   0x0178      1      1  Pirates' Fortress Telescope             
+   0x0188      1      1  Kotake (No Broom) [?]                   
+   0x0194      1      1  Clock Tower Roof Cutscene - OoT and Majora's Mask
+   0x0195      1      1  Happy Mask Salesman (Cutscenes)         
+   0x0199      1      1  Milk Bar Stage (Cutscenes)              
+   0x01A3      1      1  Snowhead Temple Punchable Pillar Inserts
+   0x01A4      1      1  Romani I [?]                            
+   0x01A6      1      1  Poe Balloon                             
+   0x01AC      1      1  Deku Emblem Door                        
+   0x01AD      1      1  Skull Kid Spotlights                    
+   0x01AE      1      1  Honey and Darling's Shop Rotating Platform
+   0x01B5      1      1  Happy Mask Salesman (Gameplay)          
+   0x01C3      1      1  Potion Shop Proprietor (Updated) [OoT]  
+   0x01C5      1      1  Swamp Tourist Center Guide              
+   0x01DD      1      1  Goht                                    
+   0x01E0      1      1  Goron Shrine Gate                       
+   0x01F6      1      1  Zubora                                  
+   0x01F7      1      1  Darmani's Ghost I [?]                   
+   0x01FB      1      1  Darmani's Gravestone                    
+   0x01FD      1      1  Biggoron                                
+   0x01FF      1      1  Gabora                                  
+   0x0207      1      1  Swordsman's School Gong                 
+   0x0209      1      1  Swordsman's School Wooden Board         
+   0x020D      1      1  Beneath the Grave Curtain               
+   0x020E      1      1  Oceanside Spider House Bombable Wall    
+   0x020F      1      1  Oceanside Spider House Fireplace Grate  
+   0x0214      1      1  Koume (Boat Cruise) [?]                 
+   0x0227      1      1  Twinmold's Lair Objects [?]             
+   0x0239      1      1  Lottery Shop Kiosk                      
+   0x023A      1      1  Don Gero                                
+   0x0240      1      1  Goron Village Chandelier                
+   0x024A      1      1  Shiro                                   
+   0x0250      1      1  Pamela's Father (Normal)                
+   0x0251      1      1  Pamela's Father (Cursed)                
+   0x0257      1      1  Stone Tower Temple Lattice Door         
+   0x0258      1      1  Beneath the Grave Bombable Wall         
+   0x0259      1      1  Flat's Tomb                             
+   0x025F      1      1  Mad Scrub (Sleeping)                    
+   0x0266      1      1  Guay (Circling Clock Town)              
+   0x026F      1      1  Mayor Dotour (Gameplay)                 
+   0x0270      1      1  Laundry Pool Bell [?]                   
+   0x0273      1      1  Ancient Castle of Ikana Punchable Pillar Segments
+   0x027A      1      1  Kamaro                                  
+   0x027D      1      1  Hand in Toilet                          
+   0x027E      1      1  Jim I [?]                               
+   0x0281      1      1  Bomber (Hideout Guard)                  
+   0x0282      1      1  Majora Balloon (North Clock Town)       
+   0x0285      1      1  Ancient Castle of Ikana Objects [?]     
+   0x0287      1      1  Gorman Track Buildings                  
+   0x0288      1      1  Cow Barn Roof (Exterior)                
+   0x0289      1      1  Deku Butler's Son                       
+   0x028A      1      1  Metal Portcullis                        
+   0x028D      1      1  Astral Observatory Bombable Wall        
+   0x028E      1      1  Hot Checkered Ceiling [?]               
+   0x028F      1      1  Captain Keeta                           
+   0x0290      1      1  Mayor's Receptionist                    
+   0x02A1      1      1  Wedding Dress Mannequin                 
+

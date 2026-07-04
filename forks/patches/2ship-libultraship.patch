@@ -1,0 +1,52 @@
+diff --git a/src/fast/interpreter.cpp b/src/fast/interpreter.cpp
+index 19d9e12..ccf1a4b 100644
+--- a/src/fast/interpreter.cpp
++++ b/src/fast/interpreter.cpp
+@@ -3376,7 +3376,10 @@ bool gfx_set_timg_otr_hash_handler_custom(F3DGfx** cmd0) {
+     RawTexMetadata rawTexMetadata = {};
+ 
+     if (fileName == nullptr) {
+-        (*cmd0)++;
++        // MH: name-map miss. cmd0 is on the hash word (the command's 2nd word); the caller advances
++        // one more, landing on the next command. Do NOT advance again here or the DL stream desyncs
++        // by one word and a later misread opcode strlens a garbage pointer.
++        SPDLOG_ERROR("G_SETTIMG_OTR_HASH: HashToCString miss for hash {:#018x}", hash);
+         return false;
+     }
+ 
+@@ -3421,11 +3424,15 @@ bool gfx_set_timg_otr_hash_handler_custom(F3DGfx** cmd0) {
+             Interpreter* gfx = mInstance.lock().get();
+             gfx->GfxDpSetTextureImage(fmt, size, width, fileName, texFlags, rawTexMetadata, tex);
+         }
++        // MH: success path — the (*cmd0)-- above left us on the command word; advance to the hash word
++        // so the caller's ++ reaches the next command (matches the failure paths' end state).
++        (*cmd0)++;
+     } else {
+-        SPDLOG_ERROR("G_SETTIMG_OTR_HASH: Texture is null");
++        // MH: load/parse failure. cmd0 is already on the hash word; leave it so the caller's ++ reaches
++        // the next command. (Previously this fell through to a shared ++ and desynced the DL stream.)
++        SPDLOG_ERROR("G_SETTIMG_OTR_HASH: Texture is null (hash {:#018x})", hash);
+     }
+ 
+-    (*cmd0)++;
+     return false;
+ }
+ 
+diff --git a/src/ship/window/gui/Gui.cpp b/src/ship/window/gui/Gui.cpp
+index 5d04f77..a79273d 100644
+--- a/src/ship/window/gui/Gui.cpp
++++ b/src/ship/window/gui/Gui.cpp
+@@ -1038,6 +1038,13 @@ void Gui::LoadGuiTexture(const std::string& name, const std::string& path, const
+     const auto res =
+         static_cast<Fast::Texture*>(Context::GetInstance()->GetResourceManager()->LoadResource(path, true).get());
+ 
++    // A GUI texture missing from the mounted archives returns null; dereferencing it here crashed
++    // the engine during startup (LoadGuiTextures). Skip it so boot can continue.
++    if (res == nullptr) {
++        SPDLOG_WARN("Gui::LoadGuiTexture: texture resource not found, skipping: {}", path);
++        return;
++    }
++
+     LoadGuiTexture(name, *res, tint);
+ }
+ 

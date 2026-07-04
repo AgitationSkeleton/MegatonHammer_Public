@@ -1,0 +1,47 @@
+namespace MegatonHammer.Rom;
+
+/// <summary>Friendly OoT scene names by scene id (order matches gSceneTable / scene_table.h).</summary>
+public static class OotSceneNames
+{
+    private static readonly string[] Raw =
+    [
+        "DEKU_TREE","DODONGOS_CAVERN","JABU_JABU","FOREST_TEMPLE","FIRE_TEMPLE","WATER_TEMPLE",
+        "SPIRIT_TEMPLE","SHADOW_TEMPLE","BOTTOM_OF_THE_WELL","ICE_CAVERN","GANONS_TOWER",
+        "GERUDO_TRAINING_GROUND","THIEVES_HIDEOUT","INSIDE_GANONS_CASTLE","GANONS_TOWER_COLLAPSE_INTERIOR",
+        "INSIDE_GANONS_CASTLE_COLLAPSE","TREASURE_BOX_SHOP","DEKU_TREE_BOSS","DODONGOS_CAVERN_BOSS",
+        "JABU_JABU_BOSS","FOREST_TEMPLE_BOSS","FIRE_TEMPLE_BOSS","WATER_TEMPLE_BOSS","SPIRIT_TEMPLE_BOSS",
+        "SHADOW_TEMPLE_BOSS","GANONDORF_BOSS","GANONS_TOWER_COLLAPSE_EXTERIOR","MARKET_ENTRANCE_DAY",
+        "MARKET_ENTRANCE_NIGHT","MARKET_ENTRANCE_RUINS","BACK_ALLEY_DAY","BACK_ALLEY_NIGHT","MARKET_DAY",
+        "MARKET_NIGHT","MARKET_RUINS","TEMPLE_OF_TIME_EXTERIOR_DAY","TEMPLE_OF_TIME_EXTERIOR_NIGHT",
+        "TEMPLE_OF_TIME_EXTERIOR_RUINS","KNOW_IT_ALL_BROS_HOUSE","TWINS_HOUSE","MIDOS_HOUSE","SARIAS_HOUSE",
+        "KAKARIKO_CENTER_GUEST_HOUSE","BACK_ALLEY_HOUSE","BAZAAR","KOKIRI_SHOP","GORON_SHOP","ZORA_SHOP",
+        "POTION_SHOP_KAKARIKO","POTION_SHOP_MARKET","BOMBCHU_SHOP","HAPPY_MASK_SHOP","LINKS_HOUSE",
+        "DOG_LADY_HOUSE","STABLE","IMPAS_HOUSE","LAKESIDE_LABORATORY","CARPENTERS_TENT","GRAVEKEEPERS_HUT",
+        "GREAT_FAIRYS_FOUNTAIN_MAGIC","FAIRYS_FOUNTAIN","GREAT_FAIRYS_FOUNTAIN_SPELLS","GROTTOS","REDEAD_GRAVE",
+        "GRAVE_WITH_FAIRYS_FOUNTAIN","ROYAL_FAMILYS_TOMB","SHOOTING_GALLERY","TEMPLE_OF_TIME",
+        "CHAMBER_OF_THE_SAGES","CASTLE_COURTYARD_GUARDS_DAY","CASTLE_COURTYARD_GUARDS_NIGHT","CUTSCENE_MAP",
+        "WINDMILL_AND_DAMPES_GRAVE","FISHING_POND","CASTLE_COURTYARD_ZELDA","BOMBCHU_BOWLING_ALLEY",
+        "LON_LON_BUILDINGS","MARKET_GUARD_HOUSE","POTION_SHOP_GRANNY","GANON_BOSS","HOUSE_OF_SKULLTULA",
+        "HYRULE_FIELD","KAKARIKO_VILLAGE","GRAVEYARD","ZORAS_RIVER","KOKIRI_FOREST","SACRED_FOREST_MEADOW",
+        "LAKE_HYLIA","ZORAS_DOMAIN","ZORAS_FOUNTAIN","GERUDO_VALLEY","LOST_WOODS","DESERT_COLOSSUS",
+        "GERUDOS_FORTRESS","HAUNTED_WASTELAND","HYRULE_CASTLE","DEATH_MOUNTAIN_TRAIL","DEATH_MOUNTAIN_CRATER",
+        "GORON_CITY","LON_LON_RANCH","OUTSIDE_GANONS_CASTLE","TEST01","BESITU","DEPTH_TEST","SYOTES",
+        "SYOTES2","SUTARU","HAIRAL_NIWA2","SASATEST","TESTROOM",
+    ];
+
+    public static int Count => Raw.Length;
+
+    /// <summary>The decomp SCENE_ macro for a slot (e.g. 0x55 → "SCENE_KOKIRI_FOREST"), matching the
+    /// SceneMacro field in <see cref="Editor.EntranceNames"/>. Null if the slot is out of range.</summary>
+    public static string? SceneMacro(int sceneId) =>
+        (sceneId >= 0 && sceneId < Raw.Length) ? "SCENE_" + Raw[sceneId] : null;
+
+    public static string Pretty(int sceneId)
+    {
+        if (sceneId < 0 || sceneId >= Raw.Length) return $"Scene 0x{sceneId:X2}";
+        var words = Raw[sceneId].Split('_');
+        for (int i = 0; i < words.Length; i++)
+            words[i] = words[i].Length == 0 ? "" : char.ToUpperInvariant(words[i][0]) + words[i][1..].ToLowerInvariant();
+        return string.Join(' ', words);
+    }
+}

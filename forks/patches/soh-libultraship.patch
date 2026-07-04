@@ -1,0 +1,63 @@
+diff --git a/src/fast/interpreter.cpp b/src/fast/interpreter.cpp
+index 967cf10..95c4dd1 100644
+--- a/src/fast/interpreter.cpp
++++ b/src/fast/interpreter.cpp
+@@ -11,6 +11,8 @@
+ #include <any>
+ #include <map>
+ #include <set>
++#include <fstream>
++#include <cstdio>
+ #include <unordered_map>
+ #include <vector>
+ #include <list>
+@@ -70,6 +72,17 @@ std::stack<std::string> currentDir;
+ 
+ namespace Fast {
+ 
++// Megaton Hammer playtest diag: dedup-log lines to mh_tex_diag.log (spdlog's file sink is above ERROR
++// in release so the texture-handler's SPDLOG_ERROR misses are invisible). Used to pin the solid-red
++// skybox/Link render in editor-injected scenes. Defined here so it's visible to all interpreter funcs.
++static void MhTexDiag(const std::string& s) {
++    static std::set<std::string> seen;
++    if (seen.count(s)) return;
++    seen.insert(s);
++    std::ofstream f("mh_tex_diag.log", std::ios::app);
++    if (f.is_open()) f << s << std::endl;
++}
++
+ static UcodeHandlers ucode_handler_index = ucode_f3dex2;
+ 
+ const static uint32_t f3dex2AttrHandler[] = {
+@@ -3908,7 +3921,11 @@ bool gfx_set_timg_otr_hash_handler_custom(F3DGfx** cmd0) {
+     RawTexMetadata rawTexMetadata = {};
+ 
+     if (fileName == nullptr) {
+-        (*cmd0)++;
++        // MH: name-map miss. cmd0 is on the hash word (the command's 2nd word); the caller advances
++        // one more, landing on the next command. Do NOT advance again here or the DL stream desyncs
++        // by one word and a later misread opcode strlens a garbage pointer.
++        SPDLOG_ERROR("G_SETTIMG_OTR_HASH: HashToCString miss for hash {:#018x}", hash);
++        char b[40]; snprintf(b, sizeof(b), "MISS-NAME hash=%016llx", (unsigned long long)hash); MhTexDiag(b);
+         return false;
+     }
+ 
+@@ -3953,11 +3970,16 @@ bool gfx_set_timg_otr_hash_handler_custom(F3DGfx** cmd0) {
+             Interpreter* gfx = mInstance.lock().get();
+             gfx->GfxDpSetTextureImage(fmt, size, width, fileName, texFlags, rawTexMetadata, tex);
+         }
++        // MH: success path — the 3946 (*cmd0)-- left us on the command word; advance to the hash word
++        // so the caller's ++ reaches the next command (matches the failure paths' end state).
++        (*cmd0)++;
+     } else {
+-        SPDLOG_ERROR("G_SETTIMG_OTR_HASH: Texture is null");
++        // MH: load/parse failure. cmd0 is already on the hash word; leave it so the caller's ++ reaches
++        // the next command. (Previously this fell through to a shared ++ and desynced the DL stream.)
++        SPDLOG_ERROR("G_SETTIMG_OTR_HASH: Texture is null (hash {:#018x})", hash);
++        { char b[120]; snprintf(b, sizeof(b), "MISS-LOAD %s", fileName ? fileName : "(null)"); MhTexDiag(b); }
+     }
+ 
+-    (*cmd0)++;
+     return false;
+ }
+ 

@@ -1,0 +1,876 @@
+diff --git a/mm/2s2h/DeveloperTools/BetterMapSelect.c b/mm/2s2h/DeveloperTools/BetterMapSelect.c
+index 8b03130c6..184145e71 100644
+--- a/mm/2s2h/DeveloperTools/BetterMapSelect.c
++++ b/mm/2s2h/DeveloperTools/BetterMapSelect.c
+@@ -13,7 +13,7 @@ void BetterMapSelect_LoadFileSelect(MapSelectState* mapSelectState);
+     { humanName, BetterMapSelect_LoadGame, ENTRANCE(entranceSceneId, 0) },
+ #define DEFINE_SCENE_UNSET(_enumValue)
+ 
+-static SceneSelectEntry sBetterScenes[106] = {
++static SceneSelectEntry sBetterScenes[107] = { // +1 for Megaton Hammer's reserved appended scene
+ #include "tables/scene_table.h"
+     { "Chest Grottos", BetterMapSelect_LoadGame, ENTRANCE(GROTTOS, 4) },
+     { "Cow Grottos", BetterMapSelect_LoadGame, ENTRANCE(GROTTOS, 10) },
+@@ -36,7 +36,7 @@ typedef struct {
+     s32 index;
+ } BetterMapSelectInfoEntry;
+ 
+-static BetterMapSelectInfoEntry sBetterMapSelectInfo[102] = {
++static BetterMapSelectInfoEntry sBetterMapSelectInfo[103] = { // +1 for Megaton Hammer's reserved appended scene
+ #include "tables/scene_table.h"
+ };
+ 
+diff --git a/mm/2s2h/DeveloperTools/DebugConsole.cpp b/mm/2s2h/DeveloperTools/DebugConsole.cpp
+index 56dd33bdd..1f08b1bdc 100644
+--- a/mm/2s2h/DeveloperTools/DebugConsole.cpp
++++ b/mm/2s2h/DeveloperTools/DebugConsole.cpp
+@@ -15,8 +15,24 @@ extern "C" {
+ 
+ #include "overlays/gamestates/ovl_file_choose/z_file_select.h"
+ #include "overlays/gamestates/ovl_title/z_title.h"
++
++// The scene→entrance lookup table (de-static'd in z_scene_table.c for the BetterWarp menu);
++// the Megaton Hammer playtest warp scans it to find an entrance for a target scene id.
++extern SceneEntranceTableEntry sSceneEntranceTable[ENTR_SCENE_MAX];
++
++// Megaton Hammer auto-boot support (C-linkage: the warp save setup + map-select loader).
++#include "overlays/gamestates/ovl_select/z_select.h"
++extern GameState* gGameState;
++void Sram_InitNewSave(void);
+ }
+ 
++// Megaton Hammer playtest auto-boot includes (C++).
++#include "2s2h/GameInteractor/GameInteractor.h"
++#include "2s2h/CustomMessage/CustomMessage.h"
++#include <nlohmann/json.hpp>
++#include <unordered_map>
++#include <fstream>
++
+ #define CMD_REGISTER Ship::Context::GetInstance()->GetConsole()->AddCommand
+ // TODO: Commands should be using the output passed in.
+ #define ERROR_MESSAGE                                                                 \
+@@ -193,6 +209,52 @@ static bool GiveItemHandler(std::shared_ptr<Ship::Console> Console, const std::v
+     return 0;
+ }
+ 
++// Megaton Hammer: warp into a level packed by the editor's "Playtest" action. The editor writes
++// its level as native OTR resources that override a chosen scene's archive paths (mods/mh_playtest.o2r),
++// so the scene already loads normally — this command just warps there. The scene id is the MM scene
++// table index the editor packed against. Usage: mh_playtest [sceneIdHex]
++static bool MhPlaytestHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
++                              std::string* output) {
++    if (gPlayState == nullptr) {
++        ERROR_MESSAGE("[2S2H] Load a save file first, then run mh_playtest.");
++        return 1;
++    }
++
++    s32 sceneId = 0x52; // matches Megaton Hammer's default playtest slot
++    if (args.size() >= 2) {
++        try {
++            sceneId = std::stoi(args[1], nullptr, 16);
++        } catch ([[maybe_unused]] std::invalid_argument const& ex) {
++            ERROR_MESSAGE("[2S2H] Scene id must be a hex number.");
++            return 1;
++        }
++    }
++
++    // MM encodes an entrance as (entranceSceneIndex << 9) | (spawn << 4); the scene-index is NOT the
++    // scene id, so scan the table for the first entrance (spawn 0) that resolves to the target scene.
++    s32 entrance = -1;
++    for (u32 i = 0; i < ENTR_SCENE_MAX; i++) {
++        if (sSceneEntranceTable[i].table == NULL) {
++            continue; // SCENE_ENTRANCE_NONE slot — would crash in Entrance_GetSceneIdAbsolute
++        }
++        u16 cand = (u16)(i << 9);
++        if (Entrance_GetSceneIdAbsolute(cand) == sceneId) {
++            entrance = cand;
++            break;
++        }
++    }
++    if (entrance < 0) {
++        ERROR_MESSAGE("[2S2H] No entrance found for scene id 0x%X.", sceneId);
++        return 1;
++    }
++
++    gPlayState->nextEntrance = entrance;
++    gPlayState->transitionTrigger = TRANS_TRIGGER_START;
++    gPlayState->transitionType = TRANS_TYPE_INSTANT;
++    gSaveContext.nextTransitionType = TRANS_TYPE_INSTANT;
++    return 0;
++}
++
+ static bool EntranceHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
+                             std::string* output) {
+     if (args.size() < 2) {
+@@ -259,7 +321,632 @@ static bool QuitHandler(std::shared_ptr<Ship::Console> Console, const std::vecto
+     return 0;
+ }
+ 
++// Megaton Hammer: write a boot log next to the executable for headless verification.
++static void MhBootLog(const std::string& msg) {
++    std::ofstream f("mh_playtest_boot.log", std::ios::app);
++    if (f) {
++        f << msg << std::endl;
++    }
++}
++
++// The engine's cross-cycle weekEventReg persistence table (z_sram_NES.c; C linkage). The MH boot hook
++// OR's the editor's persistent flags into it so authored world-state survives a Song-of-Time reset.
++extern "C" u16 sPersistentCycleWeekEventRegs[100];
++
++// Megaton Hammer: apply a custom starting inventory (from the editor's inventory editor) onto a
++// fresh MM save. Payload = the "inv" object of mh/info: { hearts, tiers{...}, toggles[...] }.
++// Keys match Editor/InventoryCatalog (MM). Call after Sram_InitNewSave, before MapSelect_LoadGame.
++// #5: editor's Z-targeting mode, re-asserted by the render probe (MM re-loads options after our hook). -1 = none.
++static int sMhZTarget = -1;
++static void MhApplyCustomInventory(const nlohmann::json& inv) {
++    int hearts = inv.value("hearts", 3);
++    gSaveContext.save.saveInfo.playerData.healthCapacity = (s16)(hearts * 16);
++    gSaveContext.save.saveInfo.playerData.health = gSaveContext.save.saveInfo.playerData.healthCapacity;
++
++    auto hasToggle = [&](const char* k) -> bool {
++        if (!inv.contains("toggles") || !inv["toggles"].is_array()) return false;
++        for (auto& t : inv["toggles"]) if (t.is_string() && t.get<std::string>() == k) return true;
++        return false;
++    };
++    auto tier = [&](const char* k) -> int {
++        if (inv.contains("tiers") && inv["tiers"].is_object() && inv["tiers"].contains(k))
++            return inv["tiers"][k].get<int>();
++        return 0;
++    };
++    auto amount = [&](const char* k) -> int {   // #13: varying-amount item count (0 = none)
++        if (inv.contains("amounts") && inv["amounts"].is_object() && inv["amounts"].contains(k))
++            return inv["amounts"][k].get<int>();
++        return 0;
++    };
++
++    // #21: injected player name (default "Link"). MM shares OoT's filename encoding: 0-9=0x00..,
++    // A-Z=0x0A.., a-z=0x24.., space/other=0x3E; padded to 8 ("LINK" = 15 12 17 14 3E..).
++    {
++        std::string pn = inv.value("playerName", std::string("Link"));
++        if (pn.empty()) pn = "Link";
++        for (int i = 0; i < 8; i++) {
++            char c = 0x3E;
++            if (i < (int)pn.size()) {
++                char ch = pn[i];
++                if (ch >= '0' && ch <= '9') c = (char)(ch - '0');
++                else if (ch >= 'A' && ch <= 'Z') c = (char)(0x0A + (ch - 'A'));
++                else if (ch >= 'a' && ch <= 'z') c = (char)(0x24 + (ch - 'a'));
++            }
++            gSaveContext.save.saveInfo.playerData.playerName[i] = c;
++        }
++    }
++
++    // #5: Z-targeting mode (0 = Switch/Toggle, 1 = Hold). MM stores it in SaveContext.options. Stash it so
++    // the render probe re-asserts it after MM's options load (later in boot) reverts this write.
++    sMhZTarget = inv.value("zTarget", 0);
++    gSaveContext.options.zTargetSetting = (u8)sMhZTarget;
++
++    // Sword / shield (equip the chosen tier; EQUIP_VALUE_*_x are 1-based).
++    int sw = tier("sword");
++    if (sw > 0) {
++        static const u8 swordVal[] = { EQUIP_VALUE_SWORD_KOKIRI, EQUIP_VALUE_SWORD_RAZOR, EQUIP_VALUE_SWORD_GILDED };
++        SET_EQUIP_VALUE(EQUIP_TYPE_SWORD, swordVal[(sw - 1) % 3]);
++    }
++    int sh = tier("shield");
++    if (sh > 0) {
++        static const u8 shieldVal[] = { EQUIP_VALUE_SHIELD_HERO, EQUIP_VALUE_SHIELD_MIRROR };
++        SET_EQUIP_VALUE(EQUIP_TYPE_SHIELD, shieldVal[(sh - 1) % 2]);
++    }
++
++    // Upgrades (wallet / quiver / bomb bag).
++    if (tier("wallet"))  Inventory_ChangeUpgrade(UPG_WALLET, tier("wallet"));
++    if (tier("quiver"))  Inventory_ChangeUpgrade(UPG_QUIVER, tier("quiver"));
++    if (tier("bombbag")) Inventory_ChangeUpgrade(UPG_BOMB_BAG, tier("bombbag"));
++
++    // Magic tier: 1 = single (first upgrade), 2 = double. Same fields SaveEditor.cpp sets:
++    // flag acquired + magicLevel, derive magicCapacity = level*MAGIC_NORMAL_METER, fill the meter.
++    int mg = tier("magic");
++    if (mg >= 1) {
++        gSaveContext.save.saveInfo.playerData.isMagicAcquired = true;
++        gSaveContext.save.saveInfo.playerData.magicLevel = (mg >= 2) ? 2 : 1;
++        if (mg >= 2) gSaveContext.save.saveInfo.playerData.isDoubleMagicAcquired = true;
++        gSaveContext.magicCapacity = gSaveContext.save.saveInfo.playerData.magicLevel * MAGIC_NORMAL_METER;
++        gSaveContext.save.saveInfo.playerData.magic = gSaveContext.magicCapacity;
++    }
++
++    // Masks (a mask is owned when its inventory slot holds its item id).
++    struct ItemDef { const char* key; u16 item; s8 ammo; };
++    static const ItemDef kMasks[] = {
++        { "mask_postman", ITEM_MASK_POSTMAN, 0 }, { "mask_allnight", ITEM_MASK_ALL_NIGHT, 0 }, { "mask_blast", ITEM_MASK_BLAST, 0 },
++        { "mask_stone", ITEM_MASK_STONE, 0 }, { "mask_greatfairy", ITEM_MASK_GREAT_FAIRY, 0 }, { "mask_deku", ITEM_MASK_DEKU, 0 },
++        { "mask_keaton", ITEM_MASK_KEATON, 0 }, { "mask_bremen", ITEM_MASK_BREMEN, 0 }, { "mask_bunny", ITEM_MASK_BUNNY, 0 },
++        { "mask_dongero", ITEM_MASK_DON_GERO, 0 }, { "mask_scents", ITEM_MASK_SCENTS, 0 }, { "mask_goron", ITEM_MASK_GORON, 0 },
++        { "mask_romani", ITEM_MASK_ROMANI, 0 }, { "mask_circus", ITEM_MASK_CIRCUS_LEADER, 0 }, { "mask_kafei", ITEM_MASK_KAFEIS_MASK, 0 },
++        { "mask_couple", ITEM_MASK_COUPLE, 0 }, { "mask_truth", ITEM_MASK_TRUTH, 0 }, { "mask_zora", ITEM_MASK_ZORA, 0 },
++        { "mask_kamaro", ITEM_MASK_KAMARO, 0 }, { "mask_gibdo", ITEM_MASK_GIBDO, 0 }, { "mask_garo", ITEM_MASK_GARO, 0 },
++        { "mask_captain", ITEM_MASK_CAPTAIN, 0 }, { "mask_giant", ITEM_MASK_GIANT, 0 }, { "mask_fierce", ITEM_MASK_FIERCE_DEITY, 0 },
++    };
++    for (auto& m : kMasks) if (hasToggle(m.key)) INV_CONTENT(m.item) = (u8)m.item;
++
++    // Deku Link's B-button (bubble/nut) is driven entirely by equips.buttonItems[PLAYER_FORM_DEKU][EQUIP_SLOT_B]
++    // == ITEM_DEKU_NUT (see z_parameter.c ~3123: with magic it fires bubbles, without magic the game disables it).
++    // A legit playthrough sets this when the Deku mask is used; granting the mask directly via INV_CONTENT skips
++    // that, leaving the default sSaveDefaultItemEquips value ITEM_FD, so Deku Link's B does nothing. Restore it
++    // verbatim from 2Ship's own sSaveDebugItemEquips Deku row (buttonItems[3][0] = ITEM_DEKU_NUT) — the same value
++    // the N64 debug save uses, which is why Deku's B already works on PJ64.
++    if (hasToggle("mask_deku")) {
++        BUTTON_ITEM_EQUIP(PLAYER_FORM_DEKU, EQUIP_SLOT_B) = ITEM_DEKU_NUT;
++    }
++
++    // Items (with starting ammo where applicable).
++    static const ItemDef kItems[] = {
++        { "ocarina", ITEM_OCARINA_OF_TIME, 0 }, { "bow", ITEM_BOW, 30 }, { "bomb", ITEM_BOMB, 20 }, { "bombchu", ITEM_BOMBCHU, 20 },
++        { "bean", ITEM_MAGIC_BEANS, 0 }, { "powder_keg", ITEM_POWDER_KEG, 0 }, { "pictograph", ITEM_PICTOGRAPH_BOX, 0 },
++        { "lens", ITEM_LENS_OF_TRUTH, 0 }, { "hookshot", ITEM_HOOKSHOT, 0 }, { "great_fairy_sword", ITEM_SWORD_GREAT_FAIRY, 0 },
++        { "bottle", ITEM_BOTTLE, 0 },
++    };
++    for (auto& it : kItems)
++        if (hasToggle(it.key)) { INV_CONTENT(it.item) = (u8)it.item; if (it.ammo) AMMO(it.item) = it.ammo; }
++
++    // #13: varying-amount items — count sets ammo[] and auto-grants the requisite capacity upgrade
++    // (highest of explicit tier vs derived wins). MM has no deku-stick upgrade, so sticks cap at 10.
++    struct AmmoDef { const char* key; u16 item; int upg; u8 caps[4]; };
++    static const AmmoDef kAmmo[] = {
++        { "bow", ITEM_BOW, UPG_QUIVER, {0,30,40,50} }, { "bomb", ITEM_BOMB, UPG_BOMB_BAG, {0,20,30,40} },
++        { "bombchu", ITEM_BOMBCHU, -1, {0,50,50,50} }, { "stick", ITEM_DEKU_STICK, -1, {0,10,10,10} },
++        { "nut", ITEM_DEKU_NUT, UPG_DEKU_NUTS, {0,20,30,40} },
++    };
++    for (auto& a : kAmmo) {
++        int amt = amount(a.key);
++        if (amt <= 0) continue;
++        if (amt > a.caps[3]) amt = a.caps[3];
++        INV_CONTENT(a.item) = (u8)a.item;
++        AMMO(a.item) = (s8)amt;
++        if (a.upg >= 0) {
++            int lvl = 3;
++            for (int l = 1; l < 4; l++) if (a.caps[l] >= amt) { lvl = l; break; }
++            if (lvl > (int)CUR_UPG_VALUE(a.upg)) Inventory_ChangeUpgrade((u16)a.upg, lvl);
++        }
++    }
++
++    // Songs / remains (quest-item bits).
++    struct QuestDef { const char* key; int q; };
++    static const QuestDef kQuest[] = {
++        { "song_time", QUEST_SONG_TIME }, { "song_healing", QUEST_SONG_HEALING }, { "song_epona", QUEST_SONG_EPONA },
++        { "song_soaring", QUEST_SONG_SOARING }, { "song_storms", QUEST_SONG_STORMS }, { "song_awakening", QUEST_SONG_SONATA },
++        { "song_lullaby", QUEST_SONG_LULLABY }, { "song_bossa", QUEST_SONG_BOSSA_NOVA }, { "song_elegy", QUEST_SONG_ELEGY },
++        { "song_oath", QUEST_SONG_OATH }, { "song_saria", QUEST_SONG_SARIA }, { "song_suns", QUEST_SONG_SUN },
++        { "remains_odolwa", QUEST_REMAINS_ODOLWA }, { "remains_goht", QUEST_REMAINS_GOHT },
++        { "remains_gyorg", QUEST_REMAINS_GYORG }, { "remains_twinmold", QUEST_REMAINS_TWINMOLD },
++    };
++    for (auto& qq : kQuest)
++        if (hasToggle(qq.key)) gSaveContext.save.saveInfo.inventory.questItems |= gBitFlags[qq.q];
++
++    // Tatl: the fairy companion is a Save flag (the "bell_flag" @ save.hasTatl), not a quest item. On by
++    // default in every editor preset except "Nothing", and togglable from the playtest inventory menu.
++    gSaveContext.save.hasTatl = hasToggle("tatl");
++}
++
++// ── Authored dialogue (Megaton Hammer Message Bank) ───────────────────────────────────────────────
++// The editor emits an "mh/messages" resource: a JSON array of { id (textId), type, pos, icon, text }.
++// We register an OnOpenText hook per id; when an actor opens that textId we build the MM textbox from
++// the stored entry (friendly markup: & = newline, ^ = new box, %r/%g/%b/%y/%w/%p = colour) and load it
++// into the font, telling the engine to skip the normal message-table lookup. This generalises the
++// built-in single-id CustomMessage path (CUSTOM_MESSAGE_ID 0x4B) to an id-addressed bank.
++static std::unordered_map<u16, CustomMessage::Entry> sMhMessages;
++
++static void MhOnOpenText(u16* textId, bool* loadFromMessageTable) {
++    auto it = sMhMessages.find(*textId);
++    if (it == sMhMessages.end()) {
++        return; // not an authored id → let the normal table handle it
++    }
++    *loadFromMessageTable = false;
++    CustomMessage::LoadCustomMessageIntoFont(it->second);
++}
++
++static void MhLoadMessages() {
++    auto ctx = Ship::Context::GetInstance();
++    if (ctx == nullptr || ctx->GetResourceManager() == nullptr) {
++        return;
++    }
++    auto file = ctx->GetResourceManager()->GetArchiveManager()->LoadFile("mh/messages");
++    if (file == nullptr || file->Buffer == nullptr || file->Buffer->empty()) {
++        return; // no authored dialogue in this mod
++    }
++    std::string body(file->Buffer->begin(), file->Buffer->end());
++    nlohmann::json arr = nlohmann::json::parse(body, nullptr, false);
++    if (arr.is_discarded() || !arr.is_array()) {
++        MhBootLog("[mh_boot] mh/messages JSON parse error");
++        return;
++    }
++    int count = 0;
++    for (auto& e : arr) {
++        u16 id = (u16)e.value("id", 0);
++        if (id == 0) {
++            continue;
++        }
++        // Translate the editor's markup to what autoFormat expects: & → newline, ^ → MM box-break (0x10).
++        std::string text = e.value("text", std::string(""));
++        CustomMessage::Replace(&text, "&", "\n");
++        CustomMessage::Replace(&text, "^", "\x10");
++        int icon = e.value("icon", -1);
++        CustomMessage::Entry entry;
++        entry.textboxType = (uint8_t)e.value("type", 0);
++        entry.textboxYPos = (uint8_t)e.value("pos", 0);
++        entry.icon = (uint8_t)(icon < 0 ? 0xFE : icon);
++        entry.autoFormat = true;
++        entry.msg = text;
++        sMhMessages[id] = entry;
++        GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(id, MhOnOpenText);
++        count++;
++    }
++    MhBootLog("[mh_msg] registered " + std::to_string(count) + " authored message(s)");
++}
++
++// #20: the debug scene-select list's appended Megaton Hammer entry name (defined in ovl_select/z_select.c).
++extern "C" char gMhWarpName[64];
++
++// Cross-game / custom music: the runtime seqId->resource-path map, built by AudioLoad_Init from the archives.
++// The boot hook force-rebinds a host slot to the editor's injected OSEQ resource (see MhPlaytestBootHook).
++extern "C" char** gSequenceMap;
++extern "C" size_t gSequenceMapSize;
++
++// Megaton Hammer: on startup, if the editor's playtest mod O2R is mounted (it carries "mh/info"),
++// set up a save and warp straight into the packed MM scene — no manual console command. Modelled
++// on DeveloperTools/WarpPoint.cpp's boot path (MM save/entrance system).
++static void MhPlaytestBootHook() {
++    static bool done = false;
++    if (done) {
++        return;
++    }
++    // Only auto-warp before gameplay starts (boot). Once in-game, leave the player alone.
++    if (gPlayState != NULL) {
++        return;
++    }
++    static int diag = 0;
++    if (diag == 0) {
++        MhBootLog("[mh_boot] hook firing");
++    }
++    auto ctx = Ship::Context::GetInstance();
++    if (ctx == nullptr || ctx->GetResourceManager() == nullptr) {
++        if (diag++ < 3) MhBootLog("[mh_boot] no resource manager yet");
++        return;
++    }
++    auto file = ctx->GetResourceManager()->GetArchiveManager()->LoadFile("mh/info");
++    if (file == nullptr || file->Buffer == nullptr || file->Buffer->empty()) {
++        if (diag++ < 3) MhBootLog("[mh_boot] mh/info not found yet");
++        return; // no playtest mod present → normal boot
++    }
++    done = true;
++
++    MhLoadMessages();   // register any authored dialogue (mh/messages) before warping in
++
++    std::string info(file->Buffer->begin(), file->Buffer->end());
++    MhBootLog("[mh_boot] mh/info loaded: " + info);
++    nlohmann::json j = nlohmann::json::parse(info, nullptr, false);
++    if (j.is_discarded()) {
++        MhBootLog("[mh_boot] FAIL: mh/info JSON parse error");
++        return;
++    }
++    s32 sceneId = j.value("sceneId", 0x08);
++    bool append = j.value("append", false);
++    std::string inv = j.value("inventory", std::string("debug"));
++    MhBootLog("[mh_boot] sceneId=" + std::to_string(sceneId) + " inventory=" + inv +
++              " append=" + std::to_string(append));
++
++    // #20: label this level at the tail of the debug scene-select list (default "Megaton Project").
++    {
++        std::string dn = j.value("displayName", std::string("Megaton Project"));
++        if (dn.empty()) dn = "Megaton Project";
++        snprintf(gMhWarpName, sizeof(gMhWarpName), "X 2:%.58s", dn.c_str());
++        MhBootLog("[mh_boot] warp-list name = " + std::string(gMhWarpName));
++    }
++
++    // Megaton Hammer cross-game / custom music: the editor packed the chosen sequence as an OSEQ resource
++    // (audio/sequences/mh_cross) that claims a valid vanilla host seqId, and recorded it in mh/info "music".
++    // AudioLoad_Init already built gSequenceMap from every archive, but two resources sharing a seqNumber are
++    // last-writer-wins (nondeterministic). Force the host slot to our resource so the scene's 0x15 (which the
++    // editor set to that same host id) resolves to the injected track. The level is custom, so displacing that
++    // vanilla sequence for this session is harmless.
++    if (j.contains("music") && j["music"].is_object() && gSequenceMap != nullptr) {
++        int mSeq = j["music"].value("seqId", -1);
++        std::string mPath = j["music"].value("path", std::string());
++        if (mSeq >= 0 && (size_t)mSeq < gSequenceMapSize && !mPath.empty()) {
++            if (gSequenceMap[mSeq] != nullptr) {
++                free(gSequenceMap[mSeq]);
++            }
++            gSequenceMap[mSeq] = strdup(mPath.c_str());
++            MhBootLog("[mh_boot] music: gSequenceMap[" + std::to_string(mSeq) + "] -> " + mPath);
++        } else {
++            MhBootLog("[mh_boot] music: invalid seqId/path (seqId=" + std::to_string(mSeq) +
++                      ", mapSize=" + std::to_string(gSequenceMapSize) + ")");
++        }
++    }
++
++    // Resolve the warp entrance. Append mode targets the reserved SCENE_MH_APPEND scene reached via
++    // the reserved ENTR_SCENE_MH_APPEND entrance-scene — both added to the (grown) scene table,
++    // EntranceSceneId enum and sSceneEntranceTable in the Megaton Hammer fork, so nothing existing is
++    // repurposed. gSceneTable[SCENE_MH_APPEND] statically references scenes/nonmq/mh_append/mh_append,
++    // which our mod O2R overrode with the appended level. Replace mode scans for the first entrance
++    // (spawn 0) that resolves to the chosen real scene id.
++    s32 entrance = -1;
++    if (append) {
++        entrance = (s32)(ENTR_SCENE_MH_APPEND << 9);   // (entranceSceneIndex << 9) | (spawn 0 << 4)
++        MhBootLog("[mh_boot] append mode — warping via reserved ENTR_SCENE_MH_APPEND -> SCENE_MH_APPEND");
++    } else {
++        // MM encodes an entrance as (sceneIndex << 9) | (spawn << 4). Skip SCENE_ENTRANCE_NONE slots
++        // (null table) — dereferencing those in Entrance_GetSceneIdAbsolute crashed at boot.
++        for (u32 i = 0; i < ENTR_SCENE_MAX; i++) {
++            if (sSceneEntranceTable[i].table == NULL) {
++                continue;
++            }
++            u16 cand = (u16)(i << 9);
++            if (Entrance_GetSceneIdAbsolute(cand) == sceneId) {
++                entrance = cand;
++                break;
++            }
++        }
++        if (entrance < 0) {
++            MhBootLog("[mh_boot] FAIL: no entrance found for replace-mode scene id");
++            return;
++        }
++    }
++    MhBootLog("[mh_boot] entrance=" + std::to_string(entrance));
++
++    // Boot a save and warp in — mirrors WarpPoint.cpp / MapSelect_LoadGame.
++    gSaveContext.gameMode = GAMEMODE_NORMAL;
++    if (inv == "empty" || inv == "custom") {
++        // Empty/custom start: fresh save, bypass MapSelect's debug-save init via dummy file num.
++        // For "custom" the editor's loadout is layered on after the fresh save (below).
++        Sram_InitNewSave();
++        gSaveContext.sceneLayer = 0;
++        for (size_t i = 0; i < ARRAY_COUNT(gSaveContext.eventInf); i++) {
++            gSaveContext.eventInf[i] = 0;
++        }
++        for (int i = 0; i < ARRAY_COUNT(gSaveContext.cycleSceneFlags); i++) {
++            gSaveContext.cycleSceneFlags[i].chest = gSaveContext.save.saveInfo.permanentSceneFlags[i].chest;
++            gSaveContext.cycleSceneFlags[i].switch0 = gSaveContext.save.saveInfo.permanentSceneFlags[i].switch0;
++            gSaveContext.cycleSceneFlags[i].switch1 = gSaveContext.save.saveInfo.permanentSceneFlags[i].switch1;
++            gSaveContext.cycleSceneFlags[i].clearedRoom = gSaveContext.save.saveInfo.permanentSceneFlags[i].clearedRoom;
++            gSaveContext.cycleSceneFlags[i].collectible = gSaveContext.save.saveInfo.permanentSceneFlags[i].collectible;
++        }
++        if (inv == "custom" && j.contains("inv") && j["inv"].is_object()) {
++            MhApplyCustomInventory(j["inv"]);
++            MhBootLog("[mh_boot] applied custom inventory");
++        }
++        gSaveContext.fileNum = 0xFE;
++        MapSelect_LoadGame((MapSelectState*)gGameState, entrance, 0);
++        gSaveContext.fileNum = 0xFF;
++        GameInteractor_ExecuteOnSaveInit(gSaveContext.fileNum);
++        GameInteractor_ExecuteOnSaveLoad(gSaveContext.fileNum);
++    } else {
++        // "debug" (and, for now, "custom"): the debug file num makes MapSelect_LoadGame run
++        // Sram_InitDebugSave — MM's full debug inventory — and clear flags + fire OnSaveLoad.
++        gSaveContext.fileNum = 0xFF;
++        MapSelect_LoadGame((MapSelectState*)gGameState, entrance, 0);
++    }
++    gSaveContext.save.entrance = entrance;
++
++    // MH playtest gamestate normalization: apply for ALL inventory modes (empty/custom/debug) so the
++    // playtest starts in the same world-state regardless of the inventory toggle. Previously these were
++    // set only on the empty/custom path; the "debug" path inherited MapSelect_LoadGame / Sram_InitDebugSave
++    // defaults (different day/time/form), so toggling inventory silently changed time-of-day, form and the
++    // 3-day cycle — and any time-gated (half-day) actor's spawn outcome with it.
++    // Normalized playtest time-of-day (editor SceneSettings.PlaytestTimeOfDay): one u16 over a 24h day
++    // from midnight (0x8000=noon), the SAME value/convention SoH applies to dayTime — every engine starts
++    // at the identical time. Default noon if absent.
++    gSaveContext.save.time = (j.contains("timeOfDay") && j["timeOfDay"].is_number_integer())
++                                 ? (u16)j["timeOfDay"].get<int>() : 0x8000;
++    gSaveContext.save.day = 1;
++    gSaveContext.save.cutsceneIndex = 0;
++    gSaveContext.save.playerForm = PLAYER_FORM_HUMAN;
++    gSaveContext.save.linkAge = 0;
++
++    // Megaton Hammer playtest: every authored chest must appear. The debug save (Sram_InitDebugSave) and
++    // a loaded save can leave the test scene's chest/switch flags set, so En_Box despawns as already-opened
++    // — exactly why the chest showed on the N64 PJ64 path (whose Play_Init detour zeroes cycleSceneFlags
++    // wholesale) but not here. Mirror that: clear all cycle scene chest/switch flags so chests start closed
++    // and switches unpressed for a fresh test. (collectible/clearedRoom left as-is.)
++    for (int i = 0; i < ARRAY_COUNT(gSaveContext.cycleSceneFlags); i++) {
++        gSaveContext.cycleSceneFlags[i].chest = 0;
++        gSaveContext.cycleSceneFlags[i].switch0 = 0;
++        gSaveContext.cycleSceneFlags[i].switch1 = 0;
++    }
++
++    // Starting weekEventReg flags (custom-engine convention): pre-set the scene's world-state (e.g. a
++    // temple already cleared). Each value is PACK_WEEKEVENTREG_FLAG = (byteIndex<<8)|bitMask.
++    if (j.contains("weekEvents") && j["weekEvents"].is_array()) {
++        int wn = 0;
++        for (auto& f : j["weekEvents"]) {
++            if (f.is_number_integer()) { SET_WEEKEVENTREG((u16)f.get<int>()); wn++; }
++        }
++        if (wn > 0) MhBootLog("[mh_boot] set " + std::to_string(wn) + " starting week-event flag(s)");
++    }
++
++    // weekEventReg cross-cycle persistence (decomp: sPersistentCycleWeekEventRegs in z_sram_NES.c). MM
++    // clears most weekEventReg flags on a Song-of-Time reset; only flags whose 2-bit slot in that table
++    // is non-zero survive. We OR the editor's persistent flags into the engine's OWN table, so the
++    // engine's reset logic naturally preserves them — no separate reset hook needed. Each flag is
++    // PACK_WEEKEVENTREG_FLAG = (byteIndex<<8)|mask; the table slot is (3 << (2 * shiftOfMask)).
++    if (j.contains("persistentWeekEvents") && j["persistentWeekEvents"].is_array()) {
++        int pn = 0;
++        for (auto& f : j["persistentWeekEvents"]) {
++            if (!f.is_number_integer()) continue;
++            u16 flag = (u16)f.get<int>();
++            int byteIndex = (flag >> 8) & 0xFF, mask = flag & 0xFF;
++            if (byteIndex < 0 || byteIndex >= 100 || mask == 0) continue;
++            int shift = 0; while (shift < 7 && !((mask >> shift) & 1)) shift++;
++            sPersistentCycleWeekEventRegs[byteIndex] |= (u16)(3 << (2 * shift));
++            pn++;
++        }
++        if (pn > 0) MhBootLog("[mh_boot] marked " + std::to_string(pn) + " week-event flag(s) cross-cycle persistent");
++    }
++
++    MhBootLog("[mh_boot] OK: warp triggered to scene " + std::to_string(sceneId));
++}
++
++// MH render probe: once we've actually entered the playtest scene and run a few frames, log it once.
++// Positive confirmation the level loaded AND is rendering frames (not just that the warp fired) — lets
++// the headless MM harness distinguish a real load from a post-warp freeze.
++static void MhPlaytestRenderProbe() {
++    static int framesInScene = 0;
++    static bool logged = false;
++    if (gPlayState == nullptr) {
++        return;
++    }
++    if (gPlayState->sceneId != SCENE_MH_APPEND) {
++        framesInScene = 0;
++        return;
++    }
++    framesInScene++;
++    // #5: re-assert the editor's Z-targeting mode for the first ~90 frames, in case MM's options load
++    // (which runs after the boot hook) reverts the write.
++    if (sMhZTarget >= 0 && framesInScene <= 90) {
++        gSaveContext.options.zTargetSetting = (u8)sMhZTarget;
++    }
++    if (logged) {
++        return;
++    }
++    if (framesInScene >= 30) {
++        // MH diag: at frame 30 the room's actors have finished spawning, so this is a CONCLUSIVE count
++        // (the earlier room-load count ran before deferred spawns). Lists every actor id so a chest
++        // (En_Box 0x06) that the editor exported but the engine drops/rejects is visible in the log.
++        int chestN = 0, total = 0; std::string ids;
++        for (int c = 0; c < ACTORCAT_MAX; c++)
++            for (Actor* a = gPlayState->actorCtx.actorLists[c].first; a != NULL; a = a->next) {
++                total++;
++                if (a->id == ACTOR_EN_BOX) chestN++;
++                char buf[12]; snprintf(buf, sizeof(buf), "%X ", a->id); ids += buf;
++            }
++        // A-button diag: it's still missing despite HUD_VISIBILITY_ALL + RESTRICTIONS_NONE. Log the
++        // gates that can suppress it: hudVisibility, the A button-status, the live cutscene id, and the
++        // scene restriction bit — so the actual suppressor is visible in the log.
++        MhBootLog("[mh_boot] RENDER OK: in SCENE_MH_APPEND room=" +
++                  std::to_string((int)gPlayState->roomCtx.curRoom.num) + " after 30 frames; actors total=" +
++                  std::to_string(total) + " En_Box=" + std::to_string(chestN) + " ids=[" + ids + "]");
++        MhBootLog("[mh_diag] A-button: hudVisibility=" + std::to_string((int)gSaveContext.hudVisibility) +
++                  " buttonStatus[A]=" + std::to_string((int)gSaveContext.buttonStatus[EQUIP_SLOT_A]) +
++                  " curCsId=" + std::to_string((int)CutsceneManager_GetCurrentCsId()) +
++                  " restrict.aButton=" + std::to_string((int)gPlayState->interfaceCtx.restrictions.aButton));
++        // Object diag: En_Box (chest) is correctly exported but doesn't spawn while En_Horse (same room)
++        // does. Both objects are in the room's object list. Log which objects actually LOADED — if
++        // object_box (0x0C) is missing, that's why En_Box never spawns (Actor_Spawn fails the dependency).
++        {
++            std::string objs;
++            for (int i = 0; i < gPlayState->objectCtx.numEntries; i++) {
++                char ob[8]; snprintf(ob, sizeof(ob), "%X ", (int)gPlayState->objectCtx.slots[i].id); objs += ob;
++            }
++            MhBootLog("[mh_diag] objects: box(0x0C)slot=" +
++                      std::to_string((int)Object_GetSlot(&gPlayState->objectCtx, 0x0C)) +
++                      " horse(0x7D)slot=" + std::to_string((int)Object_GetSlot(&gPlayState->objectCtx, 0x7D)) +
++                      " loaded=[" + objs + "]");
++        }
++        logged = true;
++    }
++}
++
++// ── MH NPC schedules (custom-engine convention) ─────────────────────────────────────────────────
++// The editor's mod O2R may carry "mh/schedules": a list of actors that should be at a given position/
++// facing during a time/day window. We apply them each frame by overriding the actor's world position —
++// this is what lets a Megaton-Hammer MM town be populated by the clock without authoring the actor's
++// internal schedule bytecode. Actors are re-found by id each frame (no cached pointers → no dangling).
++struct MhSchedRule { int day, sh, sm, eh, em, x, y, z; short yaw; };
++struct MhSchedEntry { int room, id, x, y, z; std::vector<MhSchedRule> rules; };
++static std::vector<MhSchedEntry> sMhSchedules;
++static bool sMhSchedLoaded = false;
++
++static void MhLoadSchedules() {
++    sMhSchedLoaded = true;
++    auto ctx = Ship::Context::GetInstance();
++    if (ctx == nullptr || ctx->GetResourceManager() == nullptr) { sMhSchedLoaded = false; return; }
++    auto file = ctx->GetResourceManager()->GetArchiveManager()->LoadFile("mh/schedules");
++    if (file == nullptr || file->Buffer == nullptr || file->Buffer->empty()) return; // none → nothing to do
++    std::string s(file->Buffer->begin(), file->Buffer->end());
++    auto j = nlohmann::json::parse(s, nullptr, false);
++    if (j.is_discarded() || !j.is_array()) { MhBootLog("[mh_sched] parse error"); return; }
++    for (auto& e : j) {
++        MhSchedEntry se{};
++        se.room = e.value("room", -1); se.id = e.value("id", 0);
++        se.x = e.value("x", 0); se.y = e.value("y", 0); se.z = e.value("z", 0);
++        if (e.contains("rules") && e["rules"].is_array())
++            for (auto& r : e["rules"]) {
++                MhSchedRule rr{};
++                rr.day = r.value("day", 0); rr.sh = r.value("sh", 0); rr.sm = r.value("sm", 0);
++                rr.eh = r.value("eh", 23); rr.em = r.value("em", 59);
++                rr.x = r.value("x", 0); rr.y = r.value("y", 0); rr.z = r.value("z", 0); rr.yaw = (short)r.value("yaw", 0);
++                se.rules.push_back(rr);
++            }
++        sMhSchedules.push_back(se);
++    }
++    MhBootLog("[mh_sched] loaded " + std::to_string(sMhSchedules.size()) + " scheduled actor(s)");
++}
++
++static const MhSchedRule* MhActiveRule(const MhSchedEntry& e) {
++    int day = CURRENT_DAY;
++    int totalMin = (int)((u32)gSaveContext.save.time * 1440u / 0x10000u);
++    int now = totalMin; // minutes since midnight
++    for (auto& r : e.rules) {
++        if (r.day != 0 && r.day != day) continue;
++        int s = r.sh * 60 + r.sm, en = r.eh * 60 + r.em;
++        bool in = (s <= en) ? (now >= s && now <= en) : (now >= s || now <= en);
++        if (in) return &r;
++    }
++    return nullptr;
++}
++
++static void MhScheduleHook() {
++    if (!sMhSchedLoaded) MhLoadSchedules();
++    if (sMhSchedules.empty() || gPlayState == nullptr || gPlayState->sceneId != SCENE_MH_APPEND) return;
++    for (auto& e : sMhSchedules) {
++        const MhSchedRule* r = MhActiveRule(e);
++        if (r == nullptr) continue;
++        // Re-find the actor of this id nearest the placed position each frame (no cached pointer).
++        Actor* best = nullptr; float bestD = 1e30f;
++        for (int c = 0; c < ACTORCAT_MAX; c++)
++            for (Actor* a = gPlayState->actorCtx.actorLists[c].first; a != nullptr; a = a->next) {
++                if (a->id != e.id) continue;
++                float dx = a->world.pos.x - e.x, dy = a->world.pos.y - e.y, dz = a->world.pos.z - e.z;
++                float d = dx * dx + dy * dy + dz * dz;
++                if (d < bestD) { bestD = d; best = a; }
++            }
++        if (best != nullptr) {
++            best->world.pos.x = (f32)r->x; best->world.pos.y = (f32)r->y; best->world.pos.z = (f32)r->z;
++            best->world.rot.y = r->yaw; best->shape.rot.y = r->yaw;
++        }
++    }
++}
++
++// ── MH schedule bytecode VM (decomp z_schedule.c) ───────────────────────────────────────────────
++// The editor's mod O2R may carry "mh/schedule_vm": actors with an authored schedule SCRIPT (the real
++// MM 19-opcode bytecode) plus a pose table. Unlike mh/schedules (position rules), this runs the actual
++// engine VM — Schedule_RunScript — every frame and applies poses[output.result], or hides the actor when
++// the script returns nothing (RET_NONE). This makes a fully decomp-faithful schedule authorable in-editor.
++struct MhSchedPose { int x, y, z; short yaw; };
++struct MhVmEntry { int room, id, x, y, z; std::vector<u8> code; std::vector<MhSchedPose> poses; };
++static std::vector<MhVmEntry> sMhVmEntries;
++static bool sMhVmLoaded = false;
++
++static void MhLoadScheduleVm() {
++    sMhVmLoaded = true;
++    auto ctx = Ship::Context::GetInstance();
++    if (ctx == nullptr || ctx->GetResourceManager() == nullptr) { sMhVmLoaded = false; return; }
++    auto file = ctx->GetResourceManager()->GetArchiveManager()->LoadFile("mh/schedule_vm");
++    if (file == nullptr || file->Buffer == nullptr || file->Buffer->empty()) return;
++    std::string s(file->Buffer->begin(), file->Buffer->end());
++    auto j = nlohmann::json::parse(s, nullptr, false);
++    if (j.is_discarded() || !j.is_array()) { MhBootLog("[mh_vm] parse error"); return; }
++    for (auto& e : j) {
++        MhVmEntry ve{};
++        ve.room = e.value("room", -1); ve.id = e.value("id", 0);
++        ve.x = e.value("x", 0); ve.y = e.value("y", 0); ve.z = e.value("z", 0);
++        std::string hex = e.value("code", std::string());
++        for (size_t i = 0; i + 1 < hex.size(); i += 2)
++            ve.code.push_back((u8)std::stoul(hex.substr(i, 2), nullptr, 16));
++        if (e.contains("poses") && e["poses"].is_array())
++            for (auto& p : e["poses"]) {
++                MhSchedPose pp{};
++                pp.x = p.value("x", 0); pp.y = p.value("y", 0); pp.z = p.value("z", 0); pp.yaw = (short)p.value("yaw", 0);
++                ve.poses.push_back(pp);
++            }
++        if (!ve.code.empty()) sMhVmEntries.push_back(ve);
++    }
++    MhBootLog("[mh_vm] loaded " + std::to_string(sMhVmEntries.size()) + " schedule-VM actor(s)");
++}
++
++static void MhScheduleVmHook() {
++    if (!sMhVmLoaded) MhLoadScheduleVm();
++    if (sMhVmEntries.empty() || gPlayState == nullptr || gPlayState->sceneId != SCENE_MH_APPEND) return;
++    for (auto& e : sMhVmEntries) {
++        // Re-find the live actor of this id nearest the placed position each frame (no cached pointer).
++        Actor* best = nullptr; float bestD = 1e30f;
++        for (int c = 0; c < ACTORCAT_MAX; c++)
++            for (Actor* a = gPlayState->actorCtx.actorLists[c].first; a != nullptr; a = a->next) {
++                if (a->id != e.id) continue;
++                float dx = a->world.pos.x - e.x, dy = a->world.pos.y - e.y, dz = a->world.pos.z - e.z;
++                float d = dx * dx + dy * dy + dz * dz;
++                if (d < bestD) { bestD = d; best = a; }
++            }
++        if (best == nullptr) continue;
++        ScheduleOutput output;
++        output.result = 0; output.hasResult = false; output.time0 = output.time1 = 0;
++        Schedule_RunScript(gPlayState, e.code.data(), &output);
++        if (output.hasResult && !e.poses.empty()) {
++            int idx = output.result; if (idx < 0) idx = 0; if (idx >= (int)e.poses.size()) idx = (int)e.poses.size() - 1;
++            const MhSchedPose& p = e.poses[idx];
++            best->world.pos.x = (f32)p.x; best->world.pos.y = (f32)p.y; best->world.pos.z = (f32)p.z;
++            best->world.rot.y = p.yaw; best->shape.rot.y = p.yaw;
++        } else {
++            // RET_NONE / no poses → the schedule says "not present now": park the actor far below the world.
++            best->world.pos.y = -30000.0f;
++        }
++    }
++}
++
+ void DebugConsole_Init(void) {
++    // Megaton Hammer playtest auto-boot. OnGameStateUpdate fires every frame for every game state
++    // (so it still fires after a late registration, unlike the brief console-logo hook), and the
++    // handler only acts once, before gameplay starts.
++    MhBootLog("[mh_boot] init: registering boot hook");
++    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameStateUpdate>(MhPlaytestBootHook);
++    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameStateUpdate>(MhPlaytestRenderProbe);
++    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameStateUpdate>(MhScheduleHook);
++    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameStateUpdate>(MhScheduleVmHook);
++
+     // Console
+     CMD_REGISTER("file_select", { FileSelectHandler, "Returns to the file select." });
+     CMD_REGISTER("reset", { ResetHandler, "Resets the game." });
+@@ -271,6 +958,12 @@ void DebugConsole_Init(void) {
+     CMD_REGISTER("entrance", { EntranceHandler,
+                                "Sends player to the entered entrance (hex)",
+                                { { "entrance", Ship::ArgumentType::NUMBER } } });
++    CMD_REGISTER("mh_playtest",
++                 { MhPlaytestHandler,
++                   "Warp into a Megaton Hammer playtest level. Usage: mh_playtest [sceneIdHex]",
++                   {
++                       { "sceneIdHex", Ship::ArgumentType::TEXT, true },
++                   } });
+ 
+     // Gameplay
+     CMD_REGISTER("give_item", { GiveItemHandler,
+diff --git a/mm/2s2h/z_play_2SH.cpp b/mm/2s2h/z_play_2SH.cpp
+index eec1b9b31..3db0b27a7 100644
+--- a/mm/2s2h/z_play_2SH.cpp
++++ b/mm/2s2h/z_play_2SH.cpp
+@@ -3,12 +3,22 @@
+ #include <ship/utils/StringHelper.h>
+ #include "2s2h/GameInteractor/GameInteractor.h"
+ #include <ship/resource/ResourceManager.h>
++#include <fstream>
+ 
+ extern "C" {
+ #include "global.h"
+ extern uintptr_t gSegments[NUM_SEGMENTS];
+ }
+ 
++// Megaton Hammer: append a line to the playtest boot log (same file DebugConsole.cpp's MhBootLog uses),
++// so playtest diagnostics from the scene/room load path land alongside the boot/warp trace.
++static void MhSceneLog(const std::string& msg) {
++    std::ofstream f("mh_playtest_boot.log", std::ios::app);
++    if (f.is_open()) {
++        f << msg << std::endl;
++    }
++}
++
+ Ship::IResource* OTRPlay_LoadFile(PlayState* play, const char* fileName) {
+     auto res = Ship::Context::GetInstance()->GetResourceManager()->LoadResource(fileName);
+     return res.get();
+@@ -32,6 +42,10 @@ extern "C" void OTRPlay_InitScene(PlayState* play, s32 spawn) {
+     Scene_ResetTransitionActorList(&play->state, &play->transitionActors);
+     Room_Init(play, &play->roomCtx);
+     gSaveContext.worldMapArea = 0;
++    // Megaton Hammer: a custom editor scene may omit the ACTOR_CUTSCENE_LIST command, leaving the
++    // cutscene manager uninitialised (sCutsceneMgr.play == NULL) so CutsceneManager_Update/_StoreCamera
++    // null-deref every frame. Pre-initialise it here; the scene command re-inits it if present.
++    CutsceneManager_Init(play, NULL, 0);
+     OTRScene_ExecuteCommands(play, (SOH::Scene*)play->sceneSegment);
+     Play_InitEnvironment(play, play->skyboxId);
+ }
+@@ -74,6 +88,33 @@ extern "C" s32 OTRfunc_800973FC(PlayState* play, RoomContext* roomCtx) {
+             }
+             // Insert hook
+             GameInteractor_ExecuteAfterRoomSceneCommands(play->sceneId, roomCtx->curRoom.num);
++            // Megaton Hammer: a bare playtest scene (no actor-cutscene list) can leave the HUD in a
++            // restricted state — Interface_Update only restores HUD_VISIBILITY_ALL when no cutscene is
++            // current (z_parameter.c ~3218), and the reserved scene never trips that path, so the
++            // A-button / magic bar / minimap stayed hidden. Clear any lingering cutscene and force the
++            // full HUD for the reserved playtest scene only (vanilla scenes are untouched).
++            if (play->sceneId == SCENE_MH_APPEND) {
++                s16 curCsId = CutsceneManager_GetCurrentCsId();
++                if (curCsId != CS_ID_NONE) {
++                    CutsceneManager_Stop(curCsId);
++                }
++                Interface_SetHudVisibility(HUD_VISIBILITY_ALL);
++                // MH diag: the editor exports the chest correctly (En_Box 0x0006 + object_box in the OTR
++                // room) yet the user reports it doesn't appear. Count the actors that actually spawned per
++                // relevant category so a non-spawn (EnBox killed itself / wrong precondition) is
++                // distinguishable from a spawn-but-invisible (draw/object issue) in the boot log.
++                int chestN = 0, bgN = 0, totalN = 0;
++                for (int c = 0; c < ACTORCAT_MAX; c++) {
++                    for (Actor* a = play->actorCtx.actorLists[c].first; a != NULL; a = a->next) {
++                        totalN++;
++                        if (a->id == ACTOR_EN_BOX) chestN++;
++                        if (c == ACTORCAT_BG) bgN++;
++                    }
++                }
++                MhSceneLog("[mh_diag] room=" + std::to_string((int)roomCtx->curRoom.num) +
++                           " spawned actors: total=" + std::to_string(totalN) +
++                           " En_Box=" + std::to_string(chestN) + " bg=" + std::to_string(bgN));
++            }
+             return 1;
+         }
+ 
+diff --git a/mm/include/tables/scene_table.h b/mm/include/tables/scene_table.h
+index d59eca604..c7e19adb7 100644
+--- a/mm/include/tables/scene_table.h
++++ b/mm/include/tables/scene_table.h
+@@ -231,3 +231,7 @@
+ /* 0x6F */ DEFINE_SCENE(Z2_CLOCKTOWER,        SCENE_CLOCKTOWER,        0x104, SCENE_DRAW_CFG_MAT_ANIM,             RESTRICTIONS_NONE,                                    PERSISTENT_CYCLE_FLAGS_SET((1 << 20), 0, 0, (1 << 10)),                                                     SOUTH_CLOCK_TOWN,               0, "South Clock Town")
+ // Laundry Pool
+ /* 0x70 */ DEFINE_SCENE(Z2_ALLEY,             SCENE_ALLEY,             0x105, SCENE_DRAW_CFG_MAT_ANIM,             RESTRICTIONS_NONE,                                    PERSISTENT_CYCLE_FLAGS_SET(0, 0, 1, 0),                                                                     LAUNDRY_POOL,                   4, "Laundry Pool")
++// Megaton Hammer: reserved slot for editor-appended custom scenes. Appending here grows SCENE_MAX so
++// no existing scene is disturbed; resources load from scenes/nonmq/mh_append/mh_append (overridden by
++// the playtest mod O2R). Reached via the reserved ENTR_SCENE_MH_APPEND entrance.
++/* 0x71 */ DEFINE_SCENE(mh_append,            SCENE_MH_APPEND,         0,     SCENE_DRAW_CFG_MAT_ANIM,             RESTRICTIONS_NONE,                                    PERSISTENT_CYCLE_FLAGS_NONE,                                                                                MH_APPEND,                    102, "Megaton Hammer Append")
+diff --git a/mm/include/z64scene.h b/mm/include/z64scene.h
+index d6cc660f2..4b93d7e07 100644
+--- a/mm/include/z64scene.h
++++ b/mm/include/z64scene.h
+@@ -744,7 +744,10 @@ typedef enum {
+     /* 0x6B */ ENTR_SCENE_NORTH_CLOCK_TOWN,
+     /* 0x6C */ ENTR_SCENE_SOUTH_CLOCK_TOWN,
+     /* 0x6D */ ENTR_SCENE_LAUNDRY_POOL,
+-    /* 0x6E */ ENTR_SCENE_MAX
++    // Megaton Hammer: reserved entrance-scene for the appended custom scene. Grows ENTR_SCENE_MAX so
++    // sSceneEntranceTable gains a fresh trailing slot — no existing entrance scene is repurposed.
++    /* 0x6E */ ENTR_SCENE_MH_APPEND,
++    /* 0x6F */ ENTR_SCENE_MAX
+ } EntranceSceneId;
+ 
+ /*
+diff --git a/mm/src/overlays/gamestates/ovl_select/z_select.c b/mm/src/overlays/gamestates/ovl_select/z_select.c
+index ac4a8d6db..8fefa51ee 100644
+--- a/mm/src/overlays/gamestates/ovl_select/z_select.c
++++ b/mm/src/overlays/gamestates/ovl_select/z_select.c
+@@ -99,6 +99,11 @@ void MapSelect_LoadGame(MapSelectState* this, u32 entrance, s32 spawn) {
+     SET_NEXT_GAMESTATE(&this->state, Play_Init, sizeof(PlayState));
+ }
+ 
++// Megaton Hammer (#20): a runtime-named entry appended to the debug scene-select list, pointing at the
++// reserved SCENE_MH_APPEND scene so an injected playtest level can be re-warped to manually. The playtest
++// boot hook (DebugConsole.cpp) fills this from mh/info "displayName"; default shows the project name.
++char gMhWarpName[64] = "X 2:Megaton Project";
++
+ // "Translation" (Actual name)
+ SceneSelectEntry sScenes[] = {
+     // "0: OP Woods for Cutscene Use" (Forest Opening Scene)
+@@ -537,6 +542,9 @@ SceneSelectEntry sScenes[] = {
+     // "X 1: SPOT00" (Opening Cutscene)
+     { "X 1:SPOT00", MapSelect_LoadGame, ENTRANCE(CUTSCENE, 0) },
+ 
++    // Megaton Hammer (#20): injected playtest level — name filled at boot from mh/info "displayName".
++    { gMhWarpName, MapSelect_LoadGame, ENTRANCE(MH_APPEND, 0) },
++
+     // "Title" (Title Screen)
+     { "title", MapSelect_LoadConsoleLogo, 0 },
+ };

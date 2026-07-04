@@ -1,0 +1,631 @@
+diff --git a/soh/include/tables/entrance_table.h b/soh/include/tables/entrance_table.h
+index fe62e632b..d6c78a8a0 100644
+--- a/soh/include/tables/entrance_table.h
++++ b/soh/include/tables/entrance_table.h
+@@ -1931,4 +1931,14 @@
+ /* 0x610 */ DEFINE_ENTRANCE(ENTR_DESERT_COLOSSUS_SPIRIT_TEMPLE_BLUE_WARP, SCENE_DESERT_COLOSSUS, 8, false, true, TRANS_TYPE_FADE_WHITE, TRANS_TYPE_FADE_WHITE)
+ /* 0x611 */ DEFINE_ENTRANCE(ENTR_DESERT_COLOSSUS_8_1, SCENE_DESERT_COLOSSUS, 8, false, true, TRANS_TYPE_FADE_WHITE, TRANS_TYPE_FADE_WHITE)
+ /* 0x612 */ DEFINE_ENTRANCE(ENTR_DESERT_COLOSSUS_8_2, SCENE_DESERT_COLOSSUS, 8, false, true, TRANS_TYPE_FADE_WHITE, TRANS_TYPE_FADE_WHITE)
+-/* 0x613 */ DEFINE_ENTRANCE(ENTR_DESERT_COLOSSUS_8_3, SCENE_DESERT_COLOSSUS, 8, false, true, TRANS_TYPE_FADE_WHITE, TRANS_TYPE_FADE_WHITE)
+\ No newline at end of file
++/* 0x613 */ DEFINE_ENTRANCE(ENTR_DESERT_COLOSSUS_8_3, SCENE_DESERT_COLOSSUS, 8, false, true, TRANS_TYPE_FADE_WHITE, TRANS_TYPE_FADE_WHITE)
++
++// Megaton Hammer: reserved entrance into the appended custom scene (spawn 0). Grows ENTR_MAX so no
++// real entrance is repurposed; the editor's playtest boot hook warps here in append mode.
++// MUST be a group of FOUR consecutive entries (child-day / child-night / adult-day / adult-night): the
++// engine reads gEntranceTable[entranceIndex + sceneLayer], so a single entry makes any re-transition
++// with sceneLayer>0 (fall-out, void, age/time layer) read past the table -> garbage entrance -> crash.
++/* 0x614 */ DEFINE_ENTRANCE(ENTR_MH_APPEND_0,   SCENE_MH_APPEND, 0, false, true, TRANS_TYPE_FADE_BLACK, TRANS_TYPE_FADE_BLACK)
++/* 0x615 */ DEFINE_ENTRANCE(ENTR_MH_APPEND_0_1, SCENE_MH_APPEND, 0, false, true, TRANS_TYPE_FADE_BLACK, TRANS_TYPE_FADE_BLACK)
++/* 0x616 */ DEFINE_ENTRANCE(ENTR_MH_APPEND_0_2, SCENE_MH_APPEND, 0, false, true, TRANS_TYPE_FADE_BLACK, TRANS_TYPE_FADE_BLACK)
++/* 0x617 */ DEFINE_ENTRANCE(ENTR_MH_APPEND_0_3, SCENE_MH_APPEND, 0, false, true, TRANS_TYPE_FADE_BLACK, TRANS_TYPE_FADE_BLACK)
+\ No newline at end of file
+diff --git a/soh/include/tables/scene_table.h b/soh/include/tables/scene_table.h
+index da290bd00..2a98786a7 100644
+--- a/soh/include/tables/scene_table.h
++++ b/soh/include/tables/scene_table.h
+@@ -119,4 +119,8 @@
+ /* 0x6A */ DEFINE_SCENE(sutaru_scene, none, SCENE_SUTARU, SDC_DEFAULT, 0, 0)
+ /* 0x6B */ DEFINE_SCENE(hairal_niwa2_scene, g_pn_12, SCENE_HAIRAL_NIWA2, SDC_CASTLE_COURTYARD_GUARDS, 0, 0)
+ /* 0x6C */ DEFINE_SCENE(sasatest_scene, none, SCENE_SASATEST, SDC_DEFAULT, 0, 0)
+-/* 0x6D */ DEFINE_SCENE(testroom_scene, none, SCENE_TESTROOM, SDC_DEFAULT, 0, 0)
+\ No newline at end of file
++/* 0x6D */ DEFINE_SCENE(testroom_scene, none, SCENE_TESTROOM, SDC_DEFAULT, 0, 0)
++// Megaton Hammer: reserved slot for editor-appended custom scenes. Appending here grows
++// SCENE_ID_MAX so no existing scene is disturbed; its resources load from
++// scenes/shared/mh_append_scene/mh_append_scene (overridden by the playtest mod O2R).
++/* 0x6E */ DEFINE_SCENE(mh_append_scene, none, SCENE_MH_APPEND, SDC_DEFAULT, 0, 0)
+\ No newline at end of file
+diff --git a/soh/soh/Enhancements/debugconsole.cpp b/soh/soh/Enhancements/debugconsole.cpp
+index b7ae40d55..c10745cea 100644
+--- a/soh/soh/Enhancements/debugconsole.cpp
++++ b/soh/soh/Enhancements/debugconsole.cpp
+@@ -9,6 +9,7 @@
+ #include "soh/cvar_prefixes.h"
+ #include <soh/Enhancements/item-tables/ItemTableManager.h>
+ #include "soh/Enhancements/game-interactor/GameInteractor.h"
++#include "soh/Enhancements/custom-message/CustomMessageManager.h"
+ #include "soh/Enhancements/cosmetics/CosmeticsEditor.h"
+ #include "soh/Enhancements/audio/AudioEditor.h"
+ #include "soh/Enhancements/randomizer/logic.h"
+@@ -36,6 +37,15 @@ extern PlayState* gPlayState;
+ #include <libultraship/bridge.h>
+ #include <libultraship/libultraship.h>
+ 
++// Megaton Hammer playtest auto-boot support.
++#include <nlohmann/json.hpp>
++#include <unordered_map>
++#include <fstream>
++extern "C" {
++void Sram_InitDebugSave(void);
++void Sram_InitNewSave(void);
++}
++
+ #define CMD_REGISTER Ship::Context::GetRawInstance()->GetConsole()->AddCommand
+ // TODO: Commands should be using the output passed in.
+ #define ERROR_MESSAGE                                                                    \
+@@ -427,6 +437,55 @@ static bool EntranceHandler(std::shared_ptr<Ship::Console> Console, const std::v
+     return 0;
+ }
+ 
++// Megaton Hammer: warp into a level packed by the editor's "Playtest" action. The editor
++// writes its level as native OTR resources that override a chosen scene's archive paths
++// (mods/mh_playtest.o2r), so the scene already loads normally — this command just warps
++// there and optionally sets Link's age.  Usage: mh_playtest [sceneIdHex] [child|adult]
++static bool MhPlaytestHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
++                              std::string* output) {
++    if (gPlayState == nullptr) {
++        ERROR_MESSAGE("[SOH] Load a save file first, then run mh_playtest.");
++        return 1;
++    }
++
++    s32 sceneId = 0x52; // Megaton Hammer's default playtest slot
++    if (args.size() >= 2) {
++        try {
++            sceneId = std::stoi(args[1], nullptr, 16);
++        } catch ([[maybe_unused]] std::exception const& ex) {
++            ERROR_MESSAGE("[SOH] Scene id must be a hex number.");
++            return 1;
++        }
++    }
++
++    if (args.size() >= 3) {
++        if (args[2] == "adult") {
++            gSaveContext.linkAge = LINK_AGE_ADULT;
++        } else if (args[2] == "child") {
++            gSaveContext.linkAge = LINK_AGE_CHILD;
++        }
++    }
++
++    // Find any entrance that leads to the requested scene (spawn 0 is the table's first match).
++    s16 entrance = -1;
++    for (s16 i = 0; i < ENTR_MAX; i++) {
++        if (gEntranceTable[i].scene == sceneId) {
++            entrance = i;
++            break;
++        }
++    }
++    if (entrance < 0) {
++        ERROR_MESSAGE("[SOH] No entrance found for scene id 0x%X.", sceneId);
++        return 1;
++    }
++
++    gPlayState->nextEntranceIndex = entrance;
++    gPlayState->transitionTrigger = TRANS_TRIGGER_START;
++    gPlayState->transitionType = TRANS_TYPE_INSTANT;
++    gSaveContext.nextTransitionType = TRANS_TYPE_INSTANT;
++    return 0;
++}
++
+ static bool VoidHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
+                         std::string* output) {
+     if (gPlayState != nullptr) {
+@@ -1510,7 +1569,469 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
+     return 0;
+ }
+ 
++// Megaton Hammer: append a line to a boot log next to the executable, so the editor can verify
++// the auto-boot/warp ran (and how far it got) headlessly, without watching the screen.
++static void MhBootLog(const std::string& msg) {
++    std::ofstream f("mh_playtest_boot.log", std::ios::app);
++    if (f) {
++        f << msg << std::endl;
++    }
++}
++
++// Megaton Hammer: apply a custom starting inventory (from the editor's inventory editor) onto a
++// fresh save. The payload is the "inv" object of mh/info: { hearts, tiers{...}, toggles[...] }.
++// Tiers grant everything up to the chosen level. Keys match Editor/InventoryCatalog (OoT).
++// #5: SoH stores zTargetSetting as a GLOBAL (cross-file) setting that SaveManager re-applies during the
++// file load that runs after our boot hook, clobbering the editor's choice. Remember it here and re-assert
++// it for the first ~90 frames in the scene (render probe). -1 = no custom value (debug/empty → leave as-is).
++static int sMhZTarget = -1;
++
++// #7: the editor's player name is encoded to the OoT filename charset and written at boot, but SoH's
++// SaveManager loads the save AFTER the boot hook and overwrites gSaveContext.playerName (a per-save field)
++// with the stored file's name — so the in-game name (e.g. in a textbox's MESSAGE_NAME) showed jumbled.
++// Stash the encoded bytes here and re-assert them for the first frames in-scene, exactly like sMhZTarget.
++static u8 sMhPlayerName[8];
++static bool sMhNameSet = false;
++
++static void MhApplyCustomInventory(const nlohmann::json& inv) {
++    int hearts = inv.value("hearts", 3);
++    gSaveContext.healthCapacity = (s16)(hearts * 16);
++    gSaveContext.health = gSaveContext.healthCapacity;
++
++    auto hasToggle = [&](const char* k) -> bool {
++        if (!inv.contains("toggles") || !inv["toggles"].is_array()) return false;
++        for (auto& t : inv["toggles"]) if (t.is_string() && t.get<std::string>() == k) return true;
++        return false;
++    };
++    auto tier = [&](const char* k) -> int {
++        if (inv.contains("tiers") && inv["tiers"].is_object() && inv["tiers"].contains(k))
++            return inv["tiers"][k].get<int>();
++        return 0;
++    };
++    auto amount = [&](const char* k) -> int {   // #13: varying-amount item count (0 = none)
++        if (inv.contains("amounts") && inv["amounts"].is_object() && inv["amounts"].contains(k))
++            return inv["amounts"][k].get<int>();
++        return 0;
++    };
++
++    // Swords: own every tier up to the selection, equip the highest.
++    int sw = tier("sword");
++    static const u8 swordOwn[]  = { EQUIP_INV_SWORD_KOKIRI, EQUIP_INV_SWORD_MASTER, EQUIP_INV_SWORD_BIGGORON };
++    static const u8 swordItem[] = { ITEM_SWORD_KOKIRI, ITEM_SWORD_MASTER, ITEM_SWORD_BGS };
++    static const u8 swordVal[]  = { EQUIP_VALUE_SWORD_KOKIRI, EQUIP_VALUE_SWORD_MASTER, EQUIP_VALUE_SWORD_BIGGORON };
++    for (int i = 0; i < sw && i < 3; i++)
++        gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_SWORD, swordOwn[i]);
++    if (sw > 0) {
++        gSaveContext.equips.buttonItems[0] = swordItem[sw - 1];
++        gSaveContext.equips.equipment &= ~(0xF << (EQUIP_TYPE_SWORD * 4));
++        gSaveContext.equips.equipment |= swordVal[sw - 1] << (EQUIP_TYPE_SWORD * 4);
++    }
++    // #10: the BGS slot shows the breakable Giant's Knife (broken icon) unless bgsFlag is set; for
++    // Biggoron tier, set bgsFlag + full swordHealth so the player actually gets Biggoron's Sword.
++    if (sw >= 3) { gSaveContext.bgsFlag = true; gSaveContext.swordHealth = 8; }
++    else { gSaveContext.bgsFlag = false; }
++
++    // Shields: own up to tier, equip the highest (EQUIP_VALUE_SHIELD_DEKU = 1).
++    int sh = tier("shield");
++    static const u8 shieldOwn[] = { EQUIP_INV_SHIELD_DEKU, EQUIP_INV_SHIELD_HYLIAN, EQUIP_INV_SHIELD_MIRROR };
++    for (int i = 0; i < sh && i < 3; i++)
++        gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_SHIELD, shieldOwn[i]);
++    if (sh > 0) {
++        gSaveContext.equips.equipment &= ~(0xF << (EQUIP_TYPE_SHIELD * 4));
++        gSaveContext.equips.equipment |= sh << (EQUIP_TYPE_SHIELD * 4);
++    }
++
++    // Tunics & boots (Kokiri always owned + equipped; add the others on request).
++    gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_KOKIRI);
++    gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_BOOTS, EQUIP_INV_BOOTS_KOKIRI);
++    if (hasToggle("tunic_goron")) gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_GORON);
++    if (hasToggle("tunic_zora"))  gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_ZORA);
++    if (hasToggle("boots_iron"))  gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_BOOTS, EQUIP_INV_BOOTS_IRON);
++    if (hasToggle("boots_hover")) gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_BOOTS, EQUIP_INV_BOOTS_HOVER);
++    gSaveContext.equips.equipment &= ~(0xF << (EQUIP_TYPE_TUNIC * 4));
++    gSaveContext.equips.equipment |= 1 << (EQUIP_TYPE_TUNIC * 4);   // EQUIP_VALUE_TUNIC_KOKIRI
++    gSaveContext.equips.equipment &= ~(0xF << (EQUIP_TYPE_BOOTS * 4));
++    gSaveContext.equips.equipment |= 1 << (EQUIP_TYPE_BOOTS * 4);   // EQUIP_VALUE_BOOTS_KOKIRI
++
++    // #21: injected player name (default "Link"). OoT filename encoding: 0-9=0x00.., A-Z=0x0A..,
++    // a-z=0x24.., space/other=0x3E; padded to 8. Without it the save name is blank.
++    {
++        std::string pn = inv.value("playerName", std::string("Link"));
++        if (pn.empty()) pn = "Link";
++        for (int i = 0; i < 8; i++) {
++            u8 c = 0x3E;
++            if (i < (int)pn.size()) {
++                char ch = pn[i];
++                if (ch >= '0' && ch <= '9') c = (u8)(ch - '0');
++                else if (ch >= 'A' && ch <= 'Z') c = (u8)(0x0A + (ch - 'A'));
++                else if (ch >= 'a' && ch <= 'z') c = (u8)(0x24 + (ch - 'a'));
++            }
++            gSaveContext.playerName[i] = c;
++            sMhPlayerName[i] = c;   // stash so the render probe can re-assert after SaveManager's load
++        }
++        sMhNameSet = true;
++    }
++
++    // #5: Z-targeting mode (0 = Switch/Toggle, 1 = Hold). Stash it so the render probe can re-assert it
++    // after SoH's global-settings load (which runs later in the boot) reverts this write.
++    sMhZTarget = inv.value("zTarget", 0);
++    gSaveContext.zTargetSetting = (u8)sMhZTarget;
++
++    // Ocarina tier.
++    int oc = tier("ocarina");
++    if (oc == 1) INV_CONTENT(ITEM_OCARINA_FAIRY) = ITEM_OCARINA_FAIRY;
++    else if (oc >= 2) INV_CONTENT(ITEM_OCARINA_TIME) = ITEM_OCARINA_TIME;
++
++    // Magic tier: 1 = single (the first upgrade), 2 = double. Same fields BossRush/debugSaveEditor set:
++    // flag acquired, set magicLevel, derive magicCapacity = level*0x30 so the bar draws, fill the meter.
++    int mg = tier("magic");
++    if (mg >= 1) {
++        gSaveContext.isMagicAcquired = 1;
++        gSaveContext.magicLevel = (mg >= 2) ? 2 : 1;
++        if (mg >= 2) gSaveContext.isDoubleMagicAcquired = 1;
++        gSaveContext.magicCapacity = gSaveContext.magicLevel * 0x30;   // draw the bar (debugSaveEditor)
++        gSaveContext.magic = gSaveContext.magicCapacity;
++    }
++
++    // Upgrades (wallet / strength / scale / quiver / bomb bag / bullet bag).
++    if (tier("wallet"))    Inventory_ChangeUpgrade(UPG_WALLET, tier("wallet"));
++    if (tier("strength"))  Inventory_ChangeUpgrade(UPG_STRENGTH, tier("strength"));
++    if (tier("scale"))     Inventory_ChangeUpgrade(UPG_SCALE, tier("scale"));
++    if (tier("quiver"))    Inventory_ChangeUpgrade(UPG_QUIVER, tier("quiver"));
++    if (tier("bombbag"))   Inventory_ChangeUpgrade(UPG_BOMB_BAG, tier("bombbag"));
++    if (tier("bulletbag")) Inventory_ChangeUpgrade(UPG_BULLET_BAG, tier("bulletbag"));
++
++    // C-items (with a sensible starting ammo where applicable).
++    struct ItemDef { const char* key; u8 item; s8 ammo; };
++    static const ItemDef kItems[] = {
++        { "stick", ITEM_STICK, 10 }, { "nut", ITEM_NUT, 20 }, { "bomb", ITEM_BOMB, 20 }, { "bow", ITEM_BOW, 30 },
++        { "fire_arrow", ITEM_ARROW_FIRE, 0 }, { "dins_fire", ITEM_DINS_FIRE, 0 }, { "slingshot", ITEM_SLINGSHOT, 30 },
++        { "bombchu", ITEM_BOMBCHU, 20 }, { "hookshot", ITEM_HOOKSHOT, 0 }, { "ice_arrow", ITEM_ARROW_ICE, 0 },
++        { "farores_wind", ITEM_FARORES_WIND, 0 }, { "boomerang", ITEM_BOOMERANG, 0 }, { "lens", ITEM_LENS, 0 },
++        { "bean", ITEM_BEAN, 10 }, { "hammer", ITEM_HAMMER, 0 }, { "light_arrow", ITEM_ARROW_LIGHT, 0 },
++        { "nayrus_love", ITEM_NAYRUS_LOVE, 0 },
++    };
++    for (auto& it : kItems)
++        if (hasToggle(it.key)) { INV_CONTENT(it.item) = it.item; if (it.ammo) AMMO(it.item) = it.ammo; }
++    if (hasToggle("bottle")) INV_CONTENT(ITEM_BOTTLE) = ITEM_BOTTLE;
++
++    // #13: varying-amount items — the editor's count spinner sets ammo[] and auto-grants the smallest
++    // capacity upgrade able to hold it (merged with the explicit tier upgrades above; highest wins).
++    struct AmmoDef { const char* key; u8 item; int upg; u8 caps[4]; };
++    static const AmmoDef kAmmo[] = {
++        { "stick", ITEM_STICK, UPG_STICKS, {0,10,20,30} }, { "nut", ITEM_NUT, UPG_NUTS, {0,20,30,40} },
++        { "bomb", ITEM_BOMB, UPG_BOMB_BAG, {0,20,30,40} },     { "bow", ITEM_BOW, UPG_QUIVER, {0,30,40,50} },
++        { "slingshot", ITEM_SLINGSHOT, UPG_BULLET_BAG, {0,30,40,50} }, { "bombchu", ITEM_BOMBCHU, -1, {0,50,50,50} },
++    };
++    for (auto& a : kAmmo) {
++        int amt = amount(a.key);
++        if (amt <= 0) continue;
++        if (amt > a.caps[3]) amt = a.caps[3];
++        INV_CONTENT(a.item) = a.item;
++        AMMO(a.item) = (s8)amt;
++        if (a.upg >= 0) {
++            int lvl = 3;
++            for (int l = 1; l < 4; l++) if (a.caps[l] >= amt) { lvl = l; break; }
++            if (lvl > CUR_UPG_VALUE(a.upg)) Inventory_ChangeUpgrade((u16)a.upg, lvl);
++        }
++    }
++
++    // Songs / medallions / stones (quest-item bits).
++    struct QuestDef { const char* key; int q; };
++    static const QuestDef kQuest[] = {
++        { "song_lullaby", QUEST_SONG_LULLABY }, { "song_epona", QUEST_SONG_EPONA }, { "song_saria", QUEST_SONG_SARIA },
++        { "song_suns", QUEST_SONG_SUN }, { "song_time", QUEST_SONG_TIME }, { "song_storms", QUEST_SONG_STORMS },
++        { "song_minuet", QUEST_SONG_MINUET }, { "song_bolero", QUEST_SONG_BOLERO }, { "song_serenade", QUEST_SONG_SERENADE },
++        { "song_requiem", QUEST_SONG_REQUIEM }, { "song_nocturne", QUEST_SONG_NOCTURNE }, { "song_prelude", QUEST_SONG_PRELUDE },
++        { "med_forest", QUEST_MEDALLION_FOREST }, { "med_fire", QUEST_MEDALLION_FIRE }, { "med_water", QUEST_MEDALLION_WATER },
++        { "med_spirit", QUEST_MEDALLION_SPIRIT }, { "med_shadow", QUEST_MEDALLION_SHADOW }, { "med_light", QUEST_MEDALLION_LIGHT },
++        { "stone_emerald", QUEST_KOKIRI_EMERALD }, { "stone_ruby", QUEST_GORON_RUBY }, { "stone_sapphire", QUEST_ZORA_SAPPHIRE },
++        { "agony", QUEST_STONE_OF_AGONY },
++    };
++    for (auto& qq : kQuest)
++        if (hasToggle(qq.key)) gSaveContext.inventory.questItems |= (1 << qq.q);
++
++    // Trade-quest slots (the editor's trade_child / trade_adult dropdowns). The OoT trade slots each hold
++    // one item id: child slot = ITEM 0x20+idx (Weird Egg 0x21 .. Mask of Truth 0x2B), adult slot =
++    // 0x2C+idx (Pocket Egg 0x2D .. Claim Check 0x37). Without this the editor's chosen trade item (e.g.
++    // Bunny Hood) never reached the OTR save — only the N64 poke path applied it.
++    int tradeChild = tier("trade_child");
++    if (tradeChild > 0) gSaveContext.inventory.items[SLOT_TRADE_CHILD] = (u8)(0x20 + tradeChild);
++    int tradeAdult = tier("trade_adult");
++    if (tradeAdult > 0) gSaveContext.inventory.items[SLOT_TRADE_ADULT] = (u8)(0x2C + tradeAdult);
++
++    // Dump the resulting save fields so the editor can verify injection end-to-end via the boot log.
++    MhBootLog("[mh_inv] applied: healthCap=" + std::to_string(gSaveContext.healthCapacity) +
++              " equipment=0x" + StringHelper::Sprintf("%X", gSaveContext.inventory.equipment) +
++              " upgrades=0x" + StringHelper::Sprintf("%X", gSaveContext.inventory.upgrades) +
++              " questItems=0x" + StringHelper::Sprintf("%X", gSaveContext.inventory.questItems) +
++              " ocarinaSlot=" + std::to_string(INV_CONTENT(ITEM_OCARINA_FAIRY)) +
++              " bSword=" + std::to_string(gSaveContext.equips.buttonItems[0]) +
++              " bgsFlag=" + std::to_string(gSaveContext.bgsFlag) +
++              " name0=" + std::to_string(gSaveContext.playerName[0]));
++}
++
++// Megaton Hammer: on title-screen startup, if a playtest mod O2R is mounted (it carries an
++// "mh/info" resource), set up a save and warp straight into the packed scene with the chosen
++// age + inventory — no manual console command. Modelled on Enhancements/Warping.cpp's boot path.
++// ── Authored dialogue (Megaton Hammer Message Bank) ───────────────────────────────────────────────
++// The editor emits an "mh/messages" resource: a JSON array of { id (textId), type, pos, icon, text }.
++// At boot we register an OnOpenText hook per id; when an actor opens that textId we build the line with
++// the friendly-markup converter (& newline, ^ new box, %r/%g/%b/%y/%w/%p colour) and load it into the font,
++// telling the engine to skip the normal message-table lookup.
++struct MhMsgEntry {
++    std::string text;
++    int type;
++    int pos;
++};
++static std::unordered_map<uint16_t, MhMsgEntry> sMhMessages;
++
++static void MhOnOpenText(uint16_t* textId, bool* loadFromMessageTable) {
++    auto it = sMhMessages.find(*textId);
++    if (it == sMhMessages.end()) {
++        return; // not an authored id → let the normal table handle it
++    }
++    CustomMessage msg(it->second.text, (TextBoxType)it->second.type, (TextBoxPosition)it->second.pos);
++    msg.AutoFormat();
++    msg.LoadIntoFont();
++    *loadFromMessageTable = false;
++}
++
++static void MhLoadMessages() {
++    auto ctx = Ship::Context::GetRawInstance();
++    if (ctx == nullptr || ctx->GetResourceManager() == nullptr) {
++        return;
++    }
++    auto file = ctx->GetResourceManager()->GetArchiveManager()->LoadFile("mh/messages");
++    if (file == nullptr || file->Buffer == nullptr || file->Buffer->empty()) {
++        return; // no authored dialogue in this mod
++    }
++    std::string body(file->Buffer->begin(), file->Buffer->end());
++    nlohmann::json arr = nlohmann::json::parse(body, nullptr, false);
++    if (arr.is_discarded() || !arr.is_array()) {
++        MhBootLog("[mh_boot] mh/messages JSON parse error");
++        return;
++    }
++    int count = 0;
++    for (auto& e : arr) {
++        uint16_t id = (uint16_t)e.value("id", 0);
++        if (id == 0) {
++            continue;
++        }
++        sMhMessages[id] = MhMsgEntry{ e.value("text", std::string("")), e.value("type", 0), e.value("pos", 0) };
++        GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(id, MhOnOpenText);
++        count++;
++    }
++    MhBootLog("[mh_msg] registered " + std::to_string(count) + " authored message(s)");
++}
++
++// #20: the debug scene-select list's appended Megaton Hammer entry name (defined in ovl_select/z_select.c).
++extern "C" char gMhWarpName[64];
++
++// Cross-game / custom music: the runtime seqId->resource-path map, built by AudioLoad_Init from the archives.
++// The boot hook force-rebinds a host slot to the editor's injected OSEQ resource (see MhPlaytestBootHook).
++extern "C" char** sequenceMap;
++extern "C" size_t sequenceMapSize;
++
++static void MhPlaytestBootHook(void* gameState) {
++    static bool done = false;
++    if (done) {
++        return;
++    }
++
++    auto ctx = Ship::Context::GetRawInstance();
++    if (ctx == nullptr || ctx->GetResourceManager() == nullptr) {
++        return;
++    }
++    auto file = ctx->GetResourceManager()->GetArchiveManager()->LoadFile("mh/info");
++    if (file == nullptr || file->Buffer == nullptr || file->Buffer->empty()) {
++        return; // no playtest mod present → normal boot
++    }
++    done = true;
++
++    MhLoadMessages();   // register any authored dialogue (mh/messages) before warping in
++
++    std::string info(file->Buffer->begin(), file->Buffer->end());
++    MhBootLog("[mh_boot] mh/info loaded: " + info);
++
++    nlohmann::json j = nlohmann::json::parse(info, nullptr, false);
++    if (j.is_discarded()) {
++        MhBootLog("[mh_boot] FAIL: mh/info JSON parse error");
++        return;
++    }
++    s32 sceneId = j.value("sceneId", 0x52);
++    bool adult = j.value("adult", false);
++    bool append = j.value("append", false);
++    std::string inv = j.value("inventory", std::string("debug"));
++    MhBootLog("[mh_boot] sceneId=0x" + StringHelper::Sprintf("%X", sceneId) + " adult=" +
++              std::to_string(adult) + " inventory=" + inv + " append=" + std::to_string(append));
++
++    // Megaton Hammer water scroll: OoT animates water via the scene's DRAW CONFIG. SDC_CALM_WATER (0x2F)
++    // scrolls segment 0x08 (a two-layer tile scroll on POLY_XLU_DISP), which the editor's translucent water
++    // DL (mesh xlu path) references via gsSPDisplayList(0x08). gSceneTable[id].config is read at spawn
++    // (OTRPlay_SpawnScene), so set it here on the scene the water level loads into. Only when the editor
++    // marked the level as having scrolling water (else leave the scene's own draw config untouched).
++    if (j.value("waterScroll", false)) {
++        s32 wsScene = append ? SCENE_MH_APPEND : sceneId;
++        gSceneTable[wsScene].config = 0x2F; // SDC_CALM_WATER
++        MhBootLog("[mh_boot] waterScroll: gSceneTable[0x" + StringHelper::Sprintf("%X", wsScene) +
++                  "].config = SDC_CALM_WATER");
++    }
++
++    // Megaton Hammer cross-game / custom music: the editor packed the chosen sequence as an OSEQ resource
++    // (audio/sequences/mh_cross) that claims a valid vanilla host seqId, and recorded it in mh/info "music".
++    // AudioLoad_Init already built sequenceMap from every archive, but two resources sharing a seqNumber are
++    // last-writer-wins (nondeterministic). Force the host slot to our resource so the scene's 0x15 (which the
++    // editor set to that same host id) resolves to the injected track. The level is custom, so displacing that
++    // vanilla sequence for this session is harmless.
++    if (j.contains("music") && j["music"].is_object() && sequenceMap != nullptr) {
++        int mSeq = j["music"].value("seqId", -1);
++        std::string mPath = j["music"].value("path", std::string());
++        if (mSeq >= 0 && (size_t)mSeq < sequenceMapSize && !mPath.empty()) {
++            if (sequenceMap[mSeq] != nullptr) {
++                free(sequenceMap[mSeq]);
++            }
++            sequenceMap[mSeq] = strdup(mPath.c_str());
++            MhBootLog("[mh_boot] music: sequenceMap[0x" + StringHelper::Sprintf("%X", mSeq) + "] -> " + mPath);
++        } else {
++            MhBootLog("[mh_boot] music: invalid seqId/path (seqId=" + std::to_string(mSeq) +
++                      ", mapSize=" + std::to_string(sequenceMapSize) + ")");
++        }
++    }
++
++    // #20: label this level at the tail of the debug scene-select list (default "Megaton Project").
++    {
++        std::string dn = j.value("displayName", std::string("Megaton Project"));
++        if (dn.empty()) dn = "Megaton Project";
++        snprintf(gMhWarpName, sizeof(gMhWarpName), "126:%.58s", dn.c_str());
++        MhBootLog("[mh_boot] warp-list name = " + std::string(gMhWarpName));
++    }
++
++    // Resolve the warp entrance. Append mode targets the reserved SCENE_MH_APPEND scene, reached via
++    // the reserved ENTR_MH_APPEND_0 entrance — both added to the (grown) scene/entrance tables in the
++    // Megaton Hammer fork, so nothing existing is repurposed. gSceneTable[SCENE_MH_APPEND] already
++    // references scenes/shared/mh_append_scene/mh_append_scene, which our mod O2R overrode with the
++    // appended level. Replace mode finds the first entrance that leads to the chosen real scene.
++    s16 entrance = -1;
++    if (append) {
++        entrance = ENTR_MH_APPEND_0;
++        MhBootLog("[mh_boot] append mode — warping via reserved ENTR_MH_APPEND_0 -> SCENE_MH_APPEND");
++    } else {
++        for (s16 i = 0; i < ENTR_MAX; i++) {
++            if (gEntranceTable[i].scene == sceneId) {
++                entrance = i;
++                break;
++            }
++        }
++        if (entrance < 0) {
++            ERROR_MESSAGE("[SOH] No entrance found for scene id 0x%X.", sceneId);
++            MhBootLog("[mh_boot] FAIL: no entrance for replace-mode scene 0x" + StringHelper::Sprintf("%X", sceneId));
++            return;
++        }
++    }
++    MhBootLog("[mh_boot] entrance=0x" + StringHelper::Sprintf("%X", entrance));
++
++    // Boot a temporary save (debug inventory, or empty), set age, and warp — mirrors Warping.cpp.
++    gSaveContext.gameMode = GAMEMODE_NORMAL;
++    gSaveContext.fileNum = 0xFE;
++    if (inv == "empty") {
++        Sram_InitNewSave();
++    } else if (inv == "custom") {
++        Sram_InitNewSave();   // start blank, then layer on the editor's custom loadout
++        if (j.contains("inv") && j["inv"].is_object()) {
++            MhApplyCustomInventory(j["inv"]);
++            MhBootLog("[mh_boot] applied custom inventory");
++        } else {
++            MhBootLog("[mh_boot] custom inventory selected but no 'inv' payload — left empty");
++        }
++    } else {
++        Sram_InitDebugSave(); // "debug" → full debug inventory
++    }
++    gSaveContext.fileNum = 0xFF;
++    gSaveContext.sceneSetupIndex = 0;
++    gSaveContext.cutsceneIndex = 0;
++    gSaveContext.linkAge = adult ? 0 : 1; // LINK_AGE_ADULT = 0, LINK_AGE_CHILD = 1
++    // Normalized playtest time-of-day (editor SceneSettings.PlaytestTimeOfDay): one u16 over a 24h day
++    // from midnight (0x8000=noon), the same value 2Ship applies to save.time — so every engine starts at
++    // the identical time. nightFlag follows it (0x4000..0xC000 ≈ 6:00..18:00 is day).
++    u16 mhTimeOfDay = (j.contains("timeOfDay") && j["timeOfDay"].is_number_integer())
++                          ? (u16)j["timeOfDay"].get<int>() : 0x8000;
++    gSaveContext.nightFlag = (mhTimeOfDay < 0x4555 || mhTimeOfDay > 0xC000) ? 1 : 0;
++    gSaveContext.skyboxTime = gSaveContext.dayTime = mhTimeOfDay;
++    for (int b = 0; b < ARRAY_COUNT(gSaveContext.buttonStatus); b++) {
++        gSaveContext.buttonStatus[b] = BTN_ENABLED;
++    }
++
++    // MH playtest gamestate normalization: every authored chest must start closed and every switch
++    // unpressed. Sram_InitDebugSave (and a loaded save) can leave the test scene's chest/switch flags
++    // set, so En_Box would render already-opened. Mirror the 2Ship hook and the N64 PJ64 Play_Init
++    // detour (which zero these wholesale) by clearing chest+swch for every scene. clear/collect/floors
++    // are left as-is (room-clear/collectible/map state isn't part of a chest's open/closed identity).
++    for (int i = 0; i < ARRAY_COUNT(gSaveContext.sceneFlags); i++) {
++        gSaveContext.sceneFlags[i].chest = 0;
++        gSaveContext.sceneFlags[i].swch = 0;
++    }
++
++    gSaveContext.entranceIndex = entrance;
++    gSaveContext.seqId = (u8)NA_BGM_DISABLED;
++    gSaveContext.natureAmbienceId = 0xFF;
++    gSaveContext.showTitleCard = true;
++    gWeatherMode = 0;
++
++    TitleContext* titleContext = (TitleContext*)gameState;
++    titleContext->state.running = false;
++    SET_NEXT_GAMESTATE(&titleContext->state, Play_Init, PlayState);
++    GameInteractor_ExecuteOnLoadGame(gSaveContext.fileNum);
++    MhBootLog("[mh_boot] OK: warp triggered to scene 0x" + StringHelper::Sprintf("%X", sceneId));
++}
++
++// MH render probe: once we've actually entered the playtest scene and run a few frames, log it once.
++// Positive confirmation the level loaded AND is rendering frames (not just that the warp fired) — lets
++// the headless harness distinguish a real load from a post-warp freeze.
++static void MhPlaytestRenderProbe() {
++    static int framesInScene = 0;
++    static bool logged = false;
++    if (gPlayState == nullptr) {
++        return;
++    }
++    if (gPlayState->sceneNum != SCENE_MH_APPEND) {
++        framesInScene = 0;
++        return;
++    }
++    framesInScene++;
++    // Re-assert the name EVERY frame in the playtest scene (not just the first 90): a textbox's
++    // MESSAGE_NAME can open at any time, and SaveManager may re-sync the save more than once.
++    if (sMhNameSet) {
++        for (int i = 0; i < 8; i++) gSaveContext.playerName[i] = sMhPlayerName[i];
++    }
++    if (sMhZTarget >= 0 && framesInScene <= 90) {
++        gSaveContext.zTargetSetting = (u8)sMhZTarget;
++    }
++    if (logged) {
++        return;
++    }
++    if (framesInScene >= 30) {
++        MhBootLog("[mh_boot] RENDER OK: in SCENE_MH_APPEND room=" +
++                  std::to_string((int)gPlayState->roomCtx.curRoom.num) + " after 30 frames");
++        // MH diag: the user reports a black sky + an untextured "blue blob" Link in this scene. Log the
++        // skybox + player + tunic state so the cause (skybox never set up / wrong id / Link draw) is
++        // visible in the boot log without a debugger. play->skyboxId is the scene's requested skybox
++        // (should be 1 = SKYBOX_NORMAL_SKY); skyboxCtx.skyboxId is what actually got loaded.
++        Player* mhPlayer = GET_PLAYER(gPlayState);
++        MhBootLog("[mh_diag] skyboxId=" + std::to_string((int)gPlayState->skyboxId) +
++                  " skyboxCtx.skyboxId=" + std::to_string((int)gPlayState->skyboxCtx.skyboxId) +
++                  " player=" + (mhPlayer ? "yes" : "NULL") +
++                  " equip=0x" + StringHelper::Sprintf("%X", gSaveContext.equips.equipment) +
++                  " tunicOwned=0x" + StringHelper::Sprintf("%X", gSaveContext.inventory.equipment));
++        logged = true;
++    }
++}
++
+ void DebugConsole_Init(void) {
++    // Megaton Hammer playtest auto-boot (runs once when a playtest mod O2R is mounted).
++    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnZTitleUpdate>(MhPlaytestBootHook);
++    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(MhPlaytestRenderProbe);
++
+     // Console
+     CMD_REGISTER("file_select", { FileSelectHandler, "Returns to the file select." });
+     CMD_REGISTER("reset", { ResetHandler, "Resets the game." });
+@@ -1528,6 +2049,13 @@ void DebugConsole_Init(void) {
+     // Map & Location
+     CMD_REGISTER("void", { VoidHandler, "Voids out of the current map." });
+     CMD_REGISTER("reload", { ReloadHandler, "Reloads the current map." });
++    CMD_REGISTER("mh_playtest",
++                 { MhPlaytestHandler,
++                   "Warp into a Megaton Hammer playtest level. Usage: mh_playtest [sceneIdHex] [child|adult]",
++                   {
++                       { "sceneIdHex", Ship::ArgumentType::TEXT, true },
++                       { "child|adult", Ship::ArgumentType::TEXT, true },
++                   } });
+     CMD_REGISTER("fw", { FWHandler,
+                          "Spawns the player where Farore's Wind is set.",
+                          {
+diff --git a/soh/src/overlays/gamestates/ovl_select/z_select.c b/soh/src/overlays/gamestates/ovl_select/z_select.c
+index 2be2df5f4..0ba004ff1 100644
+--- a/soh/src/overlays/gamestates/ovl_select/z_select.c
++++ b/soh/src/overlays/gamestates/ovl_select/z_select.c
+@@ -137,6 +137,11 @@ void Select_Grotto_LoadGame(SelectContext* this, s32 grottoIndex) {
+     SET_NEXT_GAMESTATE(&this->state, Play_Init, PlayState);
+ }
+ 
++// Megaton Hammer (#20): a runtime-named entry appended to the debug scene-select list, pointing at the
++// reserved SCENE_MH_APPEND scene so an injected playtest level can be re-warped to manually. The playtest
++// boot hook (debugconsole.cpp) fills this from mh/info "displayName"; default shows the project name.
++char gMhWarpName[64] = "126:Megaton Project";
++
+ static SceneSelectEntry sScenes[] = {
+     { " 1:SPOT00", " 1:Hyrule Field", " 1:Hylianische Steppe", " 1:Plaine d'Hyrule", Select_LoadGame,
+       ENTR_HYRULE_FIELD_PAST_BRIDGE_SPAWN },
+@@ -388,6 +393,8 @@ static SceneSelectEntry sScenes[] = {
+     { "125:" GFXP_KATAKANA "ﾊｲﾗﾙ" GFXP_HIRAGANA "ﾆﾜ" GFXP_KATAKANA "ｹﾞｰﾑ2", "125:Hyrule Garden Game (Broken)",
+       "125:Burghof - Wachen-Minispiel (Kaputt)", "125:Cour du Chateau (Non fonctionnel)", Select_LoadGame,
+       ENTR_HAIRAL_NIWA2_0 },
++    // Megaton Hammer (#20): injected playtest level — name filled at boot from mh/info "displayName".
++    { gMhWarpName, gMhWarpName, gMhWarpName, gMhWarpName, Select_LoadGame, ENTR_MH_APPEND_0 },
+     { "title", "title", "Titelbildschirm", "Ecran-titre", Select_LoadTitle, 0 },
+ };
+ 

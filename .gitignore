@@ -1,0 +1,38 @@
+# ---- Build output ----
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+Deploy/
+Staging/
+out/
+pj64run/
+
+# ---- Engine checkouts fetched by build-megaton.ps1 (NOT vendored here) ----
+/SoH/
+/2Ship/
+/Project64/
+Megaton Hammer.lnk
+
+# ---- ROMs & game data (you supply your own; never commit) ----
+roms/*
+!roms/README.md
+*.z64
+*.n64
+*.v64
+*.rom
+baserom*
+*.otr
+*.o2r
+
+# ---- Rendered scene dumps / texture dumps (may be game-derived) ----
+levelout/
+**/tex_dump/
+*_top.png
+*_iso.png
+*_cam*.png
+
+# ---- Misc ----
+*.log
+Thumbs.db
+.DS_Store

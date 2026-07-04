@@ -1,0 +1,38 @@
+diff --git a/soh/soh/util.cpp b/soh/soh/util.cpp
+index 7efa4b7..9f3e1c4 100644
+--- a/soh/soh/util.cpp
++++ b/soh/soh/util.cpp
+@@ -5,10 +5,33 @@
+ #include <algorithm>
+ #include <array>
+ #include <assert.h>
++#include <cstdint>
++#include <cstddef>
+ #include <spdlog/spdlog.h>
+ #include "Enhancements/randomizer/randomizerTypes.h"
+ #include <variables.h>
+ 
++// Megaton Hammer build fix: this toolchain's linked STL lib is older than its cl.exe, so the
++// vectorized single-char string-search helpers std::string::find_first_not_of / find_last_not_of
++// emit (__std_find_not_ch_1 / __std_find_last_not_ch_pos_1) are unresolved at link (LNK2001).
++// The 2Ship build links a newer STL and is fine; SoH pulls an older one. Provide the two functions
++// with their exact STL contract (scalar fallback) so the link resolves. No-op if the STL ever supplies
++// them (these are weak-equivalent definitions in our own TU; the STL lib doesn't export them here).
++extern "C" {
++const void* __std_find_not_ch_1(const void* first, const void* last, std::uint8_t ch) noexcept {
++    auto p = static_cast<const std::uint8_t*>(first);
++    auto e = static_cast<const std::uint8_t*>(last);
++    for (; p != e; ++p) if (*p != ch) return p;   // first byte != ch, else end
++    return e;
++}
++std::size_t __std_find_last_not_ch_pos_1(const void* first, const void* last, std::uint8_t ch) noexcept {
++    auto b = static_cast<const std::uint8_t*>(first);
++    auto p = static_cast<const std::uint8_t*>(last);
++    while (p != b) { --p; if (*p != ch) return static_cast<std::size_t>(p - b); }  // index of last byte != ch
++    return static_cast<std::size_t>(-1);          // npos: all bytes == ch
++}
++}
++
+ std::string invalidString = "";
+ 
+ std::vector<std::string> sceneNames = {
