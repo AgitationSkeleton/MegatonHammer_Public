@@ -748,6 +748,89 @@ public static class ActorParamSchema
         [0x019B] = new Def("Dog (En_Dog)", [
             new Field("Colour / breed", 8, 4, FieldKind.Int, "Which dog appearance (0–15)"),
         ], "The pick-up-and-carry dog (Market / Kakariko)."),
+
+        // ── Survey batch (all verified vs decomp) ──
+
+        // En_A_Obj (0x0039) block/sign object — z64actor.h AObjType: type=params&0xFF, textId=(params>>8)&0xFF.
+        [0x0039] = new Def("Block / Sign (En_A_Obj)", [
+            new Field("Type", 0, 8, FieldKind.Enum, "Pushable block, cube, grass clump, tree stump, signpost or boulder fragment",
+                      ["Block (small)", "Block (large)", "Block (huge)", "Block (small, rotated)", "Block (large, rotated)",
+                       "Cube (small)", "Type 6", "Grass clump", "Tree stump", "Signpost (oblong)", "Signpost (arrow)", "Boulder fragment"]),
+            new Field("Sign message id", 8, 8, FieldKind.Int, "For signposts: the message shown (OR'd with 0x300)"),
+        ], "Only the signpost types are used in vanilla rooms; the block/cube types are generic props."),
+
+        // En_Elf (0x0018) fairy — z_en_elf.c FairyType: type=params (0–7).
+        [0x0018] = new Def("Fairy (En_Elf)", [
+            new Field("Type", 0, 4, FieldKind.Enum, "Which fairy — Navi, a healing fairy, the green Kokiri-Forest fairy, or a spawner",
+                      ["Navi", "Revive fairy (bottle)", "Heal (timed)", "Kokiri fairy", "Fairy spawner", "Revive fairy (on death)", "Heal", "Heal (big)"]),
+        ]),
+
+        // En_Bombf (0x004C) bomb flower — z_en_bombf.c: whole params signed (Flower -1 / Body 0 / Explosion 1).
+        [0x004C] = new Def("Bomb Flower (En_Bombf)", [
+            new Field("Type", 0, 16, FieldKind.Enum, "The pickable/plantable Bomb Flower is the one you place; Body/Explosion are spawned internally",
+                      ["Bomb Flower", "Body (internal)", "Explosion (internal)"], EnumBase: -1),
+        ]),
+
+        // Bg_Mori_Idomizu (0x00E4) Forest Temple water-level object — z_bg_mori_idomizu.c: switchFlag=params&0x3F (reader).
+        [0x00E4] = new Def("Forest Water Level (Bg_Mori_Idomizu)", [
+            new Field("Switch flag", 0, 6, FieldKind.Int, "Water rises/lowers while this switch flag is set (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Reader),
+        ]),
+
+        // Bg_Jya_Kanaami (0x00FD) Spirit Temple grate — z_bg_jya_kanaami.c: switchFlag=params&0x3F (reader).
+        [0x00FD] = new Def("Grate (Bg_Jya_Kanaami)", [
+            new Field("Switch flag", 0, 6, FieldKind.Int, "The grate lowers while this switch flag is set (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Reader),
+        ]),
+
+        // Bg_Jya_Cobra (0x00FC) Spirit Temple mirror pillar — z_bg_jya_cobra.c: rotation=params&3, switchFlag=(params>>8)&0x3F (reader).
+        [0x00FC] = new Def("Mirror Pillar (Bg_Jya_Cobra)", [
+            new Field("Rotation", 0, 2, FieldKind.Int, "Starting facing (0–3)"),
+            new Field("Switch flag", 8, 6, FieldKind.Int, "Rotates to reflect light when this switch flag is set (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Reader),
+        ]),
+
+        // Bg_Mori_Hashigo (0x00E2) Forest Temple clasp/ladder — z_bg_mori_hashigo.c: type=params (Clasp/Ladder).
+        [0x00E2] = new Def("Clasp / Ladder (Bg_Mori_Hashigo)", [
+            new Field("Type", 0, 8, FieldKind.Enum, "The wall clasp you hookshot, or the drop-down ladder", ["Clasp", "Ladder"]),
+        ]),
+
+        // Bg_Dodoago (0x003F) Dodongo skull mouth — z_bg_dodoago.c: switchFlag=params&0x3F (read+set on both eyes lit).
+        [0x003F] = new Def("Dodongo Mouth (Bg_Dodoago)", [
+            new Field("Switch flag", 0, 6, FieldKind.Int, "Set when both eyes are bombed, opening the mouth (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+        ]),
+
+        // Obj_Hana (0x014F) flower/bush/rock prop — z_obj_hana.c: type=params&3.
+        [0x014F] = new Def("Plant / Rock (Obj_Hana)", [
+            new Field("Type", 0, 2, FieldKind.Enum, "Decorative flower, grave shard, or a bush", ["Flower", "Grave shard", "Bush"]),
+        ]),
+
+        // En_Ex_Ruppy (0x0131) special rupee — z_en_ex_ruppy.c: type=params (cases 0–3).
+        [0x0131] = new Def("Special Rupee (En_Ex_Ruppy)", [
+            new Field("Type", 0, 2, FieldKind.Enum, "Zora diving-game rupee, or the pink exploding / courtyard variants",
+                      ["Diving-game rupee", "Type 1", "Giant pink (explodes)", "Courtyard (guard-thrown)"]),
+        ]),
+
+        // En_Yabusame_Mark (0x012F) horseback-archery target — z_en_yabusame_mark.c: size=params (0–2).
+        [0x012F] = new Def("Archery Target (En_Yabusame_Mark)", [
+            new Field("Size", 0, 2, FieldKind.Enum, "Horseback-archery scoring target", ["Small", "Medium", "Large"]),
+        ]),
+
+        // Bg_Hidan_Rock (0x0043) Fire Temple stone block — z_bg_hidan_rock.c: type=params&0xFF, switchFlag=(params>>8)&0xFF.
+        [0x0043] = new Def("Fire Temple Block (Bg_Hidan_Rock)", [
+            new Field("Type", 0, 8, FieldKind.Int, "Which block (0 = the switch-triggered movable stone block)"),
+            new Field("Switch flag", 8, 8, FieldKind.Int, "The type-0 block moves when this switch flag is set (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+        ]),
+
+        // En_Light (0x0008) flame/torch light — z_en_light.c: colour=params&0xF, switchFlag=(params>>4)&0x3F, switch-controlled=0x400.
+        [0x0008] = new Def("Flame / Light (En_Light)", [
+            new Field("Colour", 0, 4, FieldKind.Int, "Flame tint (0–15 palette)"),
+            new Field("Switch-controlled", 10, 1, FieldKind.Flag, "The flame grows/shrinks with a switch flag"),
+            new Field("Switch flag", 4, 6, FieldKind.Int, "Which switch flag controls it (when Switch-controlled) (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Reader),
+        ]),
     };
 
     // MM actor ids differ from OoT and its switch flags are 7 bits (0–127). Layouts taken verbatim
