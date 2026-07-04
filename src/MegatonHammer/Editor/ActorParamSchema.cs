@@ -21,11 +21,14 @@ public static class ActorParamSchema
     /// Hammer's entity output (Setter) vs input (Reader).</summary>
     public enum FlagRole { None, Setter, Reader, Both }
 
-    /// <summary>One bit-field slice of <c>params</c>: bits [Shift .. Shift+Length-1].</summary>
+    /// <summary>One bit-field slice of <c>params</c>: bits [Shift .. Shift+Length-1]. For an Enum whose game
+    /// values are SIGNED (e.g. Tektite type -2/-1, ReDead -3..3), set <c>EnumBase</c> to the value that
+    /// Options[0] represents (the most-negative one); the field then decodes via two's-complement.</summary>
     public sealed record Field(string Name, int Shift, int Length, FieldKind Kind,
                                string? Desc = null, IReadOnlyList<string>? Options = null,
                                FlagKind Flag = FlagKind.None, FlagRole Role = FlagRole.None,
-                               int TextIdBase = 0, bool FromRotZ = false, bool Advanced = false)
+                               int TextIdBase = 0, bool FromRotZ = false, bool Advanced = false,
+                               int EnumBase = 0)
     {
         /// <summary>Hidden from the basic (default) actor properties, shown only under "Show Advanced Options".
         /// Any logic-FLAG field is advanced (switch/treasure/collectible/GS wiring — the editor auto-manages the
@@ -37,6 +40,21 @@ public static class ActorParamSchema
         public int Get(ushort vars) => (vars >> Shift) & Mask;
         public ushort Set(ushort vars, int value) =>
             (ushort)((vars & ~(Mask << Shift)) | ((value & Mask) << Shift));
+
+        /// <summary>The field's game value: sign-extended over Length for a signed Enum (EnumBase &lt; 0), else raw.</summary>
+        public int SignedGet(ushort vars)
+        {
+            int raw = Get(vars);
+            return (EnumBase < 0 && (raw & (1 << (Length - 1))) != 0) ? raw - (1 << Length) : raw;
+        }
+
+        /// <summary>Enum option index (into Options) for the current bits: SignedGet - EnumBase. For a normal
+        /// 0-based enum this is just the value; for a signed enum it shifts negatives up into 0-based indices.</summary>
+        public int EnumIndex(ushort vars) => SignedGet(vars) - EnumBase;
+
+        /// <summary>The signed game value option <paramref name="index"/> maps to (EnumBase + index). Pass this
+        /// to <see cref="Set"/> — its masking produces the correct two's-complement bits for negative values.</summary>
+        public int EnumValueAt(int index) => EnumBase + index;
 
         /// <summary>For a Message field: the in-game textId for a stored bit value (TextIdBase + value).</summary>
         public int TextId(ushort vars) => TextIdBase + Get(vars);
@@ -549,6 +567,57 @@ public static class ActorParamSchema
                       ["Grey (normal)", "White (mini-boss)"]),
             new Field("Room-clear switch flag", 8, 8, FieldKind.Int, "White Wolfos SETS this switch flag when defeated (255 = none) — wire a barred door to it",
                       Flag: FlagKind.Switch, Role: FlagRole.Setter),
+        ]),
+
+        // En_Kusa (0x0125) grass/bush — z_en_kusa.c: type=params&3, dropGroup=(params>>8)&0xF.
+        [0x0125] = new Def("Grass / Bush (En_Kusa)", [
+            new Field("Type", 0, 2, FieldKind.Enum, "Cuttable grass tuft, or a bush you can pick up and throw",
+                      ["Grass tuft", "Bush (throwable)", "Grass tuft (alt)"]),
+            new Field("Drop group", 8, 4, FieldKind.Int, "Which random-drop table it yields when cut (0–12; 13+ = nothing)"),
+        ]),
+
+        // Bg_Heavy_Block (0x0092) liftable pillar — z_bg_heavy_block.c: type=params&0xFF, appearSwitchFlag=(params>>8)&0x3F.
+        [0x0092] = new Def("Heavy Pillar (Bg_Heavy_Block)", [
+            new Field("Type", 0, 8, FieldKind.Enum, "The liftable pillar, or a debris piece it shatters into",
+                      ["Pillar (unbreakable)", "Pillar (breakable)", "Big piece", "Small piece", "Pillar (outside castle)"]),
+            new Field("Appear switch flag", 8, 6, FieldKind.Int, "Some placements appear only once this switch flag is set (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Reader),
+        ], "Lift and throw the pillar with the Golden Gauntlets (adult). Big/Small piece are the runtime debris."),
+
+        // Obj_Comb (0x019E) beehive — z_obj_comb.c: drop=params&0x1F (Item00 type), collectibleFlag=(params>>8)&0x3F.
+        [0x019E] = new Def("Beehive (Obj_Comb)", [
+            new Field("Drop", 0, 5, FieldKind.Enum, "What the hive drops when knocked down", Item00Type),
+            new Field("Collectible flag", 8, 6, FieldKind.Int, "Flag tracking this drop as collected (0–63)",
+                      Flag: FlagKind.Collectible, Role: FlagRole.Both),
+        ]),
+
+        // ── Enemies whose type param is SIGNED (negative sentinels) — decoded via Field.EnumBase ──
+
+        // En_Tite (0x001B) Tektite — z_en_tite.c: whole params == TEKTITE_BLUE(-2) / TEKTITE_RED(-1). No other fields.
+        [0x001B] = new Def("Tektite (En_Tite)", [
+            new Field("Colour", 0, 16, FieldKind.Enum, "Blue tektites skate on water; red ones hop on land", ["Blue", "Red"], EnumBase: -2),
+        ]),
+
+        // En_Zf (0x0025) Lizalfos/Dinolfos — z_en_zf.c: type=s8(params&0xFF, sign-extended), clearFlag=(params>>8)&0xFF.
+        [0x0025] = new Def("Lizalfos / Dinolfos (En_Zf)", [
+            new Field("Type", 0, 8, FieldKind.Enum, "Dinolfos, a lone Lizalfos, or a paired mini-boss (A+B must both die to clear the room)",
+                      ["Dinolfos", "Lizalfos (lone)", "Lizalfos mini-boss A", "Lizalfos mini-boss B"], EnumBase: -2),
+            new Field("Room-clear switch flag", 8, 8, FieldKind.Int, "Mini-boss pair reads/sets this so the room unbars when BOTH are beaten (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+        ], "Give both mini-boss halves (A and B) the SAME room-clear switch flag."),
+
+        // En_Rd (0x0090) ReDead/Gibdo — z_en_rd.c: type=s8(params&0xFF, sign-extended); high byte = spawn flags.
+        [0x0090] = new Def("ReDead / Gibdo (En_Rd)", [
+            new Field("Type", 0, 8, FieldKind.Enum, "ReDead or Gibdo variant; some grab, some only moan, some are invisible",
+                      ["Gibdo (rising from coffin)", "Gibdo", "ReDead (won't mourn)", "ReDead (won't mourn if walking)",
+                       "ReDead (regular)", "ReDead (crying)", "ReDead (invisible)"], EnumBase: -3),
+        ]),
+
+        // En_Bb (0x0069) Bubble — z_en_bb.c: type=s8(params&0xFF, sign-extended), flight path=(params>>8)&0xFF.
+        [0x0069] = new Def("Bubble (En_Bb)", [
+            new Field("Type", 0, 8, FieldKind.Enum, "Flying skull-flame; colour sets its behaviour (Blue is the plain one)",
+                      ["Green (big)", "Green", "White", "Red", "Blue", "Flame trail"], EnumBase: -5),
+            new Field("Flight path", 8, 8, FieldKind.Int, "Path index the flying variants follow (0–254)"),
         ]),
     };
 

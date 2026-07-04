@@ -497,11 +497,11 @@ public sealed class EntityConfigDialog : Form
                 var combo = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList,
                     BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat,
                     Font = UiFonts.Get("Segoe UI", 8.5f), Margin = new Padding(2) };
-                for (int i = 0; i < (f.Options?.Count ?? 0); i++) combo.Items.Add($"{i}  {f.Options![i]}");
-                int cur = f.Get(_actor.Variable);
-                combo.SelectedIndex = cur < combo.Items.Count ? cur : -1;
-                if (combo.SelectedIndex < 0 && combo.Items.Count > 0) combo.Text = cur.ToString();
-                combo.SelectedIndexChanged += (_, _) => { if (!_loading && combo.SelectedIndex >= 0) ApplyField(f, combo.SelectedIndex); };
+                for (int i = 0; i < (f.Options?.Count ?? 0); i++) combo.Items.Add($"{f.EnumValueAt(i)}  {f.Options![i]}");
+                int cur = f.EnumIndex(_actor.Variable);
+                combo.SelectedIndex = cur >= 0 && cur < combo.Items.Count ? cur : -1;
+                if (combo.SelectedIndex < 0 && combo.Items.Count > 0) combo.Text = f.SignedGet(_actor.Variable).ToString();
+                combo.SelectedIndexChanged += (_, _) => { if (!_loading && combo.SelectedIndex >= 0) ApplyField(f, f.EnumValueAt(combo.SelectedIndex)); };
                 AttachOverflowTip(combo);
                 input = combo;
                 break;

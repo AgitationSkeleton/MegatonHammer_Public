@@ -567,6 +567,13 @@ static class Program
                         if (f.Flag != Editor.ActorParamSchema.FlagKind.None)
                             Chk(f.Role != Editor.ActorParamSchema.FlagRole.None,
                                 $"{tag} 0x{id:X4} '{f.Name}': flag field has no Setter/Reader role");
+                        // Every enum option must round-trip through the (signed-aware) bit encode/decode.
+                        if (f.Kind == Editor.ActorParamSchema.FieldKind.Enum && f.Options != null)
+                            for (int oi = 0; oi < f.Options.Count; oi++)
+                            {
+                                ushort v = f.Set((ushort)0, f.EnumValueAt(oi));
+                                Chk(f.EnumIndex(v) == oi, $"{tag} 0x{id:X4} '{f.Name}': enum option {oi} ({f.Options[oi]}) round-trips");
+                            }
                     }
                     // No two params-stored fields may claim the same bit (FromRotZ fields live in Rot Z, separate).
                     var pf = def.Fields.Where(f => !f.FromRotZ).ToList();
