@@ -651,6 +651,18 @@ public static class ActorParamSchema
             new Field("Type", 0, 16, FieldKind.Enum, "Grounded Peahats sit until approached; flying ones patrol and spawn larvae",
                       ["Grounded", "Flying", "Larva"], EnumBase: -1),
         ]),
+
+        // En_St (0x0037) Skulltula — z_en_st.c: type=params (0 normal / 1 big / 2 invisible-Lens).
+        [0x0037] = new Def("Skulltula (En_St)", [
+            new Field("Type", 0, 2, FieldKind.Enum, "Ceiling-dropping Skulltula; Big is tougher, Invisible needs the Lens of Truth",
+                      ["Normal", "Big", "Invisible (Lens)"]),
+        ]),
+
+        // Obj_Ice_Poly (0x011E) ice crystal — z_obj_ice_poly.c: size=params&0xFF (sScale 0.5/1.0/1.5 = small/med/large).
+        [0x011E] = new Def("Ice Crystal (Obj_Ice_Poly)", [
+            new Field("Size", 0, 2, FieldKind.Enum, "Red-ice crystal you melt with Blue Fire (scooped into a bottle)",
+                      ["Small", "Medium", "Large"]),
+        ]),
     };
 
     // MM actor ids differ from OoT and its switch flags are 7 bits (0–127). Layouts taken verbatim
