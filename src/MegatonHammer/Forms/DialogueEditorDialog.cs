@@ -42,7 +42,9 @@ public sealed class DialogueEditorDialog : Form
         FormBorderStyle = FormBorderStyle.SizableToolWindow;
         StartPosition = FormStartPosition.CenterParent;
         MinimizeBox = false;
-        ClientSize = new Size(690, 566);
+        ClientSize = new Size(700, 574);
+        MinimumSize = new Size(716, 612);
+        AutoScroll = true;   // if a control ever exceeds the client area, it stays reachable
         BackColor = BgDark; ForeColor = FgNormal;
         Font = new Font("Segoe UI", 8.5f);
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
