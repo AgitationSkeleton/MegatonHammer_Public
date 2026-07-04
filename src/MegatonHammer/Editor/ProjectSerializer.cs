@@ -64,9 +64,18 @@ public static class ProjectSerializer
         Messages = scene.Messages.Count > 0 ? scene.Messages.Select(m => new MessageDto
         {
             Id = m.Id, Text = m.Text, Box = m.BoxType, Pos = m.YPos, Icon = m.Icon,
+            Kind = (int)m.Kind, Choice1 = m.Choice1, Choice2 = m.Choice2,
+            Out1 = ToDto(m.Outcome1), Out2 = ToDto(m.Outcome2),
+            DoneFlag = m.DoneFlag, AfterMsgId = m.AfterMsgId,
         }).ToList() : null,
         };
     }
+
+    private static OutcomeDto ToDto(MhOutcome o) => new()
+    { NextMsgId = o.NextMsgId, FireFlag = o.FireFlag, GiveItem = o.GiveItem, ChargeRupees = o.ChargeRupees, RupeeCost = o.RupeeCost };
+
+    private static MhOutcome FromDto(OutcomeDto? d) => d == null ? new MhOutcome()
+        : new MhOutcome { NextMsgId = d.NextMsgId, FireFlag = d.FireFlag, GiveItem = d.GiveItem, ChargeRupees = d.ChargeRupees, RupeeCost = d.RupeeCost };
 
     private static EnvDto ToDto(Rom.EnvLight e) => new()
     {
@@ -139,6 +148,9 @@ public static class ProjectSerializer
         scene.Messages = (sd.Messages ?? []).Select(m => new MhMessage
         {
             Id = m.Id, Text = m.Text ?? "", BoxType = m.Box, YPos = m.Pos, Icon = m.Icon,
+            Kind = (MhMsgKind)m.Kind, Choice1 = m.Choice1 ?? "Yes", Choice2 = m.Choice2 ?? "No",
+            Outcome1 = FromDto(m.Out1), Outcome2 = FromDto(m.Out2),
+            DoneFlag = m.DoneFlag, AfterMsgId = m.AfterMsgId,
         }).ToList();
         scene.Setups = (sd.Setups ?? []).Select(FromDto).ToList();
         scene.ActiveSetup = scene.Setups.Count > 0 ? Math.Clamp(sd.ActiveSetup, 0, scene.Setups.Count - 1) : 0;
@@ -399,6 +411,23 @@ public static class ProjectSerializer
         public int Box { get; set; }
         public int Pos { get; set; }
         public int Icon { get; set; }
+        // Dialogue extensions (omitted for plain legacy messages -> defaults keep them backward-compatible).
+        public int Kind { get; set; }                    // 0 = Message, 1 = Prompt
+        public string? Choice1 { get; set; }
+        public string? Choice2 { get; set; }
+        public OutcomeDto? Out1 { get; set; }
+        public OutcomeDto? Out2 { get; set; }
+        public int DoneFlag { get; set; } = -1;
+        public int AfterMsgId { get; set; } = -1;
+    }
+
+    public sealed class OutcomeDto
+    {
+        public int NextMsgId { get; set; } = -1;
+        public int FireFlag { get; set; } = -1;
+        public int GiveItem { get; set; } = -1;
+        public bool ChargeRupees { get; set; }
+        public int RupeeCost { get; set; }
     }
 
     public sealed class SetupDto

@@ -616,6 +616,44 @@ static class Program
             return;
         }
 
+        // Verify the dialogue model + encoder (the Talon "buy a Cuccoo" mockup): MegatonHammer --dialoguetest
+        if (args.Length >= 1 && args[0] == "--dialoguetest")
+        {
+            void Chk(bool ok, string m) => Console.WriteLine($"[dialoguetest] {m} => {(ok ? "PASS" : "FAIL")}");
+            const int doneFlag = 12;
+
+            // Greeting box: colour spans + text-speed timing ("Haw ~1 haw").
+            var msgA = new Editor.MhMessage(0x0301,
+                "My name is %bTalon%w! I own this ranch.&Say, how'd you like to marry %rMalon%w?&Haw ~1haw ~1haw!");
+            // Purchase prompt: give item + charge rupees on Yes; branch on No; fulfilled-state fallback.
+            var msgB = new Editor.MhMessage(0x0302, "Buy a %bCuccoo%w for %r20 Rupees%w?")
+            {
+                Kind = Editor.MhMsgKind.Prompt, Choice1 = "%gYes", Choice2 = "%gNo",
+                Outcome1 = new() { GiveItem = 0x0048, ChargeRupees = true, RupeeCost = 20, FireFlag = doneFlag },
+                Outcome2 = new() { NextMsgId = 0x0303 },
+                DoneFlag = doneFlag, AfterMsgId = 0x0304,
+            };
+            var msgAfter = new Editor.MhMessage(0x0304, "Thanks! Take good care of that Cuccoo.");
+
+            var a = Export.MessageEncoder.Encode(msgA, mm: false);
+            var b = Export.MessageEncoder.Encode(msgB, mm: false);
+
+            Chk(a[^1] == 0x02, "OoT message terminated with END (0x02)");
+            Chk(a.Contains((byte)0x05), "greeting has a COLOUR control code (0x05)");
+            Chk(a.Contains((byte)0x14), "greeting has a TEXT_SPEED control code (0x14) from ~1 timing");
+            Chk(b.Contains((byte)0x1B), "prompt emits the TWO_CHOICE control code (0x1B)");
+            Chk(System.Text.Encoding.ASCII.GetString(b).Contains("Yes") &&
+                System.Text.Encoding.ASCII.GetString(b).Contains("No"), "prompt encodes both choice labels");
+
+            var yes = msgB.Outcome1;
+            Chk(yes.GiveItem == 0x0048 && yes.ChargeRupees && yes.RupeeCost == 20 && yes.FireFlag == doneFlag,
+                $"'Yes' = give item + charge {yes.RupeeCost} rupees + set flag {yes.FireFlag} (purchase)");
+            Chk(msgB.Outcome2.NextMsgId == 0x0303, "'No' branches to another message (Display MsgBox #)");
+            Chk(msgB.DoneFlag == doneFlag && msgB.AfterMsgId == 0x0304, "fulfilled state -> fallback message wired");
+            Chk(!yes.IsEmpty && msgAfter.Outcome1.IsEmpty, "outcome emptiness detection works");
+            return;
+        }
+
         // Verify the compile-time face culler headlessly: MegatonHammer --culltest
         if (args.Length >= 1 && args[0] == "--culltest")
         {

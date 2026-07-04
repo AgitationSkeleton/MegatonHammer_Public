@@ -104,5 +104,31 @@ registration beyond `0x004B`** to the MH id range — handler looks up `textId`,
 4. **Vanilla N64 append** (OoT then MM): `RomInjector.AppendMessages` + encoder back-ends. Validate via the
    N64 boot harness (and the MM N64 path from [mm-injection-debug-plan.md](mm-injection-debug-plan.md)).
 
+## 6. Broad compatibility — do NOT tie mods to our forks
+
+Design rule (user, 2026-07-03): a mapper making a **total-conversion mod** must be able to use this WITHOUT
+basing their project on our SoH/2Ship forks. So the system is tiered by how much "behaviour" a message needs:
+
+- **Tier A — presentation (universal, zero engine changes).** Text, colour (`CTRL_COLOR`), timing
+  (`CTRL_TEXT_SPEED`/`BOX_BREAK_DELAYED`/`FADE`/`AWAIT_BUTTON_PRESS`), multi-box (`BOX_BREAK`), two-choice
+  prompts (`CTRL_TWO_CHOICE`), and **branch-to-message** (`CTRL_TEXTID` goto) are all *standard vanilla message
+  control bytes*. They run on unmodified OoT/MM carts, on **stock** SoH/2Ship, and on any decomp base
+  (HackerOoT, TC mods) — identical bytes, no custom code. This already covers the bulk of Zelda message
+  objects: signs, POIs, readable objects, and flavour/branching NPCs. `MhMessage`/`MhOutcome` are engine-neutral
+  data; `MessageEncoder` emits these vanilla bytes. **Nothing here depends on our forks.**
+
+- **Tier B — outcomes (give item / charge rupees / set flag / per-choice branch).** These are NPC *behaviour*,
+  not message data, so they need code. To stay fork-independent, the editor emits the outcome table as portable
+  data **and generates a small, standalone, permissively-licensed decomp-C "dialogue NPC" actor** (e.g.
+  `ovl_En_MhTalk`) that reads that table and performs the outcome (offer item via `Actor_OfferGetItem`, deduct
+  `Rupees_ChangeBy(-cost)` gated on affording it, `Flags_SetSwitch`, `Message_ContinueTextbox(nextId)`). The
+  modder drops that ONE actor into *their* base — vanilla decomp, SoH, 2Ship, HackerOoT, or a TC mod. **Our
+  forks include the same open actor; they get no special treatment.** Where an existing vanilla actor already
+  does the job (a shop = browse+charge+give), a preset reskins that instead — also fork-independent.
+
+So: the runtime is an **open drop-in actor + a documented data format**, never a proprietary hook in our
+SoH/2Ship. The editor's job is authoring engine-neutral data + the vanilla message bytes + (optionally) the
+portable actor source.
+
 Cross-refs: [[megaton-hammer-logic-parity]] (flag-bus + the O2R-resource/fork-hook convention this reuses),
 [actor-properties-audit.md](actor-properties-audit.md) (the gap this closes).
