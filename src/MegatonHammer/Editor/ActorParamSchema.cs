@@ -517,6 +517,39 @@ public static class ActorParamSchema
         // En_Blkobj (Dark Link illusory-room prop) — no logic params; placement only.
         [0x0136] = new Def("Dark Link Illusion Room (En_Blkobj)", [],
             "Renders the mirror room's real/illusion meshes and its collision; clears when Dark Link (En_Torch2, 0x0033) is defeated."),
+
+        // ── Common enemies + the push block (type/variant params; each verified vs decomp) ──
+
+        // Obj_Oshihiki (0x00FF) push block — z_obj_oshihiki.c: size=params&0xF, colour=(params>>6)&3, switchFlag=(params>>8)&0x3F.
+        [0x00FF] = new Def("Push Block (Obj_Oshihiki)", [
+            new Field("Block", 0, 4, FieldKind.Enum, "Size sets the strength needed to move it; START_OFF variants begin in their lowered/retracted state",
+                      ["Small", "Medium", "Large — needs Goron Bracelet", "Huge — needs Silver Gauntlets",
+                       "Small (start off)", "Medium (start off)", "Large (start off)"]),
+            new Field("Colour variant", 6, 2, FieldKind.Int, "Block tint (0–3)"),
+            new Field("Switch flag", 8, 6, FieldKind.Int, "Blocks/floor switches sharing this flag sync their state (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+        ], "Large needs the Goron Bracelet; Huge needs the Silver Gauntlets (Player_GetStrength check in z_obj_oshihiki.c)."),
+
+        // En_Firefly (0x0013) Keese — z_en_firefly.c: type=params (0–4); bit 0x8000 = invisible (Lens of Truth).
+        [0x0013] = new Def("Keese (En_Firefly)", [
+            new Field("Type", 0, 3, FieldKind.Enum, "Element + whether it starts flying or perched",
+                      ["Fire (flying)", "Fire (perched)", "Normal (flying)", "Normal (perched)", "Ice (flying)"]),
+            new Field("Invisible (Lens)", 15, 1, FieldKind.Flag, "Only visible with the Lens of Truth"),
+        ]),
+
+        // En_Poh (0x000D) Poe — z_en_poh.c: type=params (0–3); Sharp/Flat are the Composer Brothers (ReDead ghosts).
+        [0x000D] = new Def("Poe (En_Poh)", [
+            new Field("Type", 0, 2, FieldKind.Enum, "Poe variant",
+                      ["Normal Poe", "Rupee Poe", "Composer — Sharp", "Composer — Flat"]),
+        ], "Composer Sharp/Flat hard-code their own story flags (0x28/0x29); Normal/Rupee are the free-roaming Poes."),
+
+        // En_Wf (0x01AF) Wolfos — z_en_wf.c: type=params&0xFF (0 grey / 1 White), switchFlag=(params>>8)&0xFF (0xFF=none).
+        [0x01AF] = new Def("Wolfos (En_Wf)", [
+            new Field("Type", 0, 8, FieldKind.Enum, "Grey Wolfos, or the White Wolfos mini-boss that locks the room until beaten",
+                      ["Grey (normal)", "White (mini-boss)"]),
+            new Field("Room-clear switch flag", 8, 8, FieldKind.Int, "White Wolfos SETS this switch flag when defeated (255 = none) — wire a barred door to it",
+                      Flag: FlagKind.Switch, Role: FlagRole.Setter),
+        ]),
     };
 
     // MM actor ids differ from OoT and its switch flags are 7 bits (0–127). Layouts taken verbatim
@@ -646,4 +679,7 @@ public static class ActorParamSchema
     }
 
     public static bool Has(bool isOoT, ushort actorId) => For(isOoT, actorId) != null;
+
+    /// <summary>All hand-curated actor schemas for a game (for validation / self-tests).</summary>
+    public static IEnumerable<KeyValuePair<ushort, Def>> CuratedDefs(bool isOoT) => isOoT ? OoT : MM;
 }

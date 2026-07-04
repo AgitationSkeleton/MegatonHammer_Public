@@ -116,16 +116,23 @@ public static class DungeonMechanismPresets
         return new List<ZActor> { sw, gate };
     };
 
-    // A torch that sets a switch flag when lit, wired to a barred gate. Torch type Permanent (stays lit) +
-    // group size 0 (this torch sets the flag on its own) → light it once, the gate opens for good.
+    // Obj_Syokudai torch type (bits 12-13): 0 Permanent (starts lit, NOT player-lightable — the ignite path
+    // in z_obj_syokudai.c is gated on torchType != 0), 1 Timed (player-lightable, sets its flag), 2 Decorative
+    // (sets no flag). A "light it to trigger" puzzle MUST use Timed. Group size (bits 6-9) counts torches that
+    // share the static sLitTorchCount; the flag sets once that many are lit. Group 1 = a single torch that
+    // relights off its own flag (so it visually STAYS lit after you light it).
+    private const int TorchTimed = 1;
+
+    // A torch that sets a switch flag when lit, wired to a barred gate. Timed type (the only player-lightable
+    // type that sets a flag) + group size 1 → light it once; it stays lit and the gate opens for good.
     private static List<ZActor> TorchGate(PresetContext ctx)
     {
         int flag = ctx.AllocSwitchFlag();
         ctx.Doc.SetFlagName(ActorParamSchema.FlagKind.Switch, flag, $"Torch{flag}");
 
         var torch = ctx.Make(ObjSyokudai, new Vector3(-100, 0, 0));
-        ctx.SetField(torch, "Torch type", 0);        // Permanent — stays lit
-        ctx.SetField(torch, "Torch group size", 0);  // sets the flag by itself when lit
+        ctx.SetField(torch, "Torch type", TorchTimed);
+        ctx.SetField(torch, "Torch group size", 1);  // one-torch group: sets the flag and relights (stays lit)
         ctx.SetField(torch, "Switch flag", flag);
 
         var gate = ctx.Make(HidanKousi, new Vector3(100, 0, 0));
@@ -133,6 +140,29 @@ public static class DungeonMechanismPresets
 
         return new List<ZActor> { torch, gate };
     }
+
+    // Light ALL N torches to open the gate — vanilla's real AND-gate. Each torch shares one switch flag and a
+    // group size N; the static sLitTorchCount only sets the flag once all N are lit (z_obj_syokudai.c:220).
+    private static Func<PresetContext, List<ZActor>> MultiTorchGate(int n) => ctx =>
+    {
+        int flag = ctx.AllocSwitchFlag();
+        ctx.Doc.SetFlagName(ActorParamSchema.FlagKind.Switch, flag, $"Torches{flag}");
+
+        var list = new List<ZActor>();
+        for (int i = 0; i < n; i++)   // a row of torches
+        {
+            var torch = ctx.Make(ObjSyokudai, new Vector3(-140 + i * 120, 0, -120));
+            ctx.SetField(torch, "Torch type", TorchTimed);
+            ctx.SetField(torch, "Torch group size", n);   // flag sets only when all n are lit
+            ctx.SetField(torch, "Switch flag", flag);
+            list.Add(torch);
+        }
+
+        var gate = ctx.Make(HidanKousi, new Vector3(0, 0, 120));
+        ctx.SetField(gate, "Switch flag", flag);
+        list.Add(gate);
+        return list;
+    };
 
     // MM: a switch wired to a ladder that only appears (and becomes climbable) once the flag is set.
     // MM has no generic Fire-Temple grate; Bg_Ladder is the clean, self-contained switch-gated unlock.
@@ -236,6 +266,13 @@ public static class DungeonMechanismPresets
             Description = "Light a torch (Din's Fire / fire arrow / lit Deku stick) to open a barred gate. " +
                           "Obj_Syokudai sets a switch flag when lit; the gate opens while it's set.",
             Build = TorchGate,
+        },
+        new()
+        {
+            Id = "multi_torch_gate", Name = "Light all torches → gate", OoT = true, Mm = false,
+            Description = "Light all 3 torches to open a barred gate — vanilla's real AND-gate. The torches share " +
+                          "one switch flag and a group count; the flag only sets once every torch in the group is lit.",
+            Build = MultiTorchGate(3),
         },
         new()
         {

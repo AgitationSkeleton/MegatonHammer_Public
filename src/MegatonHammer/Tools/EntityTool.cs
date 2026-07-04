@@ -87,6 +87,9 @@ public sealed class EntityTool : ITool
             case 0x0185:   // En_Wonder_Talk2 — proximity range = (rot.z ones digit)*40, gated rot.z>0; 0 = never
                 if (a.ZRot == 0) a.ZRot = 10;   // 400u trigger range (z_en_wonder_talk2.c:49-58)
                 break;
+            case 0x01AF:   // En_Wf Wolfos — switch-flag byte 0xFF = "none"; only the White variant sets it (z_en_wf.c:223)
+                if ((a.Variable >> 8) == 0) a.Variable = (ushort)((a.Variable & 0x00FF) | 0xFF00);
+                break;
         }
     }
 

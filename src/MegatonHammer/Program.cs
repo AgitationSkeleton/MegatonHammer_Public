@@ -544,6 +544,47 @@ static class Program
             return;
         }
 
+        // Validate every hand-curated actor param schema for internal consistency: MegatonHammer --schematest
+        if (args.Length >= 1 && args[0] == "--schematest")
+        {
+            int fails = 0;
+            void Chk(bool ok, string m) { if (!ok) { Console.WriteLine($"[schematest] {m} => FAIL"); fails++; } }
+
+            void Validate(bool oot)
+            {
+                string tag = oot ? "OoT" : "MM";
+                int n = 0;
+                foreach (var (id, def) in Editor.ActorParamSchema.CuratedDefs(oot))
+                {
+                    n++;
+                    foreach (var f in def.Fields)
+                    {
+                        Chk(f.Shift >= 0 && f.Length >= 1 && f.Shift + f.Length <= 16,
+                            $"{tag} 0x{id:X4} '{f.Name}': bit range [{f.Shift}..{f.Shift + f.Length - 1}] out of 0..15");
+                        if (f.Options != null)
+                            Chk(f.Options.Count <= (1 << f.Length),
+                                $"{tag} 0x{id:X4} '{f.Name}': {f.Options.Count} enum options exceed {f.Length}-bit field (max {1 << f.Length})");
+                        if (f.Flag != Editor.ActorParamSchema.FlagKind.None)
+                            Chk(f.Role != Editor.ActorParamSchema.FlagRole.None,
+                                $"{tag} 0x{id:X4} '{f.Name}': flag field has no Setter/Reader role");
+                    }
+                    // No two params-stored fields may claim the same bit (FromRotZ fields live in Rot Z, separate).
+                    var pf = def.Fields.Where(f => !f.FromRotZ).ToList();
+                    for (int i = 0; i < pf.Count; i++)
+                        for (int j = i + 1; j < pf.Count; j++)
+                        {
+                            bool overlap = pf[i].Shift < pf[j].Shift + pf[j].Length && pf[j].Shift < pf[i].Shift + pf[i].Length;
+                            Chk(!overlap, $"{tag} 0x{id:X4}: fields '{pf[i].Name}' and '{pf[j].Name}' overlap in params bits");
+                        }
+                }
+                Console.WriteLine($"[schematest] {tag}: validated {n} curated schemas");
+            }
+
+            Validate(true); Validate(false);
+            Console.WriteLine($"[schematest] {(fails == 0 ? "ALL PASS" : fails + " FAIL(s)")}");
+            return;
+        }
+
         // Verify the Dungeon Mechanism presets emit correct, vanilla, wired actor data: MegatonHammer --presettest
         if (args.Length >= 1 && args[0] == "--presettest")
         {
@@ -608,6 +649,18 @@ static class Program
                         "OoT boss-exit: warp pad carries the WARP tool texture");
                     if (trig != null && heart != null)
                         Chk(trig.GroupId != 0 && trig.GroupId == heart.GroupId, $"OoT boss-exit: heart + warp pad grouped (group {trig.GroupId})");
+
+                    // Torch presets must emit Timed torches (type 1): Permanent (type 0) torches are NOT
+                    // player-lightable (z_obj_syokudai.c ignite path is gated on torchType != 0).
+                    var typeF = Editor.ActorParamSchema.For(true, 0x005E)!.Fields.First(f => f.Name == "Torch type");
+                    foreach (var id in new[] { "torch_gate", "multi_torch_gate" })
+                    {
+                        var td = new Editor.MapDocument();
+                        var placed = Editor.DungeonMechanismPresets.Insert(td, Editor.DungeonMechanismPresets.ById(id)!, OpenTK.Mathematics.Vector3.Zero);
+                        var torches = placed.Where(a => a.Number == 0x005E).ToList();
+                        Chk(torches.Count >= 1 && torches.All(t => typeF.Get(t.Variable) == 1),
+                            $"OoT '{id}': {torches.Count} torch(es) are Timed/player-lightable (not Permanent)");
+                    }
                 }
             }
 
