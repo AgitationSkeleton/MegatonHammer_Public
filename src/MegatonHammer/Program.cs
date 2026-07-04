@@ -648,6 +648,12 @@ static class Program
             Chk(System.Text.Encoding.ASCII.GetString(b).Contains("Yes") &&
                 System.Text.Encoding.ASCII.GetString(b).Contains("No"), "prompt encodes both choice labels");
 
+            // MM control bytes differ (SFX 0x1E, two-choice 0xC2, END 0xBF) — z_message_nes.c.
+            var mmA = Export.MessageEncoder.Encode(msgA, mm: true);
+            var mmB = Export.MessageEncoder.Encode(msgB, mm: true);
+            Chk(mmA[0] == 0x1E && ((mmA[1] << 8) | mmA[2]) == 0x6836, "MM greeting opens with SFX (0x1E + id)");
+            Chk(mmB.Contains((byte)0xC2) && mmB[^1] == 0xBF, "MM prompt emits two-choice (0xC2) and ends 0xBF");
+
             var yes = msgB.Outcome1;
             Chk(yes.GiveItem == 0x0048 && yes.ChargeRupees && yes.RupeeCost == 20 && yes.FireFlag == doneFlag,
                 $"'Yes' = give item + charge {yes.RupeeCost} rupees + set flag {yes.FireFlag} (purchase)");

@@ -62,19 +62,19 @@ public static class MessageEncoder
     public static byte[] Encode(MhMessage m, bool mm)
     {
         var o = new List<byte>(m.Text.Length + 16);
-        // A per-box sound effect (vanilla CTRL_SFX 0x12 + 16-bit id), emitted up front so it plays as the box
-        // opens. (MM's SFX code differs; deferred — MM prompts/sfx are the follow-up.)
-        if (m.Sfx >= 0 && !mm) { o.Add(0x12); o.Add((byte)((m.Sfx >> 8) & 0xFF)); o.Add((byte)(m.Sfx & 0xFF)); }
+        // A per-box sound effect, emitted up front so it plays as the box opens. OoT SFX code = 0x12,
+        // MM = 0x1E (both followed by the 16-bit id hi,lo) — z_message_PAL.c / z_message_nes.c.
+        if (m.Sfx >= 0) { o.Add(mm ? (byte)0x1E : (byte)0x12); o.Add((byte)((m.Sfx >> 8) & 0xFF)); o.Add((byte)(m.Sfx & 0xFF)); }
         AppendText(m.Text, mm, o);
         if (m.Kind == MhMsgKind.Prompt)
         {
-            o.Add(mm ? (byte)0x11 : (byte)0x01);   // newline before the choices
-            if (!mm) o.Add(0x1B);                  // OoT CTRL_TWO_CHOICE
+            o.Add(mm ? (byte)0x11 : (byte)0x01);       // newline before the choices
+            o.Add(mm ? (byte)0xC2 : (byte)0x1B);       // two-choice: OoT CTRL_TWO_CHOICE 0x1B / MM 0xC2
             AppendText(m.Choice1, mm, o);
             o.Add(mm ? (byte)0x11 : (byte)0x01);
             AppendText(m.Choice2, mm, o);
         }
-        o.Add(mm ? (byte)0xBF : (byte)0x02);       // END
+        o.Add(mm ? (byte)0xBF : (byte)0x02);           // END
         return o.ToArray();
     }
 }
