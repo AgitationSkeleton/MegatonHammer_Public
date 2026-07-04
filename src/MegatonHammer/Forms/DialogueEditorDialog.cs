@@ -23,8 +23,8 @@ public sealed class DialogueEditorDialog : Form
     private readonly Label _idLabel;
     private readonly TextBox _text, _choice1, _choice2;
     private readonly RadioButton _kMsg, _kPrompt;
-    private readonly NumericUpDown _doneFlag, _afterMsg;
-    private readonly ComboBox _gestureCombo, _sfxCombo;
+    private readonly NumericUpDown _doneFlag;
+    private readonly ComboBox _gestureCombo, _sfxCombo, _afterCombo;
     private readonly NpcGestures.Gesture[] _gestures;
     private readonly string[] _itemNames;
     private readonly OutcomeControls _o1, _o2;
@@ -101,7 +101,18 @@ public sealed class DialogueEditorDialog : Form
         _sfxCombo = new ComboBox { Left = rx + 46, Top = 234, Width = 150, DropDownStyle = ComboBoxStyle.DropDownList,
             BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, DropDownWidth = 200 };
         foreach (var s in SfxNames.Common) _sfxCombo.Items.Add(s);
-        _sfxCombo.SelectedIndexChanged += (_, _) => { if (!_loading && Cur is { } m && _sfxCombo.SelectedItem is SfxNames.Sfx s) m.Sfx = s.Id; };
+        _sfxCombo.Items.Add(new SfxNames.Sfx(-2, "Custom id…"));   // enter a raw sound id not in the list
+        _sfxCombo.SelectedIndexChanged += (_, _) =>
+        {
+            if (_loading || Cur is not { } m || _sfxCombo.SelectedItem is not SfxNames.Sfx s) return;
+            if (s.Id == -2)   // "Custom id…"
+            {
+                int id = PromptHex("Custom sound id (hex, e.g. 6836):", m.Sfx);
+                _loading = true; SelectSfx(id >= 0 ? id : m.Sfx); _loading = false;
+                if (id >= 0) m.Sfx = id;
+            }
+            else m.Sfx = s.Id;
+        };
         Controls.Add(_sfxCombo);
         Controls.Add(Lab("Gesture:", rx + 250, 236, 52));
         _gestureCombo = new ComboBox { Left = rx + 302, Top = 234, Width = 126, DropDownStyle = ComboBoxStyle.DropDownList,
@@ -117,8 +128,8 @@ public sealed class DialogueEditorDialog : Form
         _o1Head = new Label { Left = rx, Top = 270, Width = 220, ForeColor = Accent, Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Text = "On advance:" };
         _o2Head = new Label { Left = rx + 236, Top = 270, Width = 220, ForeColor = Accent, Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Text = "Option 2 (No):" };
         Controls.Add(_o1Head); Controls.Add(_o2Head);
-        _o1 = new OutcomeControls(this, rx, 292, () => Cur?.Outcome1, () => _loading, _itemNames);
-        _o2 = new OutcomeControls(this, rx + 236, 292, () => Cur?.Outcome2, () => _loading, _itemNames);
+        _o1 = new OutcomeControls(this, rx, 292, () => Cur?.Outcome1, () => _loading, _itemNames, () => BoxList("(end / close)"));
+        _o2 = new OutcomeControls(this, rx + 236, 292, () => Cur?.Outcome2, () => _loading, _itemNames, () => BoxList("(end / close)"));
 
         // ── Fulfilled state ──
         Controls.Add(Sep(rx, 430, 470));
@@ -126,10 +137,11 @@ public sealed class DialogueEditorDialog : Form
         _doneFlag = Spin(rx + 172, 438, -1, 4095, 70);
         _doneFlag.ValueChanged += (_, _) => { if (!_loading && Cur is { } m) m.DoneFlag = (int)_doneFlag.Value; };
         Controls.Add(_doneFlag);
-        Controls.Add(Lab("show message #:", rx + 250, 440, 100));
-        _afterMsg = Spin(rx + 352, 438, -1, 0xFFFF, 86);   // decimal so "none" reads -1
-        _afterMsg.ValueChanged += (_, _) => { if (!_loading && Cur is { } m) m.AfterMsgId = (int)_afterMsg.Value; };
-        Controls.Add(_afterMsg);
+        Controls.Add(Lab("show:", rx + 250, 440, 40));
+        _afterCombo = new ComboBox { Left = rx + 292, Top = 438, Width = 178, DropDownStyle = ComboBoxStyle.DropDownList,
+            BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, DropDownWidth = 260 };
+        _afterCombo.SelectedIndexChanged += (_, _) => { if (!_loading && Cur is { } m && _afterCombo.SelectedItem is BoxRef b) m.AfterMsgId = b.Id; };
+        Controls.Add(_afterCombo);
 
         // ── Save / Close ──
         var ok = new Button { Text = "Save", DialogResult = DialogResult.OK, Location = new Point(516, 488), Width = 76,
@@ -144,6 +156,59 @@ public sealed class DialogueEditorDialog : Form
     }
 
     private MhMessage? Cur => _list.SelectedItem as MhMessage;
+
+    // A picker entry referencing one message box (or "none/end" at id -1).
+    private sealed class BoxRef { public int Id; public string Label = ""; public override string ToString() => Label; }
+
+    // The conversation's boxes (in this field's textId range) as picker entries, "firstLabel" as the id=-1 option.
+    private List<BoxRef> BoxList(string firstLabel)
+    {
+        var list = new List<BoxRef> { new() { Id = -1, Label = firstLabel } };
+        foreach (var m in _scene.Messages.Where(m => m.Id >= _baseId && m.Id <= _maxId).OrderBy(m => m.Id))
+            list.Add(new BoxRef { Id = m.Id, Label = $"0x{m.Id:X4}  {m.Preview()}" });
+        return list;
+    }
+
+    private static void FillBoxCombo(ComboBox c, List<BoxRef> boxes, int selId)
+    {
+        c.Items.Clear();
+        foreach (var b in boxes) c.Items.Add(b);
+        int idx = 0; for (int i = 0; i < boxes.Count; i++) if (boxes[i].Id == selId) { idx = i; break; }
+        c.SelectedIndex = boxes.Count > 0 ? idx : -1;
+    }
+
+    // Select the SFX combo entry for id (adding a "Custom 0x.." row before the "Custom id…" sentinel if needed).
+    private void SelectSfx(int id)
+    {
+        int si = -1;
+        for (int i = 0; i < _sfxCombo.Items.Count; i++)
+            if (_sfxCombo.Items[i] is SfxNames.Sfx s && s.Id == id) { si = i; break; }
+        if (si < 0 && id >= 0)
+        {
+            _sfxCombo.Items.Insert(_sfxCombo.Items.Count - 1, new SfxNames.Sfx(id, $"Custom 0x{id:X4}"));
+            si = _sfxCombo.Items.Count - 2;
+        }
+        _sfxCombo.SelectedIndex = si >= 0 ? si : 0;
+    }
+
+    // Tiny modal hex-id prompt. Returns the entered value, or -1 on cancel / bad input.
+    private int PromptHex(string prompt, int current)
+    {
+        using var f = new Form { Text = "Sound id", FormBorderStyle = FormBorderStyle.FixedDialog,
+            StartPosition = FormStartPosition.CenterParent, ClientSize = new Size(252, 98), MinimizeBox = false,
+            MaximizeBox = false, BackColor = BgDark, ForeColor = FgNormal };
+        var lbl = new Label { Text = prompt, Left = 12, Top = 12, Width = 232, ForeColor = FgNormal };
+        var tb  = new TextBox { Left = 12, Top = 34, Width = 228, BackColor = BgInput, ForeColor = FgNormal,
+            Font = new Font("Consolas", 9.5f), Text = current >= 0 ? current.ToString("X") : "" };
+        var ok  = new Button { Text = "OK", DialogResult = DialogResult.OK, Left = 84, Top = 64, Width = 70,
+            BackColor = Color.FromArgb(0, 122, 204), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+        var no  = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Left = 162, Top = 64, Width = 78,
+            BackColor = Color.FromArgb(60, 60, 65), ForeColor = FgNormal, FlatStyle = FlatStyle.Flat };
+        f.Controls.AddRange(new Control[] { lbl, tb, ok, no }); f.AcceptButton = ok; f.CancelButton = no;
+        if (f.ShowDialog(this) != DialogResult.OK) return -1;
+        var t = tb.Text.Trim(); if (t.StartsWith("0x")) t = t[2..];
+        return int.TryParse(t, System.Globalization.NumberStyles.HexNumber, null, out int v) && v >= 0 ? v : -1;
+    }
 
     // Insert markup at the text caret.
     private void Insert(string mk)
@@ -177,12 +242,11 @@ public sealed class DialogueEditorDialog : Form
             _text.Text = m.Text;
             _kMsg.Checked = m.Kind == MhMsgKind.Message; _kPrompt.Checked = m.Kind == MhMsgKind.Prompt;
             _choice1.Text = m.Choice1; _choice2.Text = m.Choice2;
-            int si = -1; for (int i = 0; i < _sfxCombo.Items.Count; i++) if (_sfxCombo.Items[i] is SfxNames.Sfx s && s.Id == m.Sfx) { si = i; break; }
-            if (si < 0 && m.Sfx >= 0) { _sfxCombo.Items.Add(new SfxNames.Sfx(m.Sfx, $"Custom 0x{m.Sfx:X4}")); si = _sfxCombo.Items.Count - 1; }
-            _sfxCombo.SelectedIndex = si >= 0 ? si : 0;
+            SelectSfx(m.Sfx);
             int gi = 0; for (int i = 0; i < _gestures.Length; i++) if (_gestures[i].Index == m.Gesture) { gi = i; break; }
             _gestureCombo.SelectedIndex = gi;
-            _doneFlag.Value = Math.Clamp(m.DoneFlag, -1, 4095); _afterMsg.Value = Math.Clamp(m.AfterMsgId, -1, 0xFFFF);
+            _doneFlag.Value = Math.Clamp(m.DoneFlag, -1, 4095);
+            FillBoxCombo(_afterCombo, BoxList("(none)"), m.AfterMsgId);
             _o1.Load(m.Outcome1); _o2.Load(m.Outcome2);
         }
         _loading = false;
@@ -193,7 +257,7 @@ public sealed class DialogueEditorDialog : Form
     {
         bool has = Cur != null, prompt = has && Cur!.Kind == MhMsgKind.Prompt;
         _text.Enabled = _kMsg.Enabled = _kPrompt.Enabled = _sfxCombo.Enabled = _gestureCombo.Enabled =
-            _doneFlag.Enabled = _afterMsg.Enabled = has;
+            _doneFlag.Enabled = _afterCombo.Enabled = has;
         _choice1.Enabled = _choice2.Enabled = prompt;
         _o1Head.Text = prompt ? "Option 1 (Yes):" : "On advance:";
         _o2Head.Text = "Option 2 (No):";
@@ -237,19 +301,22 @@ public sealed class DialogueEditorDialog : Form
     /// <summary>The four outcome fields for one option column (branch / flag / item / charge rupees).</summary>
     private sealed class OutcomeControls
     {
-        private readonly NumericUpDown _next, _flag, _cost;
-        private readonly ComboBox _item;
+        private readonly NumericUpDown _flag, _cost;
+        private readonly ComboBox _item, _next;
         private readonly CheckBox _charge;
         private readonly int _maxItem;
         private readonly System.Func<MhOutcome?> _get;
         private readonly System.Func<bool> _loading;
+        private readonly System.Func<List<BoxRef>> _boxes;
 
-        public OutcomeControls(DialogueEditorDialog dlg, int x, int y, System.Func<MhOutcome?> get, System.Func<bool> loading, string[] itemNames)
+        public OutcomeControls(DialogueEditorDialog dlg, int x, int y, System.Func<MhOutcome?> get, System.Func<bool> loading,
+                               string[] itemNames, System.Func<List<BoxRef>> boxes)
         {
-            _get = get; _loading = loading; _maxItem = itemNames.Length - 1;
-            dlg.Add(OLab("Go to MsgBox #:", x, y, 96));
-            _next = Spin(x + 100, y - 2, -1, 0xFFFF, 80);   // decimal so "none" reads -1, not FFFFFFFF
-            _next.ValueChanged += (_, _) => { if (!_loading() && _get() is { } o) o.NextMsgId = (int)_next.Value; };
+            _get = get; _loading = loading; _maxItem = itemNames.Length - 1; _boxes = boxes;
+            dlg.Add(OLab("Go to box:", x, y, 62));
+            _next = new ComboBox { Left = x + 64, Top = y - 2, Width = 152, DropDownWidth = 240, DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat };
+            _next.SelectedIndexChanged += (_, _) => { if (!_loading() && _get() is { } o && _next.SelectedItem is BoxRef b) o.NextMsgId = b.Id; };
             dlg.Add(_next);
             dlg.Add(OLab("Fire Trigger #:", x, y + 26, 96));
             _flag = Spin(x + 100, y + 24, -1, 4095, 80);
@@ -271,7 +338,7 @@ public sealed class DialogueEditorDialog : Form
 
         public void Load(MhOutcome o)
         {
-            _next.Value = Math.Clamp(o.NextMsgId, -1, 0xFFFF);
+            FillBoxCombo(_next, _boxes(), o.NextMsgId);
             _flag.Value = Math.Clamp(o.FireFlag, -1, 4095);
             _item.SelectedIndex = o.GiveItem <= 0 ? 0 : Math.Min(o.GiveItem, _maxItem);
             _charge.Checked = o.ChargeRupees; _cost.Value = Math.Clamp(o.RupeeCost, 0, 9999); _cost.Enabled = o.ChargeRupees;
