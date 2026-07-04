@@ -14,16 +14,20 @@ namespace MegatonHammer.Forms;
 /// </summary>
 public static class Project64Playtest
 {
-    private static readonly string[] CommonPaths =
-    [
-        // The bundled Megaton Hammer PJ64 4.0 fork: has the playtest hook + MH_INTERP interpreter
-        // support (avoids the recompiler's EmulationStarting crash). Preferred over stock installs.
-        @"D:\Copilot_OOT\WorkFolders\MegatonHammer\pj64run\Project64.exe",
-        @"C:\Program Files\Project64 3.0\Project64.exe",
-        @"C:\Program Files\Project64\Project64.exe",
-        @"C:\Program Files (x86)\Project64 2.4\Project64.exe",
-        @"C:\Program Files (x86)\Project64\Project64.exe",
-    ];
+    private static IEnumerable<string> CommonPaths
+    {
+        get
+        {
+            // The Megaton Hammer PJ64 fork built in the dev tree (has the playtest hook + MH_INTERP),
+            // resolved without a hardcoded path; preferred over stock installs.
+            var run = Editor.AppPaths.Probe("pj64run");
+            if (run != null) yield return Path.Combine(run, "Project64.exe");
+            yield return @"C:\Program Files\Project64 3.0\Project64.exe";
+            yield return @"C:\Program Files\Project64\Project64.exe";
+            yield return @"C:\Program Files (x86)\Project64 2.4\Project64.exe";
+            yield return @"C:\Program Files (x86)\Project64\Project64.exe";
+        }
+    }
 
     public static void Launch(IWin32Window owner, GameConfig config, ZScene scene, int sceneSlot,
                               Export.PlaytestConfig? playtest = null,

@@ -17,8 +17,8 @@ public static class PlaytestPack
         bool mm = args.Contains("mm", StringComparer.OrdinalIgnoreCase)
                || args.Contains("2ship", StringComparer.OrdinalIgnoreCase);
         string defaultEngine = mm
-            ? @"D:\Copilot_OOT\WorkFolders\MegatonHammer\2Ship\x64\Release"
-            : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\SoH\x64\Release";
+            ? System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"2Ship\x64\Release")
+            : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"SoH\x64\Release");
         string engineDir = args.Length >= 2 && !IsFlag(args[1]) ? args[1] : defaultEngine;
         string presetName = args.Length >= 3 && !IsFlag(args[2]) ? args[2] : "Default";
 
@@ -71,14 +71,14 @@ public static class PlaytestPack
         a.Equals("n64", StringComparison.OrdinalIgnoreCase) ||
         a.EndsWith(".mhproj", StringComparison.OrdinalIgnoreCase);
 
-    private const string OotRomPath = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
-    private const string MmRomPath  = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+    private static readonly string OotRomPath = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
+    private static readonly string MmRomPath  = Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
     // gc-eu-mq-dbg "THE LEGEND OF DEBUG" — boots with map-select and takes the no-dma InjectDebug path.
-    private const string DebugRomPath = @"D:\Copilot_OOT\READ_ONLY_GameROMs\ZELOOTD.z64";
+    private static readonly string DebugRomPath = Editor.AppPaths.Rom(@"ZELOOTD.z64");
 
     // MM EU debug build (uncompressed, like the OoT debug ROM) — for the MM no-dma InjectDebug path.
-    private const string MmDebugRomPath =
-        @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (Europe) (En,Fr,De,Es) (Debug Version).n64";
+    private static readonly string MmDebugRomPath =
+        Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (Europe) (En,Fr,De,Es) (Debug Version).n64");
 
     /// <summary>Builds a brush-texture resolver (rom_{file}_{offset} → bitmap) from the OoT or MM ROM.
     /// Returns null (untextured) if the ROM is missing or the asset scan fails — the exporters and the
@@ -205,12 +205,12 @@ public static class PlaytestPack
     {
         bool mm = args.Any(a => a.Equals("mm", StringComparison.OrdinalIgnoreCase));
         string proj = args.FirstOrDefault(a => a.EndsWith(".mhproj", StringComparison.OrdinalIgnoreCase) && File.Exists(a))
-                      ?? (mm ? @"D:\Copilot_OOT\WorkFolders\megaton_mhprojs\mmtestwoods.mhproj"
-                            : @"D:\Copilot_OOT\WorkFolders\megaton_mhprojs\test.mhproj");
+                      ?? (mm ? System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"megaton_mhprojs\mmtestwoods.mhproj")
+                            : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"megaton_mhprojs\test.mhproj"));
         if (!File.Exists(proj)) { Console.WriteLine($"[playtestlog] project not found: {proj}"); return; }
 
-        string rom = mm ? @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64"
-                        : @"D:\Copilot_OOT\READ_ONLY_GameROMs\ZELOOTMA.Z64";
+        string rom = mm ? Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64")
+                        : Editor.AppPaths.Rom(@"ZELOOTMA.Z64");
         var config = new GameConfig
         {
             Mode = mm ? GameMode.MajorasMask : GameMode.OcarinaOfTime,

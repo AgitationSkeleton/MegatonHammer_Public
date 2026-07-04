@@ -206,6 +206,16 @@ public static class ActorParamSchema
                       Flag: FlagKind.Switch, Role: FlagRole.Both),
         ], "Place ONE tracker + N silver rupees on the same switch flag, then wire a gate/door to that flag."),
 
+        // En_Am (0x0054) — z_en_am.c: params 0 == ARMOS_STATUE (dormant BG statue, ACTOR_FLAG_26); any other
+        // value = a sleeping Armos enemy. The statue is heavy enough to hold a floor switch down (DYNA_INTERACT_3).
+        [0x0054] = new Def("Armos (En_Am)", [],
+            "Variable 0 = a dormant STATUE: a heavy pushable BG object (ACTOR_FLAG_26) you can shove onto a floor switch to hold it down. Any nonzero value spawns a sleeping Armos ENEMY instead."),
+
+        // Item_B_Heart (0x005F) — z_item_b_heart.c: no params; the boss Heart Container (collectible flag 0x1F,
+        // hardcoded). Kills itself if already collected. Object OBJECT_GI_HEARTS.
+        [0x005F] = new Def("Heart Container (Item_B_Heart)", [],
+            "The big boss-reward Heart Container. No parameters (uses the fixed collectible flag 0x1F); vanishes once collected."),
+
         // Obj_Syokudai (0x005E) — z_obj_syokudai.c: switchFlag=params&0x3F, torchCount=(params>>6)&0xF,
         // startLit=params&0x400, torchType=params&0xF000 (>>0xC picks stand collision 0/1/2). torchCount 0 =
         // this torch sets the flag by itself when lit; N = the flag sets once N torches (sLitTorchCount) are lit.

@@ -18,14 +18,14 @@ public static class MmInjectScene
     public const int SceneTableVrom = 0xC5A1E0;   // US retail (decompressed) gSceneTable
     public const int TargetSceneId  = 0x2D;       // Termina Field: 1 room, cold-loads & renders
 
-    private const string DefaultRetail =
-        @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+    private static readonly string DefaultRetail =
+        Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
 
     public static void Run(string[] args)
     {
         string inRom  = args.Length >= 2 ? args[1] : DefaultRetail;
         string outRom = args.Length >= 3 ? args[2]
-            : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\roms\mm_test\mm_injected.z64";
+            : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"roms\mm_test\mm_injected.z64");
         Directory.CreateDirectory(Path.GetDirectoryName(outRom)!);
 
         // DIAGNOSTIC: "noscene" skips ALL custom-scene injection and only applies the level-select + the

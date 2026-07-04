@@ -24,8 +24,8 @@ public sealed class ActorRenderDb
     {
         var db = new ActorRenderDb();
         string game = isOoT ? "OOT" : "MM";
-        string path = $@"D:\Copilot_OOT\READ_ONLY_SourceCodes\SharpOcarina-main\XML\{game}\ActorRendering.xml";
-        if (!File.Exists(path)) return db;
+        string? path = AppPaths.SourceFile("SharpOcarina-main", "XML", game, "ActorRendering.xml");
+        if (path == null) return db;
 
         try
         {

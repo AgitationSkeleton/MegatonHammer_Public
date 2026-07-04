@@ -180,8 +180,8 @@ public static class O2RLocator
             if (!string.IsNullOrWhiteSpace(d)) dirs.Add(d!);
 
         // Known reference locations in this workspace.
-        dirs.Add(@"D:\Copilot_OOT\READ_ONLY_SoH\soh");
-        dirs.Add(@"D:\Copilot_OOT\READ_ONLY_SoH\soh_mm");
+        dirs.Add(System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.BaseDir, @"READ_ONLY_SoH\soh"));
+        dirs.Add(System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.BaseDir, @"READ_ONLY_SoH\soh_mm"));
 
         foreach (var dir in dirs)
         {

@@ -9,8 +9,8 @@ public static class SequenceNames
     {
         var list = new List<(byte, string)>();
         string game = isOoT ? "OOT" : "MM";
-        string path = $@"D:\Copilot_OOT\READ_ONLY_SourceCodes\SharpOcarina-main\XML\{game}\SongNames.xml";
-        if (!File.Exists(path)) return list;
+        string? path = AppPaths.SourceFile("SharpOcarina-main", "XML", game, "SongNames.xml");
+        if (path == null) return list;
 
         try
         {

@@ -7,7 +7,7 @@ namespace MegatonHammer.SelfTest;
 /// lid DL (0x10C0) — so the editor can place the lid on top of the chest (it's drawn flat at the origin).</summary>
 public static class ChestSkelDiag
 {
-    private const string Oot = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
+    private static readonly string Oot = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
     private static byte[] _o = System.Array.Empty<byte>();
 
     static ushort U16(int p) => (ushort)((_o[p] << 8) | _o[p + 1]);

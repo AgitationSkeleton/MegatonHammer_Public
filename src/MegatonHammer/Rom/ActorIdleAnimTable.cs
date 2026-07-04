@@ -40,7 +40,7 @@ public sealed partial class ActorIdleAnimTable
 
     private void Load(bool mm)
     {
-        string dir = $@"D:\Copilot_OOT\READ_ONLY_SourceCodes\{(mm ? "mm-main" : "oot-master")}\assets\xml\objects";
+        string dir = System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.Sources ?? MegatonHammer.Editor.AppPaths.BaseDir, $@"{(mm ? "mm-main" : "oot-master")}\assets\xml\objects");
         if (!Directory.Exists(dir)) return;
         foreach (var file in Directory.EnumerateFiles(dir, "*.xml"))
         {

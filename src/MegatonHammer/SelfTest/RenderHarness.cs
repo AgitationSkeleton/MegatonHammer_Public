@@ -18,8 +18,8 @@ namespace MegatonHammer.SelfTest;
 /// </summary>
 public static class RenderHarness
 {
-    private const string OotRom = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
-    private const string MmRom  = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+    private static readonly string OotRom = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
+    private static readonly string MmRom  = Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
 
     // Vanilla scenes to sample, picked by name substring so we don't hard-code fragile ids.
     private static readonly string[] OotPicks = ["Deku Tree", "Forest Temple", "Water Temple", "Jabu", "Hyrule Field", "Kokiri Forest"];
@@ -27,7 +27,7 @@ public static class RenderHarness
 
     public static void Run(string[] args)
     {
-        string outDir = args.Length >= 2 ? args[1] : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\renders";
+        string outDir = args.Length >= 2 ? args[1] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\renders");
         Directory.CreateDirectory(outDir);
         var report = new StringBuilder();
         report.AppendLine("==================== RENDER + ACTOR-DISPLAY AUDIT ====================");
@@ -81,7 +81,7 @@ public static class RenderHarness
     /// Run: MegatonHammer --renderlevels [outDir]</summary>
     public static void RenderAllLevels(string[] args)
     {
-        string baseDir = args.Length >= 2 ? args[1] : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\levelout";
+        string baseDir = args.Length >= 2 ? args[1] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"levelout");
         Directory.CreateDirectory(baseDir);
         var report = new StringBuilder();
         report.AppendLine("==================== ALL-LEVELS RENDER + TEXTURE-COVERAGE AUDIT ====================");
@@ -218,7 +218,7 @@ public static class RenderHarness
                                 for (int yy = 0; yy < tb.Height; yy += 4) for (int xx = 0; xx < tb.Width; xx += 4)
                                 { var px = tb.GetPixel(xx, yy); int mx2 = Math.Max(px.R, Math.Max(px.G, px.B)), mn2 = Math.Min(px.R, Math.Min(px.G, px.B)); sat += mx2 == 0 ? 0 : (mx2 - mn2) / (double)mx2; n++; }
                                 Console.WriteLine($"      TEX {ti.Type} {ti.Width}x{ti.Height} file={ti.FileIndex} off=0x{ti.Offset:X} sat={(n > 0 ? sat / n : 0):F2}" + (ci ? $" palFile={ti.PaletteFileIndex} palOff=0x{ti.PaletteOffset:X}" : ""));
-                                if (shown < 6) { tb.Save($@"D:\Copilot_OOT\WorkFolders\MegatonHammer\levelout\tex_{id:X2}_{shown}.png"); }
+                                if (shown < 6) { tb.Save(System.IO.Path.Combine(Editor.AppPaths.BaseDir, $@"levelout\tex_{id:X2}_{shown}.png")); }
                                 shown++;
                             }
                         }
@@ -228,7 +228,7 @@ public static class RenderHarness
                 for (int rm = 0; rm < RoomMeshReader.DiagMeshTypes.Count; rm++)
                     Console.WriteLine($"    room{rm}: {RoomMeshReader.DiagMeshTypes[rm]}");
             if (RoomMeshReader.DiagTrace)
-                File.WriteAllLines($@"D:\Copilot_OOT\WorkFolders\MegatonHammer\levelout\trace_{id:X2}.txt", RoomMeshReader.DiagTraceLog);
+                File.WriteAllLines(System.IO.Path.Combine(Editor.AppPaths.BaseDir, $@"levelout\trace_{id:X2}.txt"), RoomMeshReader.DiagTraceLog);
         }
     }
 
@@ -237,7 +237,7 @@ public static class RenderHarness
     public static void Prerender(string[] args)
     {
         bool mm = args.Length >= 2 && args[1].Equals("mm", StringComparison.OrdinalIgnoreCase);
-        string outDir = args.Length >= 3 ? args[2] : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\levelout\prerender";
+        string outDir = args.Length >= 3 ? args[2] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"levelout\prerender");
         Directory.CreateDirectory(outDir);
         string romPath = mm ? MmRom : OotRom;
         if (!File.Exists(romPath)) { Console.WriteLine("ROM not found"); return; }
@@ -347,7 +347,7 @@ public static class RenderHarness
     {
         if (args.Length < 2) { Console.WriteLine("usage: --renderobj <file.obj> [out.png]"); return; }
         string objPath = args[1];
-        string outPath = args.Length >= 3 ? args[2] : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\objimport.png";
+        string outPath = args.Length >= 3 ? args[2] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\objimport.png");
         Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
         var mesh = Export.ObjIO.ImportMesh(objPath);
         Console.WriteLine($"Imported {mesh.Tris.Count} tris, {mesh.Materials.Count} materials ({mesh.Materials.Values.Count(b => b != null)} textured)");
@@ -568,8 +568,8 @@ public static class RenderHarness
     {
         bool mm = args.Any(a => a.Equals("mm", StringComparison.OrdinalIgnoreCase));
         string outDir = args.Length >= 2 && !args[1].Equals("mm", StringComparison.OrdinalIgnoreCase)
-            ? args[1] : (mm ? @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\actorcheck_mm"
-                            : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\actorcheck");
+            ? args[1] : (mm ? System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\actorcheck_mm")
+                            : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\actorcheck"));
         Directory.CreateDirectory(outDir);
         string romPath = mm ? MmRom : OotRom;
         if (!File.Exists(romPath)) { Console.WriteLine($"[renderactors] {(mm ? "MM" : "OoT")} ROM not found"); return; }
@@ -710,8 +710,8 @@ public static class RenderHarness
     public static void RenderVariants(string[] args)
     {
         bool mm = args.Any(a => a.Equals("mm", StringComparison.OrdinalIgnoreCase));
-        string outDir = mm ? @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\variants\mm"
-                           : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\variants\oot";
+        string outDir = mm ? System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\variants\mm")
+                           : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\variants\oot");
         Directory.CreateDirectory(outDir);
         string romPath = mm ? MmRom : OotRom;
         if (!File.Exists(romPath)) { Console.WriteLine($"[rendervariants] ROM not found"); return; }
@@ -800,7 +800,7 @@ public static class RenderHarness
     /// animation times, to verify brush-authored texture animation in the 3D view. Run: --renderbrushanim</summary>
     public static void RenderBrushAnim(string[] args)
     {
-        string outDir = @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\animcheck";
+        string outDir = System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\animcheck");
         Directory.CreateDirectory(outDir);
         if (!File.Exists(OotRom)) { Console.WriteLine("[renderbrushanim] OoT ROM not found"); return; }
         using var form = new Form { FormBorderStyle = FormBorderStyle.None, ShowInTaskbar = false,
@@ -841,7 +841,7 @@ public static class RenderHarness
         bool mm = args.Length >= 2 && args[1].Equals("mm", StringComparison.OrdinalIgnoreCase);
         int sceneId = args.Length >= 3 ? Convert.ToInt32(args[2], 16) : (mm ? 0x37 : 0x44);   // default MM Great Bay / OoT Chamber of Sages
         string romPath = mm ? MmRom : OotRom;
-        string outDir = @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\animcheck";
+        string outDir = System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\animcheck");
         Directory.CreateDirectory(outDir);
         if (!File.Exists(romPath)) { Console.WriteLine("[renderanim] ROM not found"); return; }
         using var form = new Form { FormBorderStyle = FormBorderStyle.None, ShowInTaskbar = false,
@@ -878,7 +878,7 @@ public static class RenderHarness
     /// be eyeballed for scale/position/direction. Run: MegatonHammer --renderdoors [outDir]</summary>
     public static void RenderDoors(string[] args)
     {
-        string outDir = args.Length >= 2 ? args[1] : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\doorcheck";
+        string outDir = args.Length >= 2 ? args[1] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\doorcheck");
         Directory.CreateDirectory(outDir);
         if (!File.Exists(OotRom)) { Console.WriteLine("[renderdoors] OoT ROM not found"); return; }
 
@@ -956,7 +956,7 @@ public static class RenderHarness
     public static void RenderAllActors(string[] args)
     {
         string which = args.Length >= 2 ? args[1].ToLowerInvariant() : "both";
-        string baseDir = @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\actorcheck";
+        string baseDir = System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\actorcheck");
         using var form = new Form
         {
             FormBorderStyle = FormBorderStyle.None, ShowInTaskbar = false,

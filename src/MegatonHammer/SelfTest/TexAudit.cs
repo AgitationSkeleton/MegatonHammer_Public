@@ -9,8 +9,8 @@ namespace MegatonHammer.SelfTest;
 /// be traced (unbound seg8-D face texture, undecodable format, material-DL-only texture, …).</summary>
 public static class TexAudit
 {
-    private const string Oot = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
-    private const string Mm  = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+    private static readonly string Oot = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
+    private static readonly string Mm  = Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
 
     public static void Run(string[] args)
     {

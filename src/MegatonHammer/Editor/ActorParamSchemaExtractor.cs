@@ -53,8 +53,9 @@ public static partial class ActorParamSchemaExtractor
 
     private static Dictionary<ushort, ActorParamSchema.Def> Build(bool isOoT)
     {
-        string root = $@"D:\Copilot_OOT\READ_ONLY_SourceCodes\{(isOoT ? "oot-master" : "mm-main")}";
+        string? root = AppPaths.SourceDir(isOoT ? "oot-master" : "mm-main");
         var result = new Dictionary<ushort, ActorParamSchema.Def>();
+        if (root == null) return result;   // no decomp sources (e.g. public build) -> curated schema only
 
         // name → id
         var nameToId = new Dictionary<string, int>(StringComparer.Ordinal);

@@ -14,7 +14,7 @@ namespace MegatonHammer.SelfTest;
 /// </summary>
 public static class ForestTexProbe
 {
-    private const string OotRom = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
+    private static readonly string OotRom = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
 
     public static void Run()
     {

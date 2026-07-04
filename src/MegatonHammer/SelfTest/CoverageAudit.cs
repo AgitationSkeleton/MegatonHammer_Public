@@ -7,8 +7,8 @@ namespace MegatonHammer.SelfTest;
 /// resolve a real 3D model? Categorises gaps. Run: MegatonHammer --coverage [oot|mm]</summary>
 public static class CoverageAudit
 {
-    private const string OotRom = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
-    private const string MmRom  = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+    private static readonly string OotRom = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
+    private static readonly string MmRom  = Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
 
     public static void Run(string[] args)
     {

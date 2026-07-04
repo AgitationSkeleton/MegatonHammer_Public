@@ -21,7 +21,7 @@ public static class ModelSelfTest
     /// decode can be checked against the decomp. Run: MegatonHammer --dump &lt;objectName&gt; [romPath]</summary>
     public static void DumpObject(string? romPath, string objName)
     {
-        romPath ??= @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
+        romPath ??= Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
         var rom = new RomImage(romPath);
         Console.WriteLine($"[dump] game={rom.Game}");
         var objects = ObjectTable.Build(rom);
@@ -292,7 +292,7 @@ public static class ModelSelfTest
         }
     }
 
-    private const string DefaultRom = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
+    private static readonly string DefaultRom = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
 
     /// <summary>Diagnostic. List large ROM files: --animframe files [rom]. Dump a frame's joint
     /// shorts (root pos + rotations) from a decompressed file: --animframe &lt;fileIdx&gt; &lt;offHex&gt; &lt;limbCount&gt; [rom]</summary>
@@ -394,7 +394,7 @@ public static class ModelSelfTest
 
     public static void Run(string? romPath)
     {
-        romPath ??= @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
+        romPath ??= Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
         Console.WriteLine($"[selftest] ROM: {romPath}");
         var rom = new RomImage(romPath);
         Console.WriteLine($"[selftest] game={rom.Game}");

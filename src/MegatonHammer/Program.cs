@@ -4,7 +4,7 @@ namespace MegatonHammer;
 
 static class Program
 {
-    private static readonly string LogPath = @"D:\Copilot_OOT\WorkFolders\MegatonHammer\crash.log";
+    private static readonly string LogPath = Editor.AppPaths.Log("crash.log");
 
     // USER-object count for this process (GR_USEROBJECTS = 1) — window handles etc. A control leak shows
     // up here, not in Process.HandleCount (which counts kernel objects, not HWNDs).
@@ -162,8 +162,8 @@ static class Program
         // straight into vanilla SCENE_TEST01. MegatonHammer --ootautoboot [inRom] [outRom] [entranceHex]
         if (args.Length >= 1 && args[0] == "--ootautoboot")
         {
-            string inRom = args.Length >= 2 ? args[1] : @"D:\Copilot_OOT\READ_ONLY_GameROMs\ZELOOTMA.Z64";
-            string outRom = args.Length >= 3 ? args[2] : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\roms\mm_test\oot_autoboot.z64";
+            string inRom = args.Length >= 2 ? args[1] : Editor.AppPaths.Rom(@"ZELOOTMA.Z64");
+            string outRom = args.Length >= 3 ? args[2] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"roms\mm_test\oot_autoboot.z64");
             int entr = args.Length >= 4 ? Convert.ToInt32(args[3], 16) : 0x0094;   // SCENE_TEST01
             try
             {
@@ -180,7 +180,7 @@ static class Program
         // Author the demo "Test Temple" dungeon project + map. MegatonHammer --testtemple [outDir]
         if (args.Length >= 1 && args[0] == "--testtemple")
         {
-            try { SelfTest.TestTempleBuilder.Build(args.Length >= 2 ? args[1] : @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out"); }
+            try { SelfTest.TestTempleBuilder.Build(args.Length >= 2 ? args[1] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out")); }
             catch (Exception ex) { Console.WriteLine($"[testtemple] EXCEPTION: {ex}"); }
             return;
         }
@@ -413,8 +413,8 @@ static class Program
         if (args.Length >= 3 && args[0] == "--skelprobe")
         {
             bool mm = args[1].Equals("mm", StringComparison.OrdinalIgnoreCase);
-            string romPath = mm ? @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64"
-                                : @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
+            string romPath = mm ? Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64")
+                                : Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
             var rom = new Rom.RomImage(romPath);
             var objs = Rom.ObjectTable.Build(rom);
             var bytes = objs.GetObjectBytes(rom, args[2]);
@@ -571,29 +571,44 @@ static class Program
                 foreach (var p in presets)
                 {
                     var placed = Editor.DungeonMechanismPresets.Insert(doc, p, OpenTK.Mathematics.Vector3.Zero);
-                    Chk(placed.Count >= 2, $"{tag} '{p.Name}': placed {placed.Count} actors");
-
                     var refs  = placed.Select(SwitchFlagOf).Where(x => x != null).Select(x => x!.Value).ToList();
                     var flags = refs.Select(x => x.val).ToList();
-                    Chk(flags.Count >= 2, $"{tag} '{p.Name}': {flags.Count} actors reference a switch flag");
-                    // Every switch-flag reference in the preset must point at the SAME flag (one wired channel).
-                    Chk(flags.Distinct().Count() == 1, $"{tag} '{p.Name}': all wired to ONE flag ({string.Join(',', flags.Distinct())})");
-                    if (flags.Count > 0) flagsUsed.Add(flags[0]);
 
-                    // The channel has a setter (or Both) AND a reader (or Both), so the wire actually forms.
-                    bool canSet  = refs.Any(x => x.role is Editor.ActorParamSchema.FlagRole.Setter or Editor.ActorParamSchema.FlagRole.Both);
-                    bool canRead = refs.Any(x => x.role is Editor.ActorParamSchema.FlagRole.Reader or Editor.ActorParamSchema.FlagRole.Both);
-                    Chk(canSet && canRead, $"{tag} '{p.Name}': has a flag setter + a flag reader");
-
-                    int g = placed[0].GroupId;
-                    Chk(g != 0 && placed.All(a => a.GroupId == g), $"{tag} '{p.Name}': grouped as one unit (group {g})");
+                    if (flags.Count >= 2)   // a flag-bus mechanism (switch/torch/silver -> gate/ladder)
+                    {
+                        Chk(placed.Count >= 2, $"{tag} '{p.Name}': placed {placed.Count} actors");
+                        // Every switch-flag reference in the preset must point at the SAME flag (one wired channel).
+                        Chk(flags.Distinct().Count() == 1, $"{tag} '{p.Name}': all wired to ONE flag ({string.Join(',', flags.Distinct())})");
+                        flagsUsed.Add(flags[0]);
+                        bool canSet  = refs.Any(x => x.role is Editor.ActorParamSchema.FlagRole.Setter or Editor.ActorParamSchema.FlagRole.Both);
+                        bool canRead = refs.Any(x => x.role is Editor.ActorParamSchema.FlagRole.Reader or Editor.ActorParamSchema.FlagRole.Both);
+                        Chk(canSet && canRead, $"{tag} '{p.Name}': has a flag setter + a flag reader");
+                        int g = placed[0].GroupId;
+                        Chk(g != 0 && placed.All(a => a.GroupId == g), $"{tag} '{p.Name}': grouped as one unit (group {g})");
+                    }
+                    else   // a non-flag mechanism (e.g. boss reward + warp exit)
+                    {
+                        Chk(placed.Count >= 1, $"{tag} '{p.Name}': placed {placed.Count} actor(s) (non-flag mechanism)");
+                    }
                 }
 
                 Chk(flagsUsed.Distinct().Count() == flagsUsed.Count,
-                    $"{tag}: each preset got a UNIQUE switch flag ({string.Join(',', flagsUsed)}) — no shared-state collision");
-                // The flag-bus analyzer reads each mechanism as real setter->reader logic (not a spurious same-type link).
+                    $"{tag}: each flag preset got a UNIQUE switch flag ({string.Join(',', flagsUsed)}) — no shared-state collision");
                 int links = Editor.FlagConnectionAnalyzer.Links(doc.AllActors.ToList(), !isMM).Count;
-                Chk(links >= presets.Count, $"{tag}: flag-bus wires formed: {links} link(s) (>= {presets.Count})");
+                Chk(links >= flagsUsed.Count, $"{tag}: flag-bus wires formed: {links} link(s) (>= {flagsUsed.Count})");
+
+                // Boss-exit (OoT): a Heart Container + an invisible WARP trigger pad, grouped together.
+                if (!isMM)
+                {
+                    var trig  = doc.Solids.FirstOrDefault(s => s.IsTrigger);
+                    var heart = doc.AllActors.FirstOrDefault(a => a.Number == 0x005F);
+                    Chk(trig != null, "OoT boss-exit: created a warp trigger pad");
+                    Chk(heart != null, "OoT boss-exit: placed a Heart Container (0x005F)");
+                    Chk(trig != null && trig.Faces.Any(f => f.TextureName == Textures.SpecialTextures.Warp),
+                        "OoT boss-exit: warp pad carries the WARP tool texture");
+                    if (trig != null && heart != null)
+                        Chk(trig.GroupId != 0 && trig.GroupId == heart.GroupId, $"OoT boss-exit: heart + warp pad grouped (group {trig.GroupId})");
+                }
             }
 
             RunGame(false);   // OoT
@@ -1089,7 +1104,7 @@ static class Program
         {
             try
             {
-                string romp = args.Length >= 2 ? args[1] : @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
+                string romp = args.Length >= 2 ? args[1] : Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
                 var rom = new Rom.RomImage(romp);
                 var r = Rom.RomMessageReader.Build(rom);
                 if (r == null) { Console.WriteLine("[msgread] reader null (table/data not found)"); return; }
@@ -1164,7 +1179,7 @@ static class Program
 
         if (args.Length >= 1 && args[0] == "--logicdemos")
         {
-            string dir = args.Length >= 2 ? args[1] : @"D:\Copilot_OOT\WorkFolders\megaton_mhprojs\LogicDemos";
+            string dir = args.Length >= 2 ? args[1] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"megaton_mhprojs\LogicDemos");
             try { SelfTest.LogicDemoBuilder.BuildAll(dir); }
             catch (Exception ex) { Console.WriteLine($"[logicdemos] EXCEPTION: {ex}"); }
             return;
@@ -1228,7 +1243,7 @@ static class Program
 
         if (args.Length >= 1 && args[0] == "--makescrolltest")
         {
-            string dir = args.Length >= 2 ? args[1] : @"D:\Copilot_OOT\WorkFolders\megaton_mhprojs\MM_ScrollTest";
+            string dir = args.Length >= 2 ? args[1] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"megaton_mhprojs\MM_ScrollTest");
             try { string p = System.IO.Path.Combine(dir, "MM_Animated_Floor.mhproj"); SelfTest.MmSystemsDemoBuilder.BuildScrollTest(p); Console.WriteLine($"[makescrolltest] wrote {p} (clean MM room, scrolling floor, no actors)"); }
             catch (Exception ex) { Console.WriteLine($"[makescrolltest] EXCEPTION: {ex}"); }
             return;
@@ -1237,8 +1252,8 @@ static class Program
         if (args.Length >= 1 && args[0] == "--leveltints")
         {
             bool mm = args.Length >= 2 && args[1].Equals("mm", StringComparison.OrdinalIgnoreCase);
-            string romPath = mm ? @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64"
-                                : @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
+            string romPath = mm ? Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64")
+                                : Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
             try
             {
                 var rom = new Rom.RomImage(romPath);

@@ -8,8 +8,8 @@ public static class QuestIconDiag
 {
     public static void Run()
     {
-        const string oot = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
-        string outDir = @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\questicons";
+        string oot = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
+        string outDir = System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\questicons");
         System.IO.Directory.CreateDirectory(outDir);
         var rom = new RomImage(oot);
         var src = new ItemIconSource(rom);

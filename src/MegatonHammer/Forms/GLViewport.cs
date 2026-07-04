@@ -10,8 +10,7 @@ public enum ViewportType { Perspective3D, Top, Front, Side }
 
 public sealed class GLViewport : Panel
 {
-    private static readonly string LogPath =
-        @"D:\Copilot_OOT\WorkFolders\MegatonHammer\gl_error.log";
+    private static readonly string LogPath = MegatonHammer.Editor.AppPaths.Log("gl_error.log");
 
     public ViewportType ViewportType { get; }
 

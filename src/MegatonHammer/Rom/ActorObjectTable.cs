@@ -13,7 +13,7 @@ public sealed partial class ActorObjectTable
     private readonly string _root;
 
     private ActorObjectTable(bool mm) =>
-        _root = $@"D:\Copilot_OOT\READ_ONLY_SourceCodes\{(mm ? "mm-main" : "oot-master")}";
+        _root = System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.Sources ?? MegatonHammer.Editor.AppPaths.BaseDir, mm ? "mm-main" : "oot-master");
 
     private readonly Dictionary<int, string> _idToObject = [];   // actor id → object name (lowercase)
 

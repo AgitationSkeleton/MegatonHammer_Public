@@ -14,8 +14,8 @@ public static class MmDecompressTest
     // US retail gSceneTable VROM (decompressed). Entry size 0x10; sceneFile {vromStart,vromEnd} at +0/+4.
     public const int UsRetailSceneTableVrom = 0xC5A1E0;
 
-    private const string DefaultIn =
-        @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+    private static readonly string DefaultIn =
+        Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
 
     public static void Run(string[] args)
     {

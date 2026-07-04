@@ -20,7 +20,7 @@ public sealed partial class ActorScaleTable
     private ActorScaleTable(bool mm)
     {
         _mm = mm;
-        _root = $@"D:\Copilot_OOT\READ_ONLY_SourceCodes\{(mm ? "mm-main" : "oot-master")}";
+        _root = System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.Sources ?? MegatonHammer.Editor.AppPaths.BaseDir, mm ? "mm-main" : "oot-master");
     }
 
     private readonly Dictionary<int, float> _idToScale = [];

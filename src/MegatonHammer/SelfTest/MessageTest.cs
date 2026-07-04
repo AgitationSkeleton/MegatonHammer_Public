@@ -50,7 +50,7 @@ public static class MessageTest
     /// then re-locate + re-decode it and confirm the new text is present. MegatonHammer --testmsgappend [rom]</summary>
     public static void Append(string? romPath)
     {
-        romPath ??= @"D:\Copilot_OOT\READ_ONLY_GameROMs\ZELOOTD.z64";
+        romPath ??= Editor.AppPaths.Rom(@"ZELOOTD.z64");
         if (!System.IO.File.Exists(romPath)) { Console.WriteLine($"[testmsgappend] ROM not found: {romPath}"); Environment.ExitCode = 1; return; }
 
         var data = System.IO.File.ReadAllBytes(romPath);
@@ -86,7 +86,7 @@ public static class MessageTest
     /// Default ROM: the OoT debug ROM. Proves the MessageTableLocator works on a real ROM.</summary>
     public static void Table(string? romPath)
     {
-        romPath ??= @"D:\Copilot_OOT\READ_ONLY_GameROMs\ZELOOTD.z64";
+        romPath ??= Editor.AppPaths.Rom(@"ZELOOTD.z64");
         if (!System.IO.File.Exists(romPath)) { Console.WriteLine($"[testmsgtable] ROM not found: {romPath}"); Environment.ExitCode = 1; return; }
 
         // The debug ROM is uncompressed (z64 big-endian), so the raw file bytes == the VROM image; scan

@@ -12,9 +12,8 @@ public sealed class ActorDatabase
     {
         var db   = new ActorDatabase();
         string game = isOoT ? "OOT" : "MM";
-        string path = $@"D:\Copilot_OOT\READ_ONLY_SourceCodes\SharpOcarina-main\XML\{game}\ActorNames.xml";
-
-        if (!File.Exists(path)) return db;
+        string? path = AppPaths.SourceFile("SharpOcarina-main", "XML", game, "ActorNames.xml");
+        if (path == null) return db;   // no reference sources (e.g. public build) -> empty DB, editor still runs
 
         try
         {

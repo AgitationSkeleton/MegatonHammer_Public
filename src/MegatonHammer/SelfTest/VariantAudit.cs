@@ -9,8 +9,8 @@ namespace MegatonHammer.SelfTest;
 /// renders untextured, or blows up (wrong DL) is caught. Companion to --rendervariants (the visual pass).</summary>
 public static class VariantAudit
 {
-    private const string Oot = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
-    private const string Mm  = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+    private static readonly string Oot = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
+    private static readonly string Mm  = Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
 
     // (actorId, label, variant values to sweep). Variant encodings mirror each actor's params decode.
     public static readonly (ushort id, string label, ushort[] vars)[] OotSets =

@@ -66,27 +66,27 @@ public static class RomFingerprint
     // in one place; relative entries are resolved against the working dir.
     private static IEnumerable<string> RomSearchDirs()
     {
-        yield return @"D:\Copilot_OOT\READ_ONLY_GameROMs";
+        yield return MegatonHammer.Editor.AppPaths.Roms;
         yield return Path.Combine(AppContext.BaseDirectory, "roms");
         yield return Path.Combine(Directory.GetCurrentDirectory(), "roms");
-        yield return @"D:\Copilot_OOT\WorkFolders\MegatonHammer\2Ship\OTRExporter"; // mm.z64 lives here
+        yield return System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.BaseDir, @"2Ship\OTRExporter"); // mm.z64 lives here
         yield return Directory.GetCurrentDirectory();
     }
 
     // Known fork/emulator build locations (absolute first, then relative to the working dir).
     private static readonly string[] SohCandidates =
     [
-        @"D:\Copilot_OOT\WorkFolders\MegatonHammer\SoH\x64\Release\soh.exe",
+        System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.BaseDir, @"SoH\x64\Release\soh.exe"),
         @"SoH\x64\Release\soh.exe",
     ];
     private static readonly string[] TwoShipCandidates =
     [
-        @"D:\Copilot_OOT\WorkFolders\MegatonHammer\2Ship\x64\Release\2ship.exe",
+        System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.BaseDir, @"2Ship\x64\Release\2ship.exe"),
         @"2Ship\x64\Release\2ship.exe",
     ];
     private static readonly string[] Pj64Candidates =
     [
-        @"D:\Copilot_OOT\WorkFolders\MegatonHammer\pj64run\Project64.exe",
+        System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.BaseDir, @"pj64run\Project64.exe"),
         @"pj64run\Project64.exe",
     ];
 

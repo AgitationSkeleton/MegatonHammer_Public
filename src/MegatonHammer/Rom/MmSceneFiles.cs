@@ -70,7 +70,7 @@ public static class MmSceneFiles
     private static readonly Lazy<Dictionary<int, string>> Friendly = new(() =>
     {
         var d = new Dictionary<int, string>();
-        string path = @"D:\Copilot_OOT\READ_ONLY_SourceCodes\SharpOcarina-main\XML\MM\SceneNames.xml";
+        string path = System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.Sources ?? MegatonHammer.Editor.AppPaths.BaseDir, @"SharpOcarina-main\XML\MM\SceneNames.xml");
         try
         {
             if (File.Exists(path))

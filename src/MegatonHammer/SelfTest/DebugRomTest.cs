@@ -14,8 +14,8 @@ namespace MegatonHammer.SelfTest;
 /// </summary>
 public static class DebugRomTest
 {
-    private const string DefaultRom = @"D:\Copilot_OOT\READ_ONLY_GameROMs\ZELOOTMA.Z64";
-    private const string OutDir = @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\dungeon";
+    private static readonly string DefaultRom = Editor.AppPaths.Rom(@"ZELOOTMA.Z64");
+    private static readonly string OutDir = System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\dungeon");
 
     public static void Run(string[] args)
     {

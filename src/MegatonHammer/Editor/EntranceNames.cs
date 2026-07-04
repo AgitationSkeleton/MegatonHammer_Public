@@ -23,12 +23,25 @@ public static class EntranceNames
         public string ComboText => $"{SceneName}  ({EntranceMacro})  [0x{Index:X4}]";
     }
 
-    private static readonly string[] CandidatePaths =
+    // Existing entrance-table candidates, resolved at runtime (no hardcoded drive paths): the live SoH
+    // submodule in the dev tree first, then read-only reference copies. Empty on a public build -> callers
+    // fall back to a raw entrance-index field.
+    private static IEnumerable<string> CandidatePaths
     {
-        @"D:\Copilot_OOT\WorkFolders\MegatonHammer\SoH\soh\include\tables\entrance_table.h",
-        @"D:\Copilot_OOT\READ_ONLY_SourceCodes\Shipwright-develop\soh\include\tables\entrance_table.h",
-        @"D:\Copilot_OOT\READ_ONLY_SourceCodes\dawn_and_dusk_soh-develop\soh\include\tables\entrance_table.h",
-    };
+        get
+        {
+            var soh = AppPaths.Probe("SoH");
+            if (soh != null)
+            {
+                var p = Path.Combine(soh, "soh", "include", "tables", "entrance_table.h");
+                if (File.Exists(p)) yield return p;
+            }
+            var a = AppPaths.SourceFile("Shipwright-develop", "soh", "include", "tables", "entrance_table.h");
+            if (a != null) yield return a;
+            var b = AppPaths.SourceFile("dawn_and_dusk_soh-develop", "soh", "include", "tables", "entrance_table.h");
+            if (b != null) yield return b;
+        }
+    }
 
     private static readonly Regex DefRe = new(
         @"DEFINE_ENTRANCE\(\s*(ENTR_\w+)\s*,\s*(SCENE_\w+)\s*,", RegexOptions.Compiled);
@@ -56,7 +69,7 @@ public static class EntranceNames
 
     private static IReadOnlyList<Entry> Load()
     {
-        string? path = CandidatePaths.FirstOrDefault(File.Exists);
+        string? path = CandidatePaths.FirstOrDefault();
         if (path == null) return Array.Empty<Entry>();
         var list = new List<Entry>();
         try

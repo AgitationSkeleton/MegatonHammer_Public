@@ -38,7 +38,7 @@ public static class DiagTex
 
         string mmRom = EditorSettings.MmRomPath;
         if (string.IsNullOrWhiteSpace(mmRom) || !File.Exists(mmRom))
-            mmRom = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+            mmRom = Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
         if (!File.Exists(mmRom)) { Console.WriteLine($"MM ROM not found: {mmRom}"); return; }
 
         var rom = new Rom.RomImage(mmRom);

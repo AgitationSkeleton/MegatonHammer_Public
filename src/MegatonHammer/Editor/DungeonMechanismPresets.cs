@@ -22,7 +22,25 @@ public sealed class PresetContext
     public Vector3 At { get; }
     public bool IsOoT { get; }
 
+    /// <summary>Brushes (Solids) the preset creates alongside its actors — e.g. a warp trigger pad.
+    /// <see cref="DungeonMechanismPresets.Insert"/> adds and groups these with the actors.</summary>
+    public List<Solid> Solids { get; } = new();
+
     public PresetContext(MapDocument doc, Vector3 at) { Doc = doc; At = at; IsOoT = !doc.IsMM; }
+
+    /// <summary>An invisible WARP trigger pad (a box brush) at <see cref="At"/>+offset that, when the player
+    /// walks into it, sends them to <paramref name="exitEntrance"/>. Standard scene-exit data (a trigger Solid
+    /// whose faces carry the WARP tool texture) — no engine changes. The user sets the real destination after.</summary>
+    public Solid WarpPad(Vector3 offset, Vector3 size, int exitEntrance)
+    {
+        var c = At + offset; var half = size * 0.5f;
+        var pad = Solid.CreateBox(c - half, c + half);
+        pad.IsTrigger = true;
+        pad.ExitEntrance = exitEntrance;
+        foreach (var f in pad.Faces) f.TextureName = Textures.SpecialTextures.Warp;
+        Solids.Add(pad);
+        return pad;
+    }
 
     /// <summary>Lowest scene switch flag not used by any placed actor (the flag-bus channel allocator).</summary>
     public int AllocSwitchFlag() => Doc.NextFreeFlag(ActorParamSchema.FlagKind.Switch, IsOoT, 64);
@@ -76,6 +94,9 @@ public static class DungeonMechanismPresets
     private const ushort MmObjSwitch = 0x0093;  // MM switch: sets a scene switch flag
     private const ushort MmBgLadder  = 0x0163;  // MM ladder: hidden/non-climbable until a switch flag is set (reader)
     private const ushort EnGSwitch   = 0x0117;  // OoT silver-rupee tracker (role 0) + silver rupees (role 1)
+    private const ushort EnAm        = 0x0054;  // Armos: params 0 = dormant statue (ACTOR_FLAG_26, holds floor switches)
+    private const ushort HeartCont   = 0x005F;  // Item_B_Heart: boss heart-container reward
+    private const int SwFloor = 0, SwHold = 2;  // Obj_Switch: FLOOR type, HOLD subtype (set while weighted)
 
     // A switch wired to a barred gate on a freshly-allocated switch flag. switchType picks how it's
     // triggered (Crystal = sword, Eye = arrow/slingshot) — the same setter→reader flag bus either way.
@@ -164,6 +185,35 @@ public static class DungeonMechanismPresets
         return list;
     }
 
+    // Push a dormant Armos statue onto a floor switch to hold it down and open a gate. The statue (En_Am
+    // params 0) is a heavy ACTOR_FLAG_26 BG object, so resting on the FLOOR/HOLD switch keeps its flag set.
+    private static List<ZActor> ArmosSwitchGate(PresetContext ctx)
+    {
+        int flag = ctx.AllocSwitchFlag();
+        ctx.Doc.SetFlagName(ActorParamSchema.FlagKind.Switch, flag, $"Weight{flag}");
+
+        var armos = ctx.Make(EnAm, new Vector3(-80, 0, 90));   // Variable 0 = dormant statue to push
+
+        var sw = ctx.Make(ObjSwitch, new Vector3(-80, 0, 0));  // floor switch it rests on
+        ctx.SetField(sw, "Switch type", SwFloor);
+        ctx.SetField(sw, "Behaviour", SwHold);                 // set while weighted
+        ctx.SetField(sw, "Switch flag", flag);
+
+        var gate = ctx.Make(HidanKousi, new Vector3(120, 0, 0));
+        ctx.SetField(gate, "Switch flag", flag);
+
+        return new List<ZActor> { armos, sw, gate };
+    }
+
+    // A boss "ending": a Heart Container reward + an invisible warp pad that exits the dungeon. The warp's
+    // destination entrance is a placeholder (0) for the user to set; both are standard vanilla scene data.
+    private static List<ZActor> BossExit(PresetContext ctx)
+    {
+        var heart = ctx.Make(HeartCont, new Vector3(0, 0, 0));            // Item_B_Heart (collectible flag 0x1F)
+        ctx.WarpPad(new Vector3(0, 0, 130), new Vector3(160, 80, 40), exitEntrance: 0);   // exit loading zone
+        return new List<ZActor> { heart };
+    }
+
     /// <summary>All presets (both games). Filter with <see cref="For"/>.</summary>
     public static readonly IReadOnlyList<MechanismPreset> All = new List<MechanismPreset>
     {
@@ -196,6 +246,20 @@ public static class DungeonMechanismPresets
         },
         new()
         {
+            Id = "armos_switch_gate", Name = "Push statue onto switch → gate", OoT = true, Mm = false,
+            Description = "Shove a dormant Armos statue onto a floor switch to hold it down and open a gate. " +
+                          "The statue is heavy (ACTOR_FLAG_26); the switch stays pressed while it rests there.",
+            Build = ArmosSwitchGate,
+        },
+        new()
+        {
+            Id = "boss_exit", Name = "Boss reward + exit", OoT = true, Mm = false,
+            Description = "Drops a Heart Container reward and an invisible warp pad that leaves the dungeon. " +
+                          "Set the warp's destination entrance in its properties after placing.",
+            Build = BossExit,
+        },
+        new()
+        {
             Id = "mm_switch_ladder", Name = "Switch → ladder appears", OoT = false, Mm = true,
             Description = "Strike a crystal switch to make a climbable ladder fade in. " +
                           "Obj_Switch sets a switch flag; Bg_Ladder stays hidden until it's set.",
@@ -214,13 +278,16 @@ public static class DungeonMechanismPresets
     public static IReadOnlyList<ZActor> Insert(MapDocument doc, MechanismPreset p, Vector3 at)
     {
         doc.RecordUndo();
-        var actors = p.Build(new PresetContext(doc, at));
-        if (actors.Count > 1)
+        var ctx = new PresetContext(doc, at);
+        var actors = p.Build(ctx);
+        if (actors.Count + ctx.Solids.Count > 1)   // group multi-part mechanisms as one selectable unit
         {
             int g = doc.NextGroupId();
-            foreach (var a in actors) a.GroupId = g;
+            foreach (var a in actors)     a.GroupId = g;
+            foreach (var s in ctx.Solids) s.GroupId = g;
         }
-        foreach (var a in actors) doc.AddActor(a);
+        foreach (var a in actors)     doc.AddActor(a);
+        foreach (var s in ctx.Solids) doc.AddSolid(s);
         return actors;
     }
 }

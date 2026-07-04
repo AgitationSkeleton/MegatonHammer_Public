@@ -72,7 +72,7 @@ public sealed partial class ObjectTable
     private void LoadNames(bool mm = false)
     {
         string root = mm ? "mm-main" : "oot-master";
-        string path = $@"D:\Copilot_OOT\READ_ONLY_SourceCodes\{root}\include\tables\object_table.h";
+        string path = System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.Sources ?? MegatonHammer.Editor.AppPaths.BaseDir, $@"{root}\include\tables\object_table.h");
         if (!File.Exists(path)) return;
         foreach (var line in File.ReadLines(path))
         {

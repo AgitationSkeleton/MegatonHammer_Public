@@ -10,8 +10,8 @@ namespace MegatonHammer.SelfTest;
 /// The gold standard (Link/Dark Link/Stalfos) auto-detects its idle anim, so it won't appear here.</summary>
 public static class PoseAudit
 {
-    private const string Oot = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
-    private const string Mm  = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+    private static readonly string Oot = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
+    private static readonly string Mm  = Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
 
     public static void Run(string[] args)
     {

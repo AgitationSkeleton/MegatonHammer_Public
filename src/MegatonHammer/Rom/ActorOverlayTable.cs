@@ -58,7 +58,7 @@ public sealed partial class ActorOverlayTable
     private void LoadNames(bool mm)
     {
         string root = mm ? "mm-main" : "oot-master";
-        string path = $@"D:\Copilot_OOT\READ_ONLY_SourceCodes\{root}\include\tables\actor_table.h";
+        string path = System.IO.Path.Combine(MegatonHammer.Editor.AppPaths.Sources ?? MegatonHammer.Editor.AppPaths.BaseDir, $@"{root}\include\tables\actor_table.h");
         if (!File.Exists(path)) return;
         foreach (var line in File.ReadLines(path))
         {

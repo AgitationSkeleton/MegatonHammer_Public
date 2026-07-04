@@ -7,7 +7,7 @@ namespace MegatonHammer.SelfTest;
 /// real textures instead of solid colours. Run: MegatonHammer --listmmtex [substr]</summary>
 public static class MmTexList
 {
-    private const string MmRomPath = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+    private static readonly string MmRomPath = Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
 
     public static void Run(string[] args)
     {
@@ -41,7 +41,7 @@ public static class MmTexList
             Console.WriteLine($"\n=== matches for '{filter}' ({matches.Count}) ===");
             foreach (var m in matches.Take(40)) Console.WriteLine(m);
             // Dump decoded PNGs for any name-exact matches so we can eyeball the decode.
-            string dump = @"D:\Copilot_OOT\WorkFolders\MegatonHammer\roms\mm_test\tex_dump";
+            string dump = System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"roms\mm_test\tex_dump");
             Directory.CreateDirectory(dump);
             foreach (var e in lib.Entries)
                 if (e.Name.Equals(filter, StringComparison.OrdinalIgnoreCase))

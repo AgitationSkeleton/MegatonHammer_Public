@@ -10,9 +10,9 @@ namespace MegatonHammer.SelfTest;
 /// </summary>
 public static class N64Probe
 {
-    private const string OotRom = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
-    private const string OotDbgRom = @"D:\Copilot_OOT\READ_ONLY_GameROMs\ZELOOTMA.Z64";   // gc-eu-mq-dbg (OoT injection target)
-    private const string MmRom  = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Majora's Mask (USA).z64";
+    private static readonly string OotRom = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
+    private static readonly string OotDbgRom = Editor.AppPaths.Rom(@"ZELOOTMA.Z64");   // gc-eu-mq-dbg (OoT injection target)
+    private static readonly string MmRom  = Editor.AppPaths.Rom(@"Legend of Zelda, The - Majora's Mask (USA).z64");
 
     public static void Run(string[] args)
     {

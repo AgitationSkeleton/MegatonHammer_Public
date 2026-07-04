@@ -8,7 +8,7 @@ namespace MegatonHammer.SelfTest;
 /// overlay-embedded mesh (Bg_Ganon_Otyuka platform, id 0x0106) instead of the shared object's boss body.</summary>
 public static class OverlayDiag
 {
-    private const string Oot = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
+    private static readonly string Oot = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
 
     public static void Run(string[] args)
     {

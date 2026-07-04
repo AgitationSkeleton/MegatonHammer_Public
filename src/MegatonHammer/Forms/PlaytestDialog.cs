@@ -380,11 +380,13 @@ public sealed class PlaytestDialog : Form
         // Prefer the build configured in Options.
         var configured = EditorSettings.EngineExe(mm);
         if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured)) return configured!;
-        foreach (var p in new[]
+        // Fall back to a fork built in the dev tree (resolved without a hardcoded path); else empty -> user picks.
+        var forkDir = Editor.AppPaths.Probe(mm ? "2Ship" : "SoH");
+        if (forkDir != null)
         {
-            @"D:\Copilot_OOT\WorkFolders\MegatonHammer\SoH\x64\Release\soh.exe",
-            @"D:\Copilot_OOT\WorkFolders\MegatonHammer\2Ship\x64\Release\2ship.exe",
-        }) if (File.Exists(p)) return p;
+            var p = Path.Combine(forkDir, "x64", "Release", mm ? "2ship.exe" : "soh.exe");
+            if (File.Exists(p)) return p;
+        }
         return "";
     }
 

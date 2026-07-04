@@ -22,8 +22,8 @@ public static class ModelAudit
     private static void One(bool mm, string[] a)
     {
         string? romPath = a.Length >= 3 ? a[2]
-            : mm ? @"D:\Copilot_OOT\WorkFolders\MegatonHammer\2Ship\OTRExporter\mm.z64"
-                 : @"D:\Copilot_OOT\READ_ONLY_GameROMs\ZELOOTMA.Z64";
+            : mm ? System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"2Ship\OTRExporter\mm.z64")
+                 : Editor.AppPaths.Rom(@"ZELOOTMA.Z64");
         string label = mm ? "MM" : "OoT";
         Console.WriteLine($"\n================  MODEL COVERAGE: {label}  ================");
         RomImage rom;

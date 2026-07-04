@@ -15,8 +15,8 @@ namespace MegatonHammer.SelfTest;
 /// </summary>
 public static class DungeonTest
 {
-    private const string OotRom = @"D:\Copilot_OOT\READ_ONLY_GameROMs\Legend of Zelda, The - Ocarina of Time (USA).z64";
-    private const string OutDir = @"D:\Copilot_OOT\WorkFolders\MegatonHammer\out\dungeon";
+    private static readonly string OotRom = Editor.AppPaths.Rom(@"Legend of Zelda, The - Ocarina of Time (USA).z64");
+    private static readonly string OutDir = System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\dungeon");
 
     public static void Run()
     {
