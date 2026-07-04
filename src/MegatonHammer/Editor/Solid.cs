@@ -85,6 +85,11 @@ public sealed class Solid
                 face.TexRotation = o.TexRotation; face.AlignToFace = o.AlignToFace;
                 face.UAxis = o.UAxis; face.VAxis = o.VAxis;   // carry explicit texture axes (texture lock)
                 face.Color = o.Color;
+                // Carry the spray/shade paint too, else any recompute (transform, a covering brush, an export
+                // rebuild during playtest) silently wipes it. ShadePaint is parametric so it re-maps to the new
+                // geometry; VertexColors is only used when its length still matches (SolidFace guards this).
+                face.ShadePaint = o.ShadePaint;
+                face.VertexColors = o.VertexColors;
             }
             Faces.Add(face);
         }

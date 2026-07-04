@@ -362,6 +362,7 @@ public sealed class FaceEditDialog : Form
                 case 'B': f.TexShiftT = -vMax + 1f; break;
                 case 'C': f.TexShiftS = -(uMin + uMax) * 0.5f + 0.5f; f.TexShiftT = -(vMin + vMax) * 0.5f + 0.5f; break;
             }
+            f.NormalizeShift();   // store the fractional shift so the field shows what renders (no jump on edit)
         }
         _doc.NotifyChanged(); Refresh2(); _redraw();
     }
@@ -384,6 +385,7 @@ public sealed class FaceEditDialog : Form
                 f.AlignToFace = faces[0].AlignToFace; f.TexRotation = faces[0].TexRotation;
                 f.TexScaleS = sS; f.TexScaleT = sT;
                 f.TexShiftS = -uMin / sS; f.TexShiftT = -vMin / sT;
+                f.NormalizeShift();
             }
         }
         else
@@ -394,6 +396,7 @@ public sealed class FaceEditDialog : Form
                 UvBounds([f], u, v, out float uMin, out float uMax, out float vMin, out float vMax);
                 f.TexScaleS = MathF.Max(1f, uMax - uMin); f.TexScaleT = MathF.Max(1f, vMax - vMin);
                 f.TexShiftS = -uMin / f.TexScaleS; f.TexShiftT = -vMin / f.TexScaleT;
+                f.NormalizeShift();
             }
         }
         _doc.NotifyChanged(); Refresh2(); _redraw();

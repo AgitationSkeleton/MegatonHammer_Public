@@ -221,6 +221,12 @@ public sealed class SolidFace
 
     private static float Frac(float x) => x - MathF.Floor(x);
 
+    /// <summary>Reduce the texture shift to the fractional part that <see cref="UVAt"/> actually renders, so
+    /// the value shown/edited in the Face Edit sheet matches what's drawn (and nudging it stays continuous).
+    /// The integer tile offset is invisible for a tiling texture. Hammer does the same in NormalizeTextureShifts;
+    /// call after any op that can leave a large shift (Justify / Fit) so the two representations don't diverge.</summary>
+    public void NormalizeShift() { TexShiftS = Frac(TexShiftS); TexShiftT = Frac(TexShiftT); }
+
     /// <summary>Per-cell shade paint over a QUAD face: a parametric grid of vertex colours so the spray tool
     /// can shade a LOCAL patch. A flat quad has only 4 corners, which the GPU/exporter interpolate across the
     /// WHOLE face — hence the old "paints the whole face". Stored parametrically (grid indices, not world
