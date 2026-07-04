@@ -113,6 +113,10 @@ public sealed class ActorModelResolver
         // (the Master Sword pedestal), so auto-detect grabbed the LARGER sword mesh. Force the actual window
         // DL the actor draws (z_bg_toki_hikari.c: adult gSPDisplayList object_toki_objects_DL_008190).
         [0x006A] = ("object_toki_objects", new[] { 0x8190 }),
+        // Bg_Ddan_Jd 0x0058 = Dodongo's Cavern rising stone platform. It shares object_ddan_objects with the
+        // Dodongo door/bars, so auto-detect grabbed a wrong DL (rendered as the Spirit-mirror-ish pillar). Force
+        // the actual platform DL it draws (z_bg_ddan_jd.c: Gfx_DrawDListOpa gDodongoRisingPlatformDL @ 0x37B8).
+        [0x0058] = ("object_ddan_objects", new[] { 0x37B8 }),
     };
 
     // Per-actor draw-scale overrides (object-space → world). Most actors are ~0.01; Bg/scenery actors
@@ -123,6 +127,7 @@ public sealed class ActorModelResolver
         [0x006A] = 1.0f,    // Bg_Toki_Hikari ToT windows — world-sized Bg geometry (drawn at scale 1, no Actor_SetScale)
         [0x008E] = 0.01f,   // En_Floormas (Floormaster): full size. The scale parser otherwise picks up the
                             // SetupSplit Actor_SetScale(0.004f) and renders the tiny split-hand size.
+        [0x0058] = 1.0f,    // Bg_Ddan_Jd rising platform — world-sized Bg dynapoly geometry (no Actor_SetScale)
     };
 
     // MM actors whose real Actor_SetScale uses a NON-LITERAL the parser can't evaluate (a variable / array),

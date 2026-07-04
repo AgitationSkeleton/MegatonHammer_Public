@@ -25,6 +25,9 @@ public static class SurfaceTypePresets
         new("Wall: ledge grab + hang",         (uint)(7  << WallTypeShift),  0),   // WALL_TYPE_7 (FLAG_6) grabbable
         new("Wall: crawlspace (child)",        (uint)(5  << WallTypeShift),  0),   // WALL_TYPE_5 (FLAG_4) crawlspace
         new("Floor: sand-ish (type 7)",        (uint)(7  << FloorTypeShift), 0),   // FLOOR_TYPE_7
+        // FLOOR_TYPE_9 sets Link on fire (damage over time) unless he's wearing the Goron Tunic — z_player.c
+        // func_80843CEC. This is the "stand-on lava" surface; for a deep lava pit use the Void-out floor instead.
+        new("Lava — burning floor (type 9)",   (uint)(9  << FloorTypeShift), 0),   // FLOOR_TYPE_9 = catches fire (no Goron Tunic)
     };
 
     /// <summary>The preset whose words match (d0,d1), or -1 ("Custom" / raw).</summary>
