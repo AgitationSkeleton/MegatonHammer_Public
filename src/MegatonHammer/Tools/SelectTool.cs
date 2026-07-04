@@ -682,11 +682,12 @@ public sealed class SelectTool : ITool
         // matches the model's render rotation exactly — Front→Z, Side→X).
         if (_rotActors.Count > 0)
         {
-            // #3: NEGATE theta for the binary yaw. The body orbits CCW for +theta (RotateVec, follows the
-            // cursor), but the facing is rendered as (sin yaw, cos yaw), which spins CLOCKWISE as yaw grows
-            // — so +dRot turned the nose opposite the drag. With -dRot the facing's screen angle tracks the
-            // cursor 1:1, and it stays consistent in-game (the engine faces (sin yaw, cos yaw) too).
-            short dRot = (short)(-theta * (32768f / MathF.PI));
+            // Binary-yaw delta = +theta (same sense as the body orbit + brushes). The rendered MODEL rotates
+            // local +Z -> world (sin yaw, cos yaw); projected to the Top view (screen v = -Z) that spins the
+            // model CCW as yaw grows — matching the cursor's CCW (+theta) drag. So +theta makes the whole
+            // actor (model, not just the facing tick) track the cursor 1:1, consistent in-game (engine faces
+            // (sin yaw, cos yaw) too). (The earlier -theta aligned only the small facing line, not the body.)
+            short dRot = (short)(theta * (32768f / MathF.PI));
             foreach (var (a, snap) in _rotActors)
             {
                 Vector3 np = pivot + RotateVec(snap.pos - pivot, hDir, vDir, dDir, cos, sin);

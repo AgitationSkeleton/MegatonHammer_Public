@@ -129,7 +129,10 @@ void main() { fragColor = uColor; }";
             }) * (MathF.PI / 32768f);
             float cch = (sh + eh) * 0.5f, ccv = (sv + ev) * 0.5f;
             float len = MathF.Max(MathF.Max(eh - sh, ev - sv) * 0.55f, 18f);
-            DrawLines([cch, ccv, 0f, cch + MathF.Sin(ang) * len, ccv + MathF.Cos(ang) * len, 0f]);
+            // Forward on screen matches the MODEL's projection (Top: world +Z -> screen -v), i.e. (sin, -cos),
+            // so the tick points out the actor's nose and rotates the same way the body does under the rotate
+            // tool (both track the cursor with +theta). See SelectTool.ApplyRotate.
+            DrawLines([cch, ccv, 0f, cch + MathF.Sin(ang) * len, ccv - MathF.Cos(ang) * len, 0f]);
 
             // Origin reticule (selected only): a 2-axis cross at the exact placed coordinate.
             if (actor.IsSelected)
