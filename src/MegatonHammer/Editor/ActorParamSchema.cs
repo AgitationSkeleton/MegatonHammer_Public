@@ -738,6 +738,16 @@ public static class ActorParamSchema
             new Field("Opens-on collectible flag", 8, 5, FieldKind.Int, "The door opens once this collectible flag is set (e.g. a freed carpenter) (0–31)",
                       Flag: FlagKind.Collectible, Role: FlagRole.Reader),
         ]),
+
+        // En_Cs (0x016C) graveyard boy — z_en_cs.c: movement path=params&0xFF. (Dialogue via the catalog.)
+        [0x016C] = new Def("Graveyard Boy (En_Cs)", [
+            new Field("Movement path", 0, 8, FieldKind.Int, "Path actor he walks along (0–254)"),
+        ]),
+
+        // En_Dog (0x019B) dog — z_en_dog.c: colour/breed=(params>>8)&0xF.
+        [0x019B] = new Def("Dog (En_Dog)", [
+            new Field("Colour / breed", 8, 4, FieldKind.Int, "Which dog appearance (0–15)"),
+        ], "The pick-up-and-carry dog (Market / Kakariko)."),
     };
 
     // MM actor ids differ from OoT and its switch flags are 7 bits (0–127). Layouts taken verbatim
