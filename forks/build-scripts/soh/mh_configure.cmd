@@ -1,13 +1,18 @@
 @echo off
-REM Megaton Hammer: configure SoH with MSVC + native VS CMake/Ninja.
-REM git (from msys2) is appended LAST so vcvars' MSVC link.exe still wins over msys link.exe.
-set "PATH=C:\Windows\System32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Program Files\Python313;C:\Program Files\Python313\Scripts;C:\devkitPro\msys2\usr\bin"
+REM Megaton Hammer: configure SoH with MSVC + CMake/Ninja.
+REM apply-mh-patches.cmd installs this INTO the SoH working tree, so %~dp0 is the fork dir.
+REM Prereqs: Visual Studio 2022 (C++ workload, provides cmake/ninja); python3 + git on PATH;
+REM          VCPKG_ROOT set to your vcpkg checkout.
+setlocal
+cd /d "%~dp0"
 set "GIT_TERMINAL_PROMPT=0"
-call "C:\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-REM vcvars sets VCPKG_ROOT to its own (empty) copy; override it AFTER vcvars with our pre-cloned vcpkg.
-set "VCPKG_ROOT=D:\Copilot_OOT\WorkFolders\vcpkg"
-set "CMAKE=C:\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
-set "NINJA=C:\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe"
-cd /d "D:\Copilot_OOT\WorkFolders\MegatonHammer\SoH"
-"%CMAKE%" -S . -B build/x64 -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA%" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
+if "%VCPKG_ROOT%"=="" ( echo ERROR: set VCPKG_ROOT to your vcpkg folder first, then re-run. & exit /b 1 )
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if "%VSCMD_VER%"=="" (
+    if exist "%VSWHERE%" (
+        for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do call "%%i\VC\Auxiliary\Build\vcvars64.bat"
+    ) else ( echo ERROR: Visual Studio not found. Run from a "Developer Command Prompt for VS 2022". & exit /b 1 )
+)
+cmake -S . -B build/x64 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
 echo MH_CONFIGURE_DONE_EXIT=%ERRORLEVEL%
+endlocal
