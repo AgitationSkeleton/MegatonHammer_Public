@@ -43,9 +43,18 @@ Legend: `[ ]` do it · ⚠️ = the failure that bites hardest here · ✅ = alr
 ## 4. Actors
 - [ ] **Vanilla actors only.** `Bg_Ddan_Jd` (0x0058), `Obj_Lift`, torches, switches, etc. exist in stock
       SoH. A brand-new *code* actor would need a mod, not an O2R — out of scope for a vanilla PoC.
-- [ ] **Verify `Bg_Ddan_Jd` behaves standalone** — read its params/Init; if it hardcodes Dodongo-scene
-      state (a specific switch flag or position), either set that flag/param or swap to a more portable
-      riser (`Obj_Lift`, or the Forest Temple elevator 0x0087). ⚠️ this is the actor most likely to misbehave.
+- [x] **`Bg_Ddan_Jd` (rising platform) is confirmed portable & auto-cycling** (verified in z_bg_ddan_jd.c):
+      no scene-id/save checks; moves relative to its placement Y; brings its own model AND collision from
+      `OBJECT_DDAN_OBJECTS` (a solid ride-able DynaPoly). Its `params` = a switch-flag index:
+      - Set `params` to an **unused** switch flag `0x00–0x3F` (never wired) → it **auto-oscillates**
+        bottom (placement Y) ↔ middle (placement Y **+140**) forever, ~100-frame pauses, no trigger, no
+        camera hijack. This is the arena setting.
+      - If that flag is ever set, it upgrades to the "shortcut": rises to placement Y **+700** (middle↔top,
+        faster, with a one-point camera). Leave the flag unwired to avoid this.
+      - ⚠️ **Do NOT use `params ≥ 0x40`** — the Init reads the flag without the range guard the movement
+        code has (a known vanilla bug), causing an out-of-bounds flag read. Keep `params ≤ 0x3F`.
+      - REQUIRED: add `OBJECT_DDAN_OBJECTS` to the scene's object list (§2) or it won't render/collide.
+      - Portable substitutes if desired: `Obj_Lift`, or the Forest Temple elevator (0x0087).
 - [ ] Actor params seeded sensibly (editor placement defaults). Avoid params of `0` on actors that are
       inert or "invisible until triggered" (e.g. Stalfos type 0) unless intended.
 - [ ] Do NOT place boss/cutscene actors that expect scripted scene setup unless you mean to.
