@@ -831,6 +831,25 @@ public static class ActorParamSchema
             new Field("Switch flag", 4, 6, FieldKind.Int, "Which switch flag controls it (when Switch-controlled) (0–63)",
                       Flag: FlagKind.Switch, Role: FlagRole.Reader),
         ]),
+
+        // En_Fish (0x0021) fish — z_en_fish.c FishType: whole params signed (-1 respawning / 0 dropped / 1 unique).
+        [0x0021] = new Def("Fish (En_Fish)", [
+            new Field("Type", 0, 16, FieldKind.Enum, "Ambient swimming fish (respawns), or the unique catchable grotto fish",
+                      ["Swimming (respawns)", "Dropped (internal)", "Swimming (unique)"], EnumBase: -1),
+        ]),
+
+        // En_Insect (0x0020) bug — z_en_insect.c EnInsectType: type=params&3.
+        [0x0020] = new Def("Bug (En_Insect)", [
+            new Field("Type", 0, 2, FieldKind.Enum, "The catchable bug; Permanent is the one you place",
+                      ["Permanent", "Spawned", "First dropped", "Extra dropped"]),
+        ]),
+
+        // Bg_Hidan_Hrock (0x0041) Fire Temple pillar — z_bg_hidan_hrock.c: switchFlag=params&0x3F (reader), type=(params>>8)&0xFF.
+        [0x0041] = new Def("Fire Temple Pillar (Bg_Hidan_Hrock)", [
+            new Field("Switch flag", 0, 6, FieldKind.Int, "The pillar lowers when this switch flag is set (0–63)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Reader),
+            new Field("Type", 8, 8, FieldKind.Int, "Which pillar (0 = the tallest)"),
+        ]),
     };
 
     // MM actor ids differ from OoT and its switch flags are 7 bits (0–127). Layouts taken verbatim
@@ -873,6 +892,20 @@ public static class ActorParamSchema
             new Field("Switch flag", 0, 7, FieldKind.Int, "Set when bombed so it stays destroyed; wire a gate to it to open a path (0–127)",
                       Flag: FlagKind.Switch, Role: FlagRole.Both),
         ], "Bomb it to clear the way; it sets its switch flag on destruction (so it stays gone and can trigger a gate)."),
+
+        // En_Okarina_Tag (MM 0x097) ocarina-song trigger — z_en_okarina_tag.h: switchFlag=params&0x7F, mode=(params>>7)&0xF, song=(params>>0xB)&0x1F.
+        [0x0097] = new Def("Ocarina Song Trigger (En_Okarina_Tag)", [
+            new Field("Switch flag", 0, 7, FieldKind.Int, "Set/checked when the right song is played (127 = none) (0–127)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+            new Field("Mode", 7, 4, FieldKind.Int, "0 = active until the flag is set; 1 = active only after it's set"),
+            new Field("Song", 11, 5, FieldKind.Int, "Which ocarina song to listen for (0x1F = any; 6 = Scarecrow's Song)"),
+        ], "An invisible region that fires when Link plays the chosen ocarina song."),
+
+        // Obj_Blockstop (MM 0x0A0) block stopper — z_obj_blockstop.h: switchFlag = whole params.
+        [0x00A0] = new Def("Block Stopper (Obj_Blockstop)", [
+            new Field("Switch flag", 0, 7, FieldKind.Int, "Set while a pushable block rests in this spot — wire it to a gate (0–127)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+        ]),
 
         // Bg_Ladder (MM 0x163) — the placeable wooden ladder. size = params & 0xFF (rung count → model +
         // its own climbable dynapoly collision); appear switch flag = (params>>8)&0xFF (z_bg_ladder.h).
