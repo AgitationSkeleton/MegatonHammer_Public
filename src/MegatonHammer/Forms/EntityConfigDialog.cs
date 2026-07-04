@@ -312,8 +312,50 @@ public sealed class EntityConfigDialog : Form
                 _logicHost.RowCount = row + 1;
             }
         }
+        // Vanilla-dialogue catalog: for a talkable NPC whose lines are hardcoded (no message param, so no
+        // Message field above), show its known vanilla lines and let the user override one (reskin the words)
+        // via the Dialogue Editor. Shows even when the actor has no schema Def at all (e.g. Talon).
+        var catalog = DialogueCatalog.For(!_isOoT, _actor.Number);
+        bool hasMsgField = def?.Fields.Any(f => f.Kind == ActorParamSchema.FieldKind.Message) ?? false;
+        if (catalog != null && !hasMsgField)
+        {
+            _logicHeader.Visible = _logicHost.Visible = true;
+            AddCatalogDialogueRow(catalog);
+        }
         _logicHost.ResumeLayout();
         RebuildConnections();
+    }
+
+    // A "Dialogue" row for a catalogued NPC without a message param: a dropdown of its vanilla lines + a
+    // Customize button that overrides the chosen line's text via the Dialogue Editor (keeps the NPC's own
+    // behaviour; just replaces the words — vanilla-portable).
+    private void AddCatalogDialogueRow(DialogueCatalog.Line[] lines)
+    {
+        var lbl = new Label { Text = "Dialogue", Dock = DockStyle.Fill, ForeColor = FgNormal,
+            Font = UiFonts.Get("Segoe UI", 8.5f), Margin = new Padding(2), TextAlign = ContentAlignment.MiddleLeft };
+        var host = new Panel { Dock = DockStyle.Fill, Height = 26, Margin = new Padding(0) };
+        var edit = new Button { Text = "Customize…", Dock = DockStyle.Right, Width = 82, Height = 24,
+            BackColor = Color.FromArgb(60, 60, 63), ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, Font = UiFonts.Get("Segoe UI", 8f) };
+        var combo = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList,
+            BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, Font = UiFonts.Get("Consolas", 8.5f), Margin = new Padding(2) };
+        foreach (var l in lines) combo.Items.Add(l);
+        combo.SelectedIndex = 0;
+        _tip.SetToolTip(combo, "This NPC's vanilla lines (what it says in the game). Pick one, then Customize… to replace it.");
+        _tip.SetToolTip(edit, "Override the selected vanilla line with your own text — keeps the NPC's behaviour, just changes the words.");
+        edit.Click += (_, _) =>
+        {
+            if (_doc == null || combo.SelectedItem is not DialogueCatalog.Line line) return;
+            var bm = _doc.Scene.Messages.FirstOrDefault(m => m.Id == line.TextId);
+            if (bm == null) { bm = new MhMessage(line.TextId, "New dialogue."); _doc.Scene.Messages.Add(bm); }
+            bm.IsOverride = true;
+            using var dlg = new DialogueEditorDialog(_doc.Scene, line.TextId, line.TextId, line.TextId, _actor.Number, !_isOoT);
+            dlg.ShowDialog(this);
+        };
+        host.Controls.Add(edit); host.Controls.Add(combo);
+        int row = _logicHost.RowCount;
+        _logicHost.Controls.Add(lbl, 0, row);
+        _logicHost.Controls.Add(host, 1, row);
+        _logicHost.RowCount = row + 1;
     }
 
     // The Hammer Outputs/Inputs view for THIS actor: the flags it sets that others read (outputs) and the

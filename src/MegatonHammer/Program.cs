@@ -681,6 +681,11 @@ static class Program
             string cData2 = Export.MhDialogueDataWriter.Write(new[] { msgB, vanillaRef });
             Chk(cData2.Contains("0x0302") && !cData2.Contains("0x0305"),
                 "Default (vanilla) dialogue is left alone; only Custom overrides export");
+
+            // Per-NPC vanilla dialogue catalog: contextual "Default Dialogue" lines for talkable NPCs.
+            Chk(Editor.DialogueCatalog.For(false, 0x0084) is { Length: > 0 }, "dialogue catalog has Talon (En_Ta 0x0084) vanilla lines");
+            Chk(Editor.DialogueCatalog.For(false, 0x01CE) is { Length: > 0 }, "dialogue catalog has Zora (En_Zo 0x01CE) vanilla lines");
+            Chk(Editor.DialogueCatalog.For(false, 0x0146)![0].TextId == 0x1001, "catalog maps Saria (0x0146) to her greeting textId 0x1001");
             return;
         }
 
