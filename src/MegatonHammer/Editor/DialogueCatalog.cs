@@ -53,6 +53,25 @@ public static class DialogueCatalog
         [0x00ED] = new[] { new Line(0x40A9, "frog choir") },                                                                   // En_Fr frogs
         [0x014A] = new[] { new Line(0x4000, "lakeside professor") },                                                          // En_Mk
         [0x0175] = new[] { new Line(0x5005, "big Poe") },                                                                      // En_Po_Field
+        [0x0152] = new[] { new Line(0x3053, "Goron (rolling/DMT)") },                                                          // En_Go
+        [0x00C3] = new[] { new Line(0x601D, "Nabooru (first)"), new Line(0x6024, "Nabooru (later)") },                        // En_Nb
+        [0x01B8] = new[] { new Line(0x70F4, "Poe Seller (spiel)"), new Line(0x70F6, "sell a Poe") },                          // En_Gb
+        [0x01D0] = new[] { new Line(0x6004, "Gerudo (give card)"), new Line(0x6005, "Gerudo (greeting)") },                    // En_Ge3
+        [0x000D] = new[] { new Line(0x5005, "composer / sellable Poe") },                                                      // En_Poh
+        [0x01D3] = new[] { new Line(0x702E, "child Zelda (courtyard)") },                                                      // En_Zl4
+        [0x00A9] = new[] { new Line(0x708E, "Impa") },                                                                         // Demo_Im
+        [0x00B3] = new[] { new Line(0x2009, "Hylian guard") },                                                                 // En_Heishi2
+        [0x00FE] = new[] { new Line(0x4089, "fishing-pond owner") },                                                          // Fishing
+        [0x003E] = new[] { new Line(0x0905, "Deku Tree mouth (gate)") },                                                       // Bg_Treemouth
+        [0x017B] = new[] { new Line(0x4076, "scarecrow (Bonooru)") },                                                          // En_Kakasi
+        [0x00D2] = new[] { new Line(0x403E, "adult Ruto (Water Temple)") },                                                    // En_Ru2
+        [0x01C6] = new[] { new Line(0x2006, "cow moo"), new Line(0x2007, "cow (milk)") },                                     // En_Cow
+        [0x013C] = new[] { new Line(0x5036, "Anju (missing cuccos)"), new Line(0x503E, "Anju (trade)") },                     // En_Niw_Lady
+        [0x0149] = new[] { new Line(0x504F, "Potion Shop granny") },                                                          // En_Ds
+        [0x014B] = new[] { new Line(0x7058, "Bombchu Bowling lady") },                                                        // En_Bom_Bowl_Man
+        [0x0189] = new[] { new Line(0x001F, "Skulltula House man") },                                                          // En_Sth
+        [0x0167] = new[] { new Line(0x5050, "man on the roof") },                                                             // En_Ani
+        [0x019A] = new[] { new Line(0x7000, "Cucco Lady (Cojiro)") },                                                         // En_Niw_Girl
     };
 
     /// <summary>The known vanilla lines for an actor, or null if it has no catalogued dialogue.</summary>

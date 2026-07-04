@@ -23,8 +23,8 @@ public sealed class DialogueEditorDialog : Form
     private readonly Label _idLabel;
     private readonly TextBox _text, _choice1, _choice2;
     private readonly RadioButton _kMsg, _kPrompt;
-    private readonly NumericUpDown _sfx, _doneFlag, _afterMsg;
-    private readonly ComboBox _gestureCombo;
+    private readonly NumericUpDown _doneFlag, _afterMsg;
+    private readonly ComboBox _gestureCombo, _sfxCombo;
     private readonly NpcGestures.Gesture[] _gestures;
     private readonly string[] _itemNames;
     private readonly OutcomeControls _o1, _o2;
@@ -97,10 +97,12 @@ public sealed class DialogueEditorDialog : Form
         Controls.Add(Lab("Choice 2:", rx + 192, 210, 56)); Controls.Add(_choice2);
 
         // ── Sound + Gesture ──
-        Controls.Add(Lab("Sound (SFX id, -1 none):", rx, 236, 138));
-        _sfx = Spin(rx + 142, 234, -1, 0xFFFF, 96); _sfx.Hexadecimal = true;
-        _sfx.ValueChanged += (_, _) => { if (!_loading && Cur is { } m) m.Sfx = (int)_sfx.Value; };
-        Controls.Add(_sfx);
+        Controls.Add(Lab("Sound:", rx, 236, 44));
+        _sfxCombo = new ComboBox { Left = rx + 46, Top = 234, Width = 150, DropDownStyle = ComboBoxStyle.DropDownList,
+            BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, DropDownWidth = 200 };
+        foreach (var s in SfxNames.Common) _sfxCombo.Items.Add(s);
+        _sfxCombo.SelectedIndexChanged += (_, _) => { if (!_loading && Cur is { } m && _sfxCombo.SelectedItem is SfxNames.Sfx s) m.Sfx = s.Id; };
+        Controls.Add(_sfxCombo);
         Controls.Add(Lab("Gesture:", rx + 250, 236, 52));
         _gestureCombo = new ComboBox { Left = rx + 302, Top = 234, Width = 126, DropDownStyle = ComboBoxStyle.DropDownList,
             BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat };
@@ -125,7 +127,7 @@ public sealed class DialogueEditorDialog : Form
         _doneFlag.ValueChanged += (_, _) => { if (!_loading && Cur is { } m) m.DoneFlag = (int)_doneFlag.Value; };
         Controls.Add(_doneFlag);
         Controls.Add(Lab("show message #:", rx + 250, 440, 100));
-        _afterMsg = Spin(rx + 352, 438, -1, 0xFFFF, 86); _afterMsg.Hexadecimal = true;
+        _afterMsg = Spin(rx + 352, 438, -1, 0xFFFF, 86);   // decimal so "none" reads -1
         _afterMsg.ValueChanged += (_, _) => { if (!_loading && Cur is { } m) m.AfterMsgId = (int)_afterMsg.Value; };
         Controls.Add(_afterMsg);
 
@@ -175,7 +177,9 @@ public sealed class DialogueEditorDialog : Form
             _text.Text = m.Text;
             _kMsg.Checked = m.Kind == MhMsgKind.Message; _kPrompt.Checked = m.Kind == MhMsgKind.Prompt;
             _choice1.Text = m.Choice1; _choice2.Text = m.Choice2;
-            _sfx.Value = Math.Clamp(m.Sfx, -1, 0xFFFF);
+            int si = -1; for (int i = 0; i < _sfxCombo.Items.Count; i++) if (_sfxCombo.Items[i] is SfxNames.Sfx s && s.Id == m.Sfx) { si = i; break; }
+            if (si < 0 && m.Sfx >= 0) { _sfxCombo.Items.Add(new SfxNames.Sfx(m.Sfx, $"Custom 0x{m.Sfx:X4}")); si = _sfxCombo.Items.Count - 1; }
+            _sfxCombo.SelectedIndex = si >= 0 ? si : 0;
             int gi = 0; for (int i = 0; i < _gestures.Length; i++) if (_gestures[i].Index == m.Gesture) { gi = i; break; }
             _gestureCombo.SelectedIndex = gi;
             _doneFlag.Value = Math.Clamp(m.DoneFlag, -1, 4095); _afterMsg.Value = Math.Clamp(m.AfterMsgId, -1, 0xFFFF);
@@ -188,7 +192,7 @@ public sealed class DialogueEditorDialog : Form
     private void RefreshEnabled()
     {
         bool has = Cur != null, prompt = has && Cur!.Kind == MhMsgKind.Prompt;
-        _text.Enabled = _kMsg.Enabled = _kPrompt.Enabled = _sfx.Enabled = _gestureCombo.Enabled =
+        _text.Enabled = _kMsg.Enabled = _kPrompt.Enabled = _sfxCombo.Enabled = _gestureCombo.Enabled =
             _doneFlag.Enabled = _afterMsg.Enabled = has;
         _choice1.Enabled = _choice2.Enabled = prompt;
         _o1Head.Text = prompt ? "Option 1 (Yes):" : "On advance:";
@@ -244,15 +248,15 @@ public sealed class DialogueEditorDialog : Form
         {
             _get = get; _loading = loading; _maxItem = itemNames.Length - 1;
             dlg.Add(OLab("Go to MsgBox #:", x, y, 96));
-            _next = Spin(x + 100, y - 2, -1, 0xFFFF, 80); _next.Hexadecimal = true;
+            _next = Spin(x + 100, y - 2, -1, 0xFFFF, 80);   // decimal so "none" reads -1, not FFFFFFFF
             _next.ValueChanged += (_, _) => { if (!_loading() && _get() is { } o) o.NextMsgId = (int)_next.Value; };
             dlg.Add(_next);
             dlg.Add(OLab("Fire Trigger #:", x, y + 26, 96));
             _flag = Spin(x + 100, y + 24, -1, 4095, 80);
             _flag.ValueChanged += (_, _) => { if (!_loading() && _get() is { } o) o.FireFlag = (int)_flag.Value; };
             dlg.Add(_flag);
-            dlg.Add(OLab("Give Item:", x, y + 52, 96));
-            _item = new ComboBox { Left = x + 68, Top = y + 50, Width = 148, DropDownStyle = ComboBoxStyle.DropDownList,
+            dlg.Add(OLab("Give Item:", x, y + 52, 56));
+            _item = new ComboBox { Left = x + 58, Top = y + 50, Width = 158, DropDownWidth = 240, DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat };
             _item.Items.AddRange(itemNames);   // index 0 = "None (empty)"
             _item.SelectedIndexChanged += (_, _) => { if (!_loading() && _get() is { } o) o.GiveItem = _item.SelectedIndex <= 0 ? -1 : _item.SelectedIndex; };

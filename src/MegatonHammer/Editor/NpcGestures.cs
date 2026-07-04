@@ -16,14 +16,9 @@ public static class NpcGestures
         public override string ToString() => Name;   // so it shows nicely in a ComboBox
     }
 
-    /// <summary>A generic 0-15 index list for actors without a curated gesture set (+ a default entry).</summary>
-    public static Gesture[] Generic()
-    {
-        var g = new Gesture[17];
-        g[0] = Default;
-        for (int i = 0; i < 16; i++) g[i + 1] = new Gesture(i, $"gesture {i}");
-        return g;
-    }
+    /// <summary>For actors without a curated gesture set (e.g. the generic Dialogue Point): just the default,
+    /// so the picker stays friendly rather than showing meaningless numbered slots.</summary>
+    public static Gesture[] Generic() => new[] { Default };
 
     private static readonly Gesture Default = new(-1, "(default idle-talk)");
 
