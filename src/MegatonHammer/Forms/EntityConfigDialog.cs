@@ -455,7 +455,7 @@ public sealed class EntityConfigDialog : Form
                     // source ROM and add it — so the field shows the real dialogue and the user can edit it.
                     if (bank != null && _doc?.Imported?.RomMessages is { } rmr && bank.All(m => m.Id != curId)
                         && rmr.Read(curId) is { } imported)
-                        bank.Add(imported);
+                    { imported.IsOverride = false; bank.Add(imported); }   // vanilla text = a reference, not an override
                     if (bank != null)
                         foreach (var m in bank.Where(m => m.Id >= baseId && m.Id <= maxId).OrderBy(m => m.Id))
                             mcombo.Items.Add(new MsgItem(m));
@@ -474,10 +474,31 @@ public sealed class EntityConfigDialog : Form
                 var mEdit = new Button { Text = "Edit…", Dock = DockStyle.Right, Width = 52, Height = 24,
                     BackColor = Color.FromArgb(60, 60, 63), ForeColor = FgNormal, FlatStyle = FlatStyle.Flat,
                     Font = UiFonts.Get("Segoe UI", 8f) };
-                _tip.SetToolTip(mEdit, "Open the Message Bank to author/edit dialogue");
+                // Default = keep the game's vanilla dialogue (grays out editing); Custom = override it with our own.
+                var mMode = new ComboBox { Dock = DockStyle.Left, Width = 74, DropDownStyle = ComboBoxStyle.DropDownList,
+                    BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, Margin = new Padding(0) };
+                mMode.Items.AddRange(new object[] { "Default", "Custom" });
+                _tip.SetToolTip(mMode, "Default = keep the game's vanilla dialogue for this actor. Custom = override it with your own (enables Edit).");
+                MhMessage? MsgAt() => _doc?.Scene.Messages.FirstOrDefault(m => m.Id == f.TextId(_actor.Variable));
+                mMode.SelectedIndex = (MsgAt()?.IsOverride ?? false) ? 1 : 0;
+                mcombo.Dock = DockStyle.Fill;
+                mEdit.Enabled = mMode.SelectedIndex == 1;
+                mMode.SelectedIndexChanged += (_, _) =>
+                {
+                    if (_loading || _doc == null) return;
+                    bool custom = mMode.SelectedIndex == 1;
+                    int id = f.TextId(_actor.Variable);
+                    var bm = _doc.Scene.Messages.FirstOrDefault(m => m.Id == id);
+                    if (custom) { if (bm == null) { bm = new MhMessage(id, "New dialogue."); _doc.Scene.Messages.Add(bm); } bm.IsOverride = true; }
+                    else if (bm != null) bm.IsOverride = false;
+                    mEdit.Enabled = custom;
+                    ReloadMsgs();
+                };
+                _tip.SetToolTip(mEdit, "Author/override this actor's dialogue in the Dialogue Editor");
                 mEdit.Click += (_, _) =>
                 {
                     if (_doc == null) return;
+                    if (mMode.SelectedIndex != 1) mMode.SelectedIndex = 1;   // editing implies Custom
                     using var dlg = new DialogueEditorDialog(_doc.Scene, baseId, maxId, f.TextId(_actor.Variable), _actor.Number, _doc.IsMM);
                     if (dlg.ShowDialog(this) == DialogResult.OK)
                     {
@@ -485,7 +506,7 @@ public sealed class EntityConfigDialog : Form
                         if (dlg.SelectedId is int sid) ApplyField(f, sid - f.TextIdBase);
                     }
                 };
-                mhost.Controls.Add(mcombo); mhost.Controls.Add(mEdit);
+                mhost.Controls.Add(mEdit); mhost.Controls.Add(mMode); mhost.Controls.Add(mcombo);
                 input = mhost;
                 break;
             }

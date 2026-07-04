@@ -66,7 +66,7 @@ public static class ProjectSerializer
             Id = m.Id, Text = m.Text, Box = m.BoxType, Pos = m.YPos, Icon = m.Icon,
             Kind = (int)m.Kind, Choice1 = m.Choice1, Choice2 = m.Choice2,
             Out1 = ToDto(m.Outcome1), Out2 = ToDto(m.Outcome2),
-            DoneFlag = m.DoneFlag, AfterMsgId = m.AfterMsgId, Sfx = m.Sfx, Gesture = m.Gesture,
+            DoneFlag = m.DoneFlag, AfterMsgId = m.AfterMsgId, Sfx = m.Sfx, Gesture = m.Gesture, IsOverride = m.IsOverride,
         }).ToList() : null,
         };
     }
@@ -150,7 +150,7 @@ public static class ProjectSerializer
             Id = m.Id, Text = m.Text ?? "", BoxType = m.Box, YPos = m.Pos, Icon = m.Icon,
             Kind = (MhMsgKind)m.Kind, Choice1 = m.Choice1 ?? "Yes", Choice2 = m.Choice2 ?? "No",
             Outcome1 = FromDto(m.Out1), Outcome2 = FromDto(m.Out2),
-            DoneFlag = m.DoneFlag, AfterMsgId = m.AfterMsgId, Sfx = m.Sfx, Gesture = m.Gesture,
+            DoneFlag = m.DoneFlag, AfterMsgId = m.AfterMsgId, Sfx = m.Sfx, Gesture = m.Gesture, IsOverride = m.IsOverride,
         }).ToList();
         scene.Setups = (sd.Setups ?? []).Select(FromDto).ToList();
         scene.ActiveSetup = scene.Setups.Count > 0 ? Math.Clamp(sd.ActiveSetup, 0, scene.Setups.Count - 1) : 0;
@@ -421,6 +421,7 @@ public static class ProjectSerializer
         public int AfterMsgId { get; set; } = -1;
         public int Sfx { get; set; } = -1;
         public int Gesture { get; set; } = -1;
+        public bool IsOverride { get; set; } = true;   // default true = existing/authored messages export as before
     }
 
     public sealed class OutcomeDto

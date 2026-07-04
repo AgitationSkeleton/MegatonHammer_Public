@@ -153,7 +153,7 @@ public static class PlaytestPack
             int slot = mm ? 0x07 : 0x65;
             // Authored dialogue (OoT N64): overwrite each bank message's textId text in place.
             var msgs = mm ? null
-                : doc.Scene.Messages.Select(m => (m.Id, Export.MessageEncoder.EncodeOoT(m.Text))).ToList();
+                : doc.Scene.Messages.Where(m => m.IsOverride).Select(m => (m.Id, Export.MessageEncoder.Encode(m, mm: false))).ToList();
             var result = Rom.RomInjector.InjectDebug(baseRom, sceneBytes, roomBytes, slot, mm: mm, messages: msgs);
             byte[] romBytes = result.Rom;
 

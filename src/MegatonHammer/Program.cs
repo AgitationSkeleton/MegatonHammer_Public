@@ -669,6 +669,12 @@ static class Program
                 "En_MhTalk (0x0230) has a Message field -> the Dialogue Editor 'Edit...' button");
             Chk(Editor.ActorDatabase.Load(true).Get(Editor.ActorDatabase.MhTalkId) != null,
                 "En_MhTalk is registered as a placeable editor actor (shows in PLACE ACTOR)");
+
+            // Default vs Custom: a Default (vanilla-reference) message is NOT exported; only Custom overrides are.
+            var vanillaRef = new Editor.MhMessage(0x0305, "vanilla text") { Kind = Editor.MhMsgKind.Prompt, IsOverride = false };
+            string cData2 = Export.MhDialogueDataWriter.Write(new[] { msgB, vanillaRef });
+            Chk(cData2.Contains("0x0302") && !cData2.Contains("0x0305"),
+                "Default (vanilla) dialogue is left alone; only Custom overrides export");
             return;
         }
 

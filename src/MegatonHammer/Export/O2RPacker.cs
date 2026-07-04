@@ -216,7 +216,7 @@ public static class O2RPacker
             // Authored dialogue (Message Bank): the SoH/2Ship fork reads mh/messages at boot, registers
             // each id with the engine's custom-message system, and supplies the text via an OnOpenText
             // hook when an actor opens that textId. Applies to both games.
-            if (scene.Messages.Count > 0)
+            if (scene.Messages.Any(m => m.IsOverride))   // only CUSTOM overrides; Default (vanilla) messages are left alone
                 AddEntry(zip, "mh/messages", Encoding.UTF8.GetBytes(BuildMessagesJson(scene)));
         }
     }
@@ -228,7 +228,7 @@ public static class O2RPacker
     {
         var sb = new StringBuilder("[");
         bool first = true;
-        foreach (var m in scene.Messages)
+        foreach (var m in scene.Messages.Where(m => m.IsOverride))
         {
             if (!first) sb.Append(',');
             first = false;

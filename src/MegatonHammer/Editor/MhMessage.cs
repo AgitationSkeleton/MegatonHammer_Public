@@ -42,6 +42,12 @@ public sealed class MhMessage
     public int YPos { get; set; }          // on-screen position (0 = top, 1 = middle, 2 = bottom)
     public int Icon { get; set; } = -1;    // item-icon id, or -1 / 0xFE = none
 
+    /// <summary>True = a CUSTOM override: the editor replaces the game's text/behaviour at this textId on
+    /// export. False = a DEFAULT reference: the vanilla dialogue at this textId is shown for context but left
+    /// untouched (not exported). New authored messages are overrides; text auto-read from the ROM is a
+    /// reference. Lets an actor keep its vanilla dialogue unless the user explicitly chooses Custom.</summary>
+    public bool IsOverride { get; set; } = true;
+
     /// <summary>Message = plain text; Prompt = a two-choice question (the vanilla CTRL_TWO_CHOICE).</summary>
     public MhMsgKind Kind { get; set; } = MhMsgKind.Message;
 
