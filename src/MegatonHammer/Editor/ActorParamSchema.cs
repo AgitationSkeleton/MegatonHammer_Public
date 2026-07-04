@@ -666,6 +666,28 @@ public static class ActorParamSchema
                       Flag: FlagKind.Switch, Role: FlagRole.Both),
         ], "All forms load from the MM gameplay_dangeon_keep."),
 
+        // ── MM common enemies/objects (verified against mm-main; params DIFFER from the OoT versions) ──
+
+        // En_Dekubaba (MM 0x033) — z_en_dekubaba.c: whole params 0 normal / 1 big (same shape as OoT).
+        [0x0033] = new Def("Deku Baba (En_Dekubaba)", [
+            new Field("Size", 0, 2, FieldKind.Enum, "Big Deku Babas drop a Deku Stick/Nut", ["Normal", "Big"]),
+        ]),
+
+        // En_Kusa (MM 0x090) grass/bush — z_en_kusa.h: KUSA_GET_TYPE=params&3, spawnBugs=(params>>4)&1.
+        // NOTE: MM's type ORDER differs from OoT (Bush is 0 here).
+        [0x0090] = new Def("Grass / Bush (En_Kusa)", [
+            new Field("Type", 0, 2, FieldKind.Enum, "Cuttable grass, or a bush you can pick up and throw",
+                      ["Bush (throwable)", "Regrowing grass", "Grass", "Grass (alt)"]),
+            new Field("Spawns bugs", 4, 1, FieldKind.Flag, "Releases catchable bugs when cut"),
+        ]),
+
+        // Obj_Comb (MM 0x0E4) beehive — z_obj_comb.h: drop=params&0x1F, collectibleFlag=(params>>8)&0x7F (7-bit).
+        [0x00E4] = new Def("Beehive (Obj_Comb)", [
+            new Field("Drop", 0, 5, FieldKind.Enum, "What the hive drops when knocked down (common drops match OoT)", Item00Type),
+            new Field("Collectible flag", 8, 7, FieldKind.Int, "Flag tracking this drop as collected (0–127)",
+                      Flag: FlagKind.Collectible, Role: FlagRole.Both),
+        ]),
+
         // Bg_Ladder (MM 0x163) — the placeable wooden ladder. size = params & 0xFF (rung count → model +
         // its own climbable dynapoly collision); appear switch flag = (params>>8)&0xFF (z_bg_ladder.h).
         [0x0163] = new Def("Ladder (Bg_Ladder)", [
