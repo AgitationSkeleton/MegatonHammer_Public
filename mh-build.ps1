@@ -30,4 +30,11 @@ if ($running) {
     if ($LASTEXITCODE -ge 8) { Write-Host "BUILT -> Staging, but Deploy sync FAILED (robocopy $LASTEXITCODE)."; exit 1 }
     Write-Host 'BUILT -> Staging, and Deploy editor not running -> synced to Deploy directly.'
 }
+
+# Also mirror source changes into the public repo (best-effort; never fails the build).
+try {
+    $syncPub = Join-Path $root 'sync-public.ps1'
+    if (Test-Path $syncPub) { & $syncPub -Quiet:$Quiet }
+} catch { Write-Host "(public mirror sync skipped: $($_.Exception.Message))" }
+
 exit 0
