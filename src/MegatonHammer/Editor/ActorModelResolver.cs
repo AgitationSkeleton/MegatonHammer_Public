@@ -1304,7 +1304,10 @@ public sealed class ActorModelResolver
         // That value sizes world-scaled Bg/scenery actors correctly (e.g. Bg_Gjyo_Bridge), which the old
         // flat 0.01 default shrank to a dot, while leaving the ~0.01 humanoids unchanged.
         float scale;
-        if (isPlayer || darkLink) scale = 0.015f;
+        // Link (and Dark Link, same rig) use the Player actor's canonical Actor_SetScale = 0.01f (z_player.c),
+        // the same as the ~0.01 humanoid NPCs — so the dummy-Link size reference stands the right height next to
+        // them (0.015 made Link render 1.5x too tall).
+        if (isPlayer || darkLink) scale = 0.01f;
         // #6: En_Box chest size follows its type — small chest types (SMALL/6/ROOM_CLEAR_SMALL/
         // SWITCH_FLAG_FALL_SMALL = 5/6/7/8) are Actor_SetScale(0.005), big types 0.01, so render them at
         // the matching half size instead of all big.
