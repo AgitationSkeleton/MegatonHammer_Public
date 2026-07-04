@@ -1,8 +1,9 @@
+0x0009	En door	Locked switch flag|0|6|Int|Switch|Both|0|
 0x000A	En box	Type|12|4|Int|None|None|0|
 0x000E	En okuta	Numshots|8|8|Int|None|None|0|
 0x000F	Bg ydan sp	Burnswitchflag|6|6|Int|Switch|Both|0|
-0x0023	En holl	Type|6|3|Int|None|None|0|
-0x002E	Door shutter	Type|6|4|Int|None|None|0|
+0x0023	En holl	Type|6|3|Int|None|None|0|	Switch flag|0|6|Int|Switch|Both|0|
+0x002E	Door shutter	Type|6|4|Int|None|None|0|	Switch flag|0|6|Int|Switch|Both|0|
 0x0040	Bg hidan dalm	Switchflag|8|8|Int|Switch|Both|0|
 0x0049	Bg hidan curtain	Treasureflag|6|6|Int|Chest|Both|0|
 0x0080	En trap	Upperparams|8|8|Int|None|None|0|
@@ -19,7 +20,7 @@
 0x00EF	Bg ice shelter	Type|8|3|Int|None|None|0|
 0x00F7	Bg haka gate	Switchflag|8|8|Int|Switch|Both|0|
 0x0105	Bg po syokudai	Flamecolor|8|8|Int|None|None|0|
-0x0113	En ik	Switch flag|8|8|Int|Switch|Both|0|
+0x0113	En ik	Switch flag|8|8|Int|Switch|Both|0|	Armor type|0|8|Int|None|None|0|
 0x011E	Obj ice poly	Unk 151|8|8|Int|None|None|0|
 0x012B	Obj elevator	Temp f0|8|4|Int|None|None|0|
 0x0178	En heishi4	Unk 27c|8|8|Int|None|None|0|

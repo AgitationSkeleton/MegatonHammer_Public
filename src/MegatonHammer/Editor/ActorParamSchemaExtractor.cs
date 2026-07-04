@@ -37,6 +37,10 @@ public static partial class ActorParamSchemaExtractor
     [GeneratedRegex(@"#define\s+\w+_GET_(\w+)\s*\([^)]*\)\s*\(\(\(\w+\)->params\s*&\s*(0[xX][0-9A-Fa-f]+)\)\s*>>\s*(\d+)\)")]
     private static partial Regex GetMacroMaskShift();
 
+    // <PREFIX>_GET_<FIELD>(arg)  ((arg)->params & MASK)  — a shift-0 field (e.g. a switch flag with no shift).
+    [GeneratedRegex(@"#define\s+\w+_GET_(\w+)\s*\([^)]*\)\s*\(\(\w+\)->params\s*&\s*(0[xX][0-9A-Fa-f]+|\d+)\)")]
+    private static partial Regex GetMacroMaskOnly();
+
     // <lhs> = PARAMS_GET_U/S(thisx->params, shift, len)  — modern OoT inline form; name from the LHS var.
     [GeneratedRegex(@"(\w+)\s*=\s*PARAMS_GET_[US]\(\s*\w+->params\s*,\s*(\d+)\s*,\s*(\d+)\s*\)")]
     private static partial Regex AssignParamsGet();
@@ -103,6 +107,8 @@ public static partial class ActorParamSchemaExtractor
                     uint mask = (uint)ParseInt(m.Groups[2].Value); int sh = int.Parse(m.Groups[3].Value);
                     AddField(m.Groups[1].Value, sh, MaskLen((int)(mask >> sh)));
                 }
+                foreach (Match m in GetMacroMaskOnly().Matches(txt))
+                    AddField(m.Groups[1].Value, 0, MaskLen(ParseInt(m.Groups[2].Value)));
                 // Modern OoT inline assignments give the field its variable name (this->switchFlag = …).
                 foreach (Match m in AssignParamsGet().Matches(txt))
                 {

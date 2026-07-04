@@ -663,6 +663,14 @@ public static class ActorParamSchema
             new Field("Size", 0, 2, FieldKind.Enum, "Red-ice crystal you melt with Blue Fire (scooped into a bottle)",
                       ["Small", "Medium", "Large"]),
         ]),
+
+        // Bg_Ddan_Jd (0x0058) Dodongo rising platform — z_bg_ddan_jd.c: whole params = a switch flag (must be < 0x40).
+        // Portable: moves relative to its placement Y, brings its own model + solid collision (OBJECT_DDAN_OBJECTS).
+        [0x0058] = new Def("Rising Platform (Bg_Ddan_Jd)", [
+            new Field("Shortcut switch flag", 0, 6, FieldKind.Int,
+                      "By default the platform AUTO-cycles bottom↔middle (+140) on its own — no trigger. If THIS switch flag is set, it becomes the faster 'shortcut' that rises to +700. For a plain auto-platform, use a switch flag you leave unwired. Must be 0–63.",
+                      Flag: FlagKind.Switch, Role: FlagRole.Reader),
+        ], "Needs OBJECT_DDAN_OBJECTS in the scene's object list. Auto-oscillates on load; the flag only enables the higher 'shortcut' rise."),
     };
 
     // MM actor ids differ from OoT and its switch flags are 7 bits (0–127). Layouts taken verbatim
