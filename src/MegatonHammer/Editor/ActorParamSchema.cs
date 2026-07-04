@@ -619,6 +619,38 @@ public static class ActorParamSchema
                       ["Green (big)", "Green", "White", "Red", "Blue", "Flame trail"], EnumBase: -5),
             new Field("Flight path", 8, 8, FieldKind.Int, "Path index the flying variants follow (0–254)"),
         ]),
+
+        // ── More common enemies ──
+
+        // En_Test (0x0002) Stalfos — z_en_test.c: type=params (StalfosType 0–5). NOTE type 0 spawns invisible.
+        [0x0002] = new Def("Stalfos (En_Test)", [
+            new Field("Type", 0, 3, FieldKind.Enum, "Spawn/behaviour variant. Type 0 is INVISIBLE until triggered — pick another for a plain visible Stalfos",
+                      ["Invisible (until triggered)", "Type 1", "Type 2", "Drops from ceiling", "Type 4", "Type 5"]),
+        ]),
+
+        // En_Wallmas (0x0011) Wallmaster — z_en_wallmas.c: type=params&0xFF (WMT 0–2), despawnFlag=(params>>8)&0xFF.
+        [0x0011] = new Def("Wallmaster (En_Wallmas)", [
+            new Field("Trigger", 0, 2, FieldKind.Enum, "When it drops: on a timer, when Link lingers below it, or gated by a switch flag",
+                      ["Timer", "Proximity", "Switch-flag gated"]),
+            new Field("Despawn switch flag", 8, 8, FieldKind.Int, "'Switch-flag gated' type only: it removes itself if this switch flag is already set (0–63)"),
+        ]),
+
+        // En_Dekubaba (0x0055) Deku Baba — z_en_dekubaba.c: type=params (0 normal / 1 big). Withered = En_Karebaba 0x00C7.
+        [0x0055] = new Def("Deku Baba (En_Dekubaba)", [
+            new Field("Size", 0, 2, FieldKind.Enum, "Big Deku Babas drop a Deku Stick/Nut and need the shield to kill safely",
+                      ["Normal", "Big"]),
+        ]),
+
+        // En_Reeba (0x001C) Leever — z_en_reeba.c: type=params (0 small / 1 big).
+        [0x001C] = new Def("Leever (En_Reeba)", [
+            new Field("Size", 0, 2, FieldKind.Enum, "Sand-dwelling Leever", ["Small", "Big"]),
+        ]),
+
+        // En_Peehat (0x001D) Peahat — z_en_peehat.c: whole params signed (PeahatType -1..1).
+        [0x001D] = new Def("Peahat (En_Peehat)", [
+            new Field("Type", 0, 16, FieldKind.Enum, "Grounded Peahats sit until approached; flying ones patrol and spawn larvae",
+                      ["Grounded", "Flying", "Larva"], EnumBase: -1),
+        ]),
     };
 
     // MM actor ids differ from OoT and its switch flags are 7 bits (0–127). Layouts taken verbatim
