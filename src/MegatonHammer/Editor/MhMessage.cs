@@ -49,6 +49,15 @@ public sealed class MhMessage
     public string Choice1 { get; set; } = "Yes";
     public string Choice2 { get; set; } = "No";
 
+    /// <summary>A sound effect played when this box opens (vanilla CTRL_SFX 0x12; the 16-bit SFX id, e.g. a
+    /// laugh/grunt). -1 = silent. Universal (a real message control code) — Talon's noises, Malon's giggle, …</summary>
+    public int Sfx { get; set; } = -1;
+
+    /// <summary>A gesture/talk-animation for the SPEAKING actor to play with this box — an index into that
+    /// actor's own gesture list (see the per-NPC catalog). -1 = default idle-talk. Not a message byte; carried
+    /// in the outcome/talk data and performed by the actor (En_MhTalk, or a supporting NPC). Actor-coupled.</summary>
+    public int Gesture { get; set; } = -1;
+
     /// <summary>Outcome for a plain Message (on advance) or a Prompt's FIRST option.</summary>
     public MhOutcome Outcome1 { get; set; } = new();
     /// <summary>Outcome for a Prompt's SECOND option (unused for a plain Message).</summary>

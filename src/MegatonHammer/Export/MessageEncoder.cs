@@ -62,6 +62,9 @@ public static class MessageEncoder
     public static byte[] Encode(MhMessage m, bool mm)
     {
         var o = new List<byte>(m.Text.Length + 16);
+        // A per-box sound effect (vanilla CTRL_SFX 0x12 + 16-bit id), emitted up front so it plays as the box
+        // opens. (MM's SFX code differs; deferred — MM prompts/sfx are the follow-up.)
+        if (m.Sfx >= 0 && !mm) { o.Add(0x12); o.Add((byte)((m.Sfx >> 8) & 0xFF)); o.Add((byte)(m.Sfx & 0xFF)); }
         AppendText(m.Text, mm, o);
         if (m.Kind == MhMsgKind.Prompt)
         {

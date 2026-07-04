@@ -478,7 +478,7 @@ public sealed class EntityConfigDialog : Form
                 mEdit.Click += (_, _) =>
                 {
                     if (_doc == null) return;
-                    using var dlg = new MessageBankDialog(_doc.Scene, baseId, maxId, f.TextId(_actor.Variable));
+                    using var dlg = new DialogueEditorDialog(_doc.Scene, baseId, maxId, f.TextId(_actor.Variable));
                     if (dlg.ShowDialog(this) == DialogResult.OK)
                     {
                         ReloadMsgs();
