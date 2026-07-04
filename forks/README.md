@@ -57,6 +57,13 @@ pin + patch together.
 
 ## Project64
 
-There is no Project64 fork. The PJ64 playtest path
-([`Project64Playtest.cs`](../src/MegatonHammer/Forms/Project64Playtest.cs)) launches an
-already-installed Project64 with an injected ROM; nothing to build here.
+There **is** a small Project64 fork now — its change set lives in [`pj64/`](pj64/) (see
+[`pj64/README.md`](pj64/README.md)). The editor's PJ64 playtest path
+([`Project64Playtest.cs`](../src/MegatonHammer/Forms/Project64Playtest.cs)) injects a scene into an
+OoT MQ debug ROM and drives a Project64 build that carries these changes (a per-frame hook that
+auto-warps to the editor's scene and logs state). Unlike SoH/2Ship, PJ64 isn't a submodule — the
+delta is kept as source files in `pj64/` (GPLv2), overlaid onto an upstream Project64 `develop`
+checkout. The editor + SoH/2Ship playtest work without it; PJ64 is only the vanilla-N64 path.
+
+(Historical note: earlier the PJ64 path just launched a stock, already-installed Project64 with an
+injected ROM — no fork. That's no longer the case.)
