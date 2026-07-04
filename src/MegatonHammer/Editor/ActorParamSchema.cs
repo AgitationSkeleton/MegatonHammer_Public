@@ -850,6 +850,48 @@ public static class ActorParamSchema
                       Flag: FlagKind.Switch, Role: FlagRole.Reader),
             new Field("Type", 8, 8, FieldKind.Int, "Which pillar (0 = the tallest)"),
         ]),
+
+        // En_GirlA (0x0004) shop shelf item — z_en_girla.h EnGirlAShopItem: item=params (0x00–0x31). Shown/sold via En_Ossan.
+        [0x0004] = new Def("Shop Item Slot (En_GirlA)", [
+            new Field("Item for sale", 0, 8, FieldKind.Enum, "Which item this shop shelf slot sells",
+                      ["Deku Nuts (5)", "Arrows (30)", "Arrows (50)", "Bombs (5) — 25r", "Deku Nuts (10)", "Deku Stick",
+                       "Bombs (10)", "Fish", "Red Potion — 30r", "Green Potion", "Blue Potion", "Kokiri Sword", "Hylian Shield",
+                       "Deku Shield", "Goron Tunic", "Zora Tunic", "Recovery Heart", "Milk", "Weird Egg", "Item 19", "Item 20",
+                       "Bombchu (10)", "Bombchu (20)", "Bombchu (20) b", "Bombchu (10) b", "Bombchu (10) c", "Bombchu (20) c",
+                       "Bombchu (20) d", "Bombchu (10) d", "Deku Seeds (30)", "Keaton Mask", "Spooky Mask", "Skull Mask",
+                       "Bunny Hood", "Mask of Truth", "Zora Mask", "Goron Mask", "Gerudo Mask", "Sold Out", "Blue Fire", "Bugs",
+                       "Big Poe", "Poe", "Fairy", "Arrows (10)", "Bombs (20)", "Bombs (30)", "Bombs (5) — 35r", "Red Potion — 40r",
+                       "Red Potion — 50r"]),
+        ], "A single shop shelf slot; the shopkeeper (En_Ossan) drives the actual buying."),
+
+        // En_River_Sound (0x003B) ambient sound emitter — z_en_river_sound.c: soundId=params&0xFF, path=(params>>8)&0xFF.
+        [0x003B] = new Def("Ambient Sound (En_River_Sound)", [
+            new Field("Sound id", 0, 8, FieldKind.Int, "Which looping ambient sound (river, waterfall, lava, crowd, crackle… 0–255)"),
+            new Field("Path", 8, 8, FieldKind.Int, "Path it trails along (Saria's-Song variants only) (0–254)"),
+        ]),
+
+        // Bg_Haka_Sgami (0x00B1) spinning scythe trap — z_bg_haka_sgami.c: mode=(params>>8)&0xFF (HIGH byte), blade=params&0xFF.
+        [0x00B1] = new Def("Scythe Trap (Bg_Haka_Sgami)", [
+            new Field("Mode", 8, 8, FieldKind.Enum, "Where/how it spins", ["Shadow Temple", "Shadow Temple (invisible)", "Ice Cavern"]),
+            new Field("Blade length", 0, 8, FieldKind.Int, "Blade reach / vertex data (0–255)"),
+        ]),
+
+        // Bg_Spot00_Hanebasi (0x004A) Hyrule Castle drawbridge — z_bg_spot00_hanebasi.c: whole params signed (Drawbridge -1 / chains 0,1).
+        [0x004A] = new Def("Drawbridge (Bg_Spot00_Hanebasi)", [
+            new Field("Part", 0, 16, FieldKind.Enum, "Place the Drawbridge; it spawns its own chains",
+                      ["Drawbridge", "Chain 1 (internal)", "Chain 2 (internal)"], EnumBase: -1),
+        ]),
+
+        // En_Jj (0x005A) Lord Jabu-Jabu — z_en_jj.h: whole params signed (Main -1 / collisions 0,1).
+        [0x005A] = new Def("Lord Jabu-Jabu (En_Jj)", [
+            new Field("Part", 0, 16, FieldKind.Enum, "Place Main; the collision parts spawn as its children",
+                      ["Main (head + body)", "Body collision (internal)", "Screen collision (internal)"], EnumBase: -1),
+        ]),
+
+        // Bg_Spot18_Obj (0x00B9) Goron City object/statue — z_bg_spot18_obj.c: type=params&0xF.
+        [0x00B9] = new Def("Goron Statue / Object (Bg_Spot18_Obj)", [
+            new Field("Type", 0, 4, FieldKind.Int, "Which Goron-City prop/statue (scale + collision by index) (0–15)"),
+        ]),
     };
 
     // MM actor ids differ from OoT and its switch flags are 7 bits (0–127). Layouts taken verbatim
@@ -905,6 +947,21 @@ public static class ActorParamSchema
         [0x00A0] = new Def("Block Stopper (Obj_Blockstop)", [
             new Field("Switch flag", 0, 7, FieldKind.Int, "Set while a pushable block rests in this spot — wire it to a gate (0–127)",
                       Flag: FlagKind.Switch, Role: FlagRole.Both),
+        ]),
+
+        // Obj_Kibako (MM 0x081) wooden crate — z_obj_kibako.h: dropId=params&0x3F, collectibleFlag=(params>>8)&0x7F, bank=(params>>15)&1.
+        [0x0081] = new Def("Wooden Crate (Obj_Kibako)", [
+            new Field("Drop", 0, 6, FieldKind.Int, "What it drops when smashed (Item00 drop id)"),
+            new Field("Object set", 15, 1, FieldKind.Int, "Which crate model/object bank (0–1)"),
+            new Field("Collectible flag", 8, 7, FieldKind.Int, "Flag tracking this drop as collected (0–127)",
+                      Flag: FlagKind.Collectible, Role: FlagRole.Both),
+        ]),
+
+        // En_Tubo_Trap (MM 0x08D) flying-pot trap — z_en_tubo_trap.c: collectibleFlag=params&0x7F, dropId=(params>>8)&0x3F.
+        [0x008D] = new Def("Flying Pot Trap (En_Tubo_Trap)", [
+            new Field("Drop", 8, 6, FieldKind.Int, "What it drops when it shatters (Item00 drop id)"),
+            new Field("Collectible flag", 0, 7, FieldKind.Int, "Flag tracking this drop as collected (0–127)",
+                      Flag: FlagKind.Collectible, Role: FlagRole.Setter),
         ]),
 
         // Bg_Ladder (MM 0x163) — the placeable wooden ladder. size = params & 0xFF (rung count → model +
