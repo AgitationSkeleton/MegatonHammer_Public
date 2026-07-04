@@ -23,7 +23,7 @@ public static class RoomExporter
 
         // Object-dependency list (0x0B): the distinct objects this room's actors need, so they load
         // and spawn in-game (without it, any actor not in gameplay_keep silently fails / crashes).
-        var objIds = ObjectIdsFor(actors, objResolver);
+        var objIds = ObjectIdsFor(actors, objResolver, mm);
         bool hasObjects = objIds.Count > 0;
 
         // ── Pass 1: compute fixed-layout offsets ──────────────────────────
@@ -110,7 +110,7 @@ public static class RoomExporter
             w.WriteS16(MmRot(a.XRot, mm, a.IdFlags, 0x4000));
             w.WriteS16(MmRot(a.YRot, mm, a.IdFlags, 0x8000));
             w.WriteS16(MmRot(a.ZRot, mm, a.IdFlags, 0x2000));
-            w.WriteU16(a.Variable);
+            w.WriteU16(ActorExportFix.Variable(mm, a.Number, a.Variable));
         }
 
         // ── MeshHeader (type 0, 12 bytes) ─────────────────────────────────
@@ -147,13 +147,16 @@ public static class RoomExporter
 
     // Distinct object ids the room's actors require (excludes those the resolver maps to null — e.g.
     // gameplay_keep actors, or actors with no object). Capped at 255 (the 0x0B count is a u8).
-    private static List<ushort> ObjectIdsFor(IReadOnlyList<ZActor> actors, Func<ushort, ushort?>? objResolver)
+    private static List<ushort> ObjectIdsFor(IReadOnlyList<ZActor> actors, Func<ushort, ushort?>? objResolver, bool mm = false)
     {
         if (objResolver == null) return [];
         var ids = new List<ushort>();
+        void Add(ushort id) { if (id != 0 && !ids.Contains(id) && ids.Count < 255) ids.Add(id); }
         foreach (var a in actors)
-            if (objResolver(a.Number) is { } id && !ids.Contains(id))
-            { ids.Add(id); if (ids.Count >= 255) break; }
+        {
+            if (objResolver(a.Number) is { } id) Add(id);
+            Add(ActorExportFix.ExtraRoomObject(mm, a.Number));   // spawn fix-ups (e.g. force the pot onto OBJECT_TSUBO)
+        }
         return ids;
     }
 
@@ -174,7 +177,7 @@ public static class RoomExporter
         var lists = perSetupActors.Select(l => l.Where(a => !a.IsTransitionActor && !a.IsEditorOnly).ToList()).ToList();
 
         // Per-setup object ids (empty when no resolver → no 0x0B, identical to the pre-0x0B layout).
-        var objIdsPer = lists.Select(l => ObjectIdsFor(l, objResolver)).ToList();
+        var objIdsPer = lists.Select(l => ObjectIdsFor(l, objResolver, mm)).ToList();
 
         // Header command count: behavior,time,skybox,echo,mesh,actor + end = 7; +1 for the primary's 0x18;
         // +1 for any header that carries a 0x0B object list.

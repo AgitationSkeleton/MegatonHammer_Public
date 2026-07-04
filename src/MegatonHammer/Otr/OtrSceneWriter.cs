@@ -64,8 +64,13 @@ public static class OtrSceneWriter
         {
             if (a.IsTransitionActor || a.IsEditorOnly) continue;   // 0x0E door list / editor-only props aren't room actors
             string? objName = actorObjects.ObjectFor(a.Number);
-            if (objName != null && objectIds.IdOf(objName) is int id && id > 0)
+            // Global keeps (gameplay/field/dungeon keep) load via the scene's 0x07 command, not the room list —
+            // never emit them as room deps (a dungeon-keep actor in an overworld scene would otherwise list 0x0003).
+            if (objName != null && !objName.Contains("keep") && objectIds.IdOf(objName) is int id && id > 0)
                 ids.Add((ushort)id);
+            // Spawn fix-up: e.g. force the pot onto OBJECT_TSUBO so it loads in any scene (see ActorExportFix).
+            if (Export.ActorExportFix.ExtraRoomObject(mm, a.Number) is var eo && eo != 0)
+                ids.Add(eo);
         }
         return ids.ToList();
     }
@@ -345,7 +350,7 @@ public static class OtrSceneWriter
                 {
                     w.S16(a.XRot); w.S16(a.YRot); w.S16(a.ZRot);
                 }
-                w.U16(a.Variable);
+                w.U16(Export.ActorExportFix.Variable(mm, a.Number, a.Variable));
             }
         });
 
