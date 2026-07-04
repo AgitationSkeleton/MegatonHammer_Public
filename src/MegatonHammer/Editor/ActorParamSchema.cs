@@ -700,6 +700,12 @@ public static class ActorParamSchema
                       Flag: FlagKind.Collectible, Role: FlagRole.Both),
         ]),
 
+        // Obj_Bombiwa (MM 0x092) bombable boulder — z_obj_bombiwa.h: switchFlag=params&0x7F (reads to stay gone, sets on destroy).
+        [0x0092] = new Def("Bombable Boulder (Obj_Bombiwa)", [
+            new Field("Switch flag", 0, 7, FieldKind.Int, "Set when bombed so it stays destroyed; wire a gate to it to open a path (0–127)",
+                      Flag: FlagKind.Switch, Role: FlagRole.Both),
+        ], "Bomb it to clear the way; it sets its switch flag on destruction (so it stays gone and can trigger a gate)."),
+
         // Bg_Ladder (MM 0x163) — the placeable wooden ladder. size = params & 0xFF (rung count → model +
         // its own climbable dynapoly collision); appear switch flag = (params>>8)&0xFF (z_bg_ladder.h).
         [0x0163] = new Def("Ladder (Bg_Ladder)", [
