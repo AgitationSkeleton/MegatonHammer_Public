@@ -151,7 +151,7 @@ public sealed class MainForm : Form, IMessageFilter
             vp.GridSize = _gridSize;
             vp.Textures = _textureLib;
             vp.ActorDoubleClicked += OpenEntityConfig;
-            vp.SolidDoubleClicked += OpenSolidProperties;   // double-click a brush → warp/brush properties pop-out
+            vp.SolidDoubleClicked += OpenSolidProperties;   // double-click a brush → Brush Properties pop-out (full inspector)
             vp.RedrawAllRequested += RedrawAll;             // clip tool: a 2D drag refreshes the 3D cut preview
             // Double-click a path waypoint → OPEN ITS PROPERTIES (what it is + the MM path-header fields),
             // like double-clicking any other billboard entity — NOT auto-switch to the vertex tool (which was
@@ -1672,7 +1672,7 @@ public sealed class MainForm : Form, IMessageFilter
         if (moveItem.DropDownItems.Count == 0) moveItem.Enabled = false;   // no rooms → grayed out
         menu.Items.Add(moveItem);
         menu.Items.Add(new ToolStripSeparator());
-        // Properties…: an actor opens its config; a brush opens the warp/brush pop-out (see where a warp goes).
+        // Properties…: an actor opens its config; a brush opens the full Brush Properties pop-out.
         menu.Items.Add(MI("Properties…", "",
             () =>
             {
@@ -3063,28 +3063,31 @@ public sealed class MainForm : Form, IMessageFilter
         dlg.Show(this);
     }
 
-    private WarpPropertiesDialog? _warpDlg;
+    private BrushPropertiesDialog? _brushDlg;
 
-    // Double-click a brush (or 2D right-click → Properties on a selected brush): open the warp/brush
-    // properties pop-out so the author can see/change where a warp trigger sends the player. Modeless +
-    // reopen-in-place, matching the actor config window.
+    // Double-click a brush (or 2D right-click → Properties on a selected brush): open the Brush Properties
+    // pop-out — a floating copy of the docked inspector, so the author gets the FULL brush property set (warp
+    // + destination, floor property, floor hazard, wall type, material, conveyor, water, raw words), not just
+    // the warp fields. Modeless + reopen-in-place, matching the actor config window.
     private void OpenSolidProperties(Editor.Solid solid)
     {
         _document.ClearSelection();
         solid.IsSelected = true;
         _document.RecordUndo();
-        Point? loc = _warpDlg is { IsDisposed: false } ? _warpDlg.Location : null;
-        _warpDlg?.Close();
-        var dlg = new WarpPropertiesDialog(solid, _config.IsOoTBased);
-        dlg.Changed += () => { _propertiesPanel.ForceRefresh(); foreach (var vp in AllViewports()) vp.RequestRedraw(); UpdateStatus(); };
+        if (_brushDlg is { IsDisposed: false })   // already open → just refocus it on the newly-clicked brush
+        {
+            _document.NotifyChanged();
+            _brushDlg.Activate();
+            return;
+        }
+        var dlg = new BrushPropertiesDialog(_document, _actorDb, _config.IsOoTBased);
         dlg.FormClosed += (_, _) =>
         {
-            if (_warpDlg == dlg) _warpDlg = null;
+            if (_brushDlg == dlg) _brushDlg = null;
             _propertiesPanel.ForceRefresh();
             foreach (var vp in AllViewports()) vp.RequestRedraw();
         };
-        if (loc is { } l) { dlg.StartPosition = FormStartPosition.Manual; dlg.Location = l; }
-        _warpDlg = dlg;
+        _brushDlg = dlg;
         dlg.Show(this);
     }
 

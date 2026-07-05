@@ -831,6 +831,15 @@ public sealed class PropertiesPanel : UserControl
         return info != null ? info.Name : $"Actor 0x{id:X4}";
     }
 
+    // Unsubscribe from the document on dispose — a PropertiesPanel can be embedded in a pop-out (Brush
+    // Properties dialog) as a SECOND panel; without this its OnDocChanged delegate keeps it alive (leak) and
+    // fires after the dialog closes.
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _doc.Changed -= OnDocChanged;
+        base.Dispose(disposing);
+    }
+
     /// <summary>Forces a full rebuild (e.g. after load or active-room change). DEFERRED via BeginInvoke: the
     /// surface/collision combos call this from their own SelectedIndexChanged, and Rebuild disposes every panel
     /// control — disposing the combo synchronously from inside its own event (while its dropdown is still
