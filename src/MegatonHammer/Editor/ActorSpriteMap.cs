@@ -34,6 +34,7 @@ public static class ActorSpriteMap
         // so a logic/effect actor reads as what it does (the user's "matching sprite" request).
         [0x0016] = Bow,          // En_Arrow
         [0x0032] = Boomerang,    // En_Boom
+        [0x0066] = Hookshot,     // Arms_Hook — the fired hook/chain (borrows OBJECT_LINK_BOY, so a model = crumpled Link)
         [0x009E] = FaroresWind,  // Farore's Wind
         [0x009F] = DinsFire,     // Din's Fire
         [0x00F4] = NayrusLove,   // Nayru's Love

@@ -34,6 +34,8 @@ public sealed class ActorModelResolver
     {
         0x004F, // En_OE2 — "Blue Navi Lock-on Target Spot": empty Draw, uses object_oE2 but never draws it
                 //          (the REAL Nabooru NPC is En_Nb 0x00C3, handled separately).
+        0x0066, // Arms_Hook — the fired hookshot hook/chain. InitVars object is OBJECT_LINK_BOY (it's part of
+                //          Link firing), so auto-detect renders Link's skeleton crumpled. Show the Hookshot icon.
     };
     private readonly ActorScaleTable _actorScales;
     private readonly ActorIdleAnimTable _idleAnims;
