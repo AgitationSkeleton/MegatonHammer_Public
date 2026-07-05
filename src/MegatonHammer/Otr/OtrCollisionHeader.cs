@@ -94,10 +94,15 @@ public static class OtrCollisionHeader
                 // BLOCKPROJECTILE / NODRAW remain fully solid (blocks all). WATERBOX handled above.
                 var kind = SpecialTextures.Classify(face.TextureName);
                 int ignore = kind.HasFlag(SpecialKind.PlayerClip) ? IgnoreProjectiles | IgnoreCamera : 0;
-                // #7: a void/lava face gets its own surface type (void-out/soft-void FloorProperty, lava
-                // Material); otherwise the poly's type IS the exit index.
+                // The brush's authored SurfaceType (Floor property, Floor HAZARD = lava/damage, Wall type,
+                // Footstep material, conveyor, hookshot/soft/horse — SurfaceData0/1 from the properties panel),
+                // OR'd with any special-texture bits on this face (void/climbable/etc). This was DROPPED on the
+                // OTR path — only the N64 CollisionBuilder honoured SurfaceData0/1 — so a lava/damage/void floor
+                // or climbable wall did nothing in SoH/2Ship. Deduplicated into the surface-type table.
+                uint sd0 = solid.SurfaceData0, sd1 = solid.SurfaceData1;
                 var surfBits = SpecialTextures.SurfaceBits(face.TextureName);
-                int polyType = surfBits is { } sb2 ? CustomSurfaceType(sb2.data0, sb2.data1) : exitIdx;
+                if (surfBits is { } sb2) { sd0 |= sb2.data0; sd1 |= sb2.data1; }
+                int polyType = (sd0 != 0 || sd1 != 0) ? CustomSurfaceType(sd0, sd1) : exitIdx;
 
                 Vector3 n = face.Plane.Normal;
                 short nx = (short)MathF.Round(n.X * 32767f);

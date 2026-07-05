@@ -685,6 +685,32 @@ static class Program
             return;
         }
 
+        // Verify the OTR/SoH collision export carries a brush's authored SurfaceData0 (e.g. a lava Floor hazard).
+        // MegatonHammer --otrcolltest
+        if (args.Length >= 1 && args[0] == "--otrcolltest")
+        {
+            int fails = 0;
+            void Chk(bool ok, string m) { if (!ok) { Console.WriteLine($"[otrcolltest] {m} => FAIL"); fails++; } }
+            var scene = new Editor.ZScene("t");
+            var box = Editor.Solid.CreateBox(new OpenTK.Mathematics.Vector3(-64, -8, -64), new OpenTK.Mathematics.Vector3(64, 8, 64));
+            uint lava = (uint)(4 << 13);   // FloorType 4 = lava/fire (SurfaceType.WithFloorType)
+            box.SurfaceData0 = lava;
+            scene.Rooms[0].Geometry.Add(box);
+            byte[] col = Otr.OtrCollisionHeader.Build(scene, null);
+            // The surface-type table stores each entry as (data1:u32, data0:u32); scan for our data0 = 0x00008000
+            // in either byte order.
+            bool found = false;
+            for (int i = 0; i + 4 <= col.Length; i++)
+            {
+                uint beVal = (uint)(col[i] << 24 | col[i + 1] << 16 | col[i + 2] << 8 | col[i + 3]);
+                uint leVal = (uint)(col[i + 3] << 24 | col[i + 2] << 16 | col[i + 1] << 8 | col[i]);
+                if (beVal == lava || leVal == lava) { found = true; break; }
+            }
+            Chk(found, $"lava FloorType (0x{lava:X8}) present in exported OTR collision surface types");
+            Console.WriteLine($"[otrcolltest] {(fails == 0 ? "ALL PASS — brush SurfaceData0 reaches SoH collision" : fails + " FAIL(s)")}");
+            return;
+        }
+
         // Measure the world-space size of freestanding En_Item00 models (rupee vs heart) so the editor preview
         // scales can be tuned to match. MegatonHammer --itemscale
         if (args.Length >= 1 && args[0] == "--itemscale")
