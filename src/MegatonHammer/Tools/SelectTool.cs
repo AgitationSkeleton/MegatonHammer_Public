@@ -83,6 +83,11 @@ public sealed class SelectTool : ITool
     private float   _decalStartH, _decalStartV;   // ortho grab point (move delta)
     private Vector3 _decalStartPos;               // decal position at grab
 
+    // ── Active decal move in the 3D view ──────────────────────────────────
+    private Decal?  _dragDecal3D;         // decal being slid along its own plane in the 3D view
+    private Vector3 _decal3DGrabOffset;   // (rayHit - Position) at grab, so the decal follows the cursor
+    private Vector3 _decal3DPlanePoint;   // a fixed point on the decal's plane (its position at grab)
+
     public SelectTool(MapDocument doc) { _doc = doc; }
 
     public bool IsResizing => _resizing || _rotating || _skewing;
@@ -115,7 +120,25 @@ public sealed class SelectTool : ITool
                 return;
             }
 
-            if (Picking.PickFace(_doc.Scene, ray, out var hit))
+            bool haveFace = Picking.PickFace(_doc.Scene, ray, out var hit);
+            // Decal (sticker overlay) pick — a decal floats on top of its wall, so it wins when the ray hits it
+            // nearer than the surface behind. Lets you click the sticker in the 3D view and drag to slide it
+            // along its plane; resize via the corner handles in the face-on 2D view (same as a brush).
+            bool haveDecal = Picking.PickDecal(_doc.VisibleDecals, ray, out var pd3, out var pdPoint, out var pdDist);
+            if (haveDecal && (!haveFace || pdDist <= hit.Distance + 0.5f))
+            {
+                if (add3d) pd3.IsSelected = !pd3.IsSelected;
+                else if (!pd3.IsSelected) { _doc.ClearSelection(); pd3.IsSelected = true; }
+                if (pd3.IsSelected)
+                {
+                    _dragDecal3D = pd3; _decal3DGrabOffset = pdPoint - pd3.Position;
+                    _decal3DPlanePoint = pd3.Position; _dragVp = vp; _undoRecorded = false;
+                }
+                _doc.NotifyChanged();
+                return;
+            }
+
+            if (haveFace)
             {
                 FaceClickedTexture?.Invoke(hit.Face.TextureName);   // #1: feed the Replace Textures "Find" field
                 if (add3d) hit.Solid.IsSelected = !hit.Solid.IsSelected;
@@ -271,6 +294,26 @@ public sealed class SelectTool : ITool
     {
         if (vp != _dragVp) return;
         if (_moving3D) { Apply3DMove(vp, e.X, e.Y); return; }
+        // 3D decal slide: intersect the cursor ray with the decal's (fixed) plane and keep the grab offset.
+        if (_dragDecal3D != null && vp.ViewportType == ViewportType.Perspective3D)
+        {
+            var cam3 = vp.ActiveCamera3D;
+            if (cam3 == null) return;
+            var ray = Picking.RayFromScreen(cam3, e.X, e.Y, vp.Width, vp.Height);
+            var n = _dragDecal3D.Normal.LengthSquared > 1e-6f ? Vector3.Normalize(_dragDecal3D.Normal) : Vector3.UnitY;
+            float denom = Vector3.Dot(ray.Direction, n);
+            if (MathF.Abs(denom) > 1e-5f)
+            {
+                float t = Vector3.Dot(_decal3DPlanePoint - ray.Origin, n) / denom;
+                if (t > 0f)
+                {
+                    RecordUndoOnce();
+                    _dragDecal3D.Position = ray.Origin + ray.Direction * t - _decal3DGrabOffset;
+                    _moved = true; _doc.NotifyChanged(); vp.Invalidate();
+                }
+            }
+            return;
+        }
         var cam = vp.ActiveCamera2D!;
         var (oh, ov) = ScreenToOrtho(e.X, e.Y, vp.Width, vp.Height, cam);
 
@@ -360,6 +403,12 @@ public sealed class SelectTool : ITool
         if (_dragDecal != null)
         {
             _dragDecal = null; _dragVp = null; _moved = false;
+            _doc.NotifyChanged(); vp.Invalidate();
+            return;
+        }
+        if (_dragDecal3D != null)
+        {
+            _dragDecal3D = null; _dragVp = null; _moved = false; _undoRecorded = false;
             _doc.NotifyChanged(); vp.Invalidate();
             return;
         }

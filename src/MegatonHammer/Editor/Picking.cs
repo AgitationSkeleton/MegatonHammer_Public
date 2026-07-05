@@ -46,6 +46,20 @@ public static class Picking
     /// Picks the closest solid face hit by the ray across all rooms in the scene.
     /// Returns false if nothing is hit.
     /// </summary>
+    /// <summary>Ray-picks the nearest decal quad (sticker overlay) under the ray, so decals can be
+    /// clicked/selected in the 3D view like a brush. Tests both triangles of each decal's world quad.</summary>
+    public static bool PickDecal(IEnumerable<Decal> decals, Ray ray, out Decal hit, out Vector3 point, out float dist)
+    {
+        hit = null!; point = default; dist = float.MaxValue; bool found = false;
+        foreach (var d in decals)
+        {
+            var c = d.Corners();   // BL, BR, TR, TL
+            if ((RayTriangle(ray, c[0], c[1], c[2], out float t) || RayTriangle(ray, c[0], c[2], c[3], out t)) && t < dist)
+            { dist = t; hit = d; point = ray.Origin + ray.Direction * t; found = true; }
+        }
+        return found;
+    }
+
     public static bool PickFace(ZScene scene, Ray ray, out FaceHit hit)
     {
         hit = default;
