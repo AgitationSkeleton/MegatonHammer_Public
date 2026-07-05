@@ -92,7 +92,11 @@ public sealed class PlaytestDialog : Form
         {
             Left = 24, Top = y, Width = 482, DropDownStyle = ComboBoxStyle.DropDownList,
             BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 8.5f),
-            MaxDropDownItems = 24, Enabled = false,
+            MaxDropDownItems = 24,
+            // Match the (possibly persisted) default mode: CheckedChanged only fires on a TOGGLE, so if Replace
+            // is the remembered default the combo would otherwise stay greyed out until the user clicks
+            // Append→Replace. (The selected scene was still read on launch, but it looked ignored.)
+            Enabled = _replaceMode.Checked,
         };
         PopulateSceneCombo(mm);
         Controls.Add(_sceneCombo); y += 30;
