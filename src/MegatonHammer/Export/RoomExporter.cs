@@ -155,7 +155,7 @@ public static class RoomExporter
         foreach (var a in actors)
         {
             if (objResolver(a.Number) is { } id) Add(id);
-            Add(ActorExportFix.ExtraRoomObject(mm, a.Number));   // spawn fix-ups (e.g. force the pot onto OBJECT_TSUBO)
+            Add(ActorExportFix.ExtraRoomObject(mm, a.Number, a.Variable));   // spawn fix-ups (pot→OBJECT_TSUBO, heart→GI_HEART)
         }
         return ids;
     }

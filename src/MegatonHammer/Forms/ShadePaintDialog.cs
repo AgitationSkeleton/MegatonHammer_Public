@@ -19,6 +19,7 @@ public sealed class ShadePaintDialog : Form
     private readonly Panel   _swatch;
     private readonly TrackBar _size, _opacity;
     private readonly Label   _sizeVal, _opacityVal;
+    private readonly CheckBox _erase;
 
     public ShadePaintDialog(ShadePaintTool tool)
     {
@@ -27,8 +28,8 @@ public sealed class ShadePaintDialog : Form
         FormBorderStyle = FormBorderStyle.Sizable;
         StartPosition = FormStartPosition.Manual;
         MaximizeBox = false; MinimizeBox = false;
-        ClientSize = new Size(250, 250);
-        MinimumSize = new Size(230, 240);
+        ClientSize = new Size(252, 322);
+        MinimumSize = new Size(240, 320);
         BackColor = BgDark; ForeColor = FgNormal;
         Font = new Font("Segoe UI", 8.5f);
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
@@ -38,16 +39,21 @@ public sealed class ShadePaintDialog : Form
         int y = 12;
         Controls.Add(Header("SPRAY COLOUR", y)); y += 24;
 
-        _swatch = new Panel { Left = 14, Top = y, Width = 96, Height = 40, BorderStyle = BorderStyle.FixedSingle,
+        _swatch = new Panel { Left = 14, Top = y, Width = 92, Height = 46, BorderStyle = BorderStyle.FixedSingle,
             BackColor = ToColor(_tool.PaintColor), Cursor = Cursors.Hand };
         _swatch.Click += (_, _) => PickColour();
         Controls.Add(_swatch);
-        var pick = Btn("Pick…", 118, y, 60, 24, PickColour);
-        Controls.Add(pick);
-        // Quick presets: pure black (shadow) and white (highlight) — the common shade extremes.
-        Controls.Add(Btn("Black", 118, y + 26, 60, 18, () => SetColour(Vector3.Zero)));
-        Controls.Add(Btn("White", 182, y + 26, 52, 18, () => SetColour(Vector3.One)));
-        y += 54;
+        // Pick… spans the full width to the right of the swatch; Black/White presets sit on the row below it.
+        Controls.Add(Btn("Pick…", 116, y, 120, 22, PickColour));
+        Controls.Add(Btn("Black", 116, y + 26, 58, 20, () => SetColour(Vector3.Zero)));
+        Controls.Add(Btn("White", 178, y + 26, 58, 20, () => SetColour(Vector3.One)));
+        y += 56;
+
+        // Erase mode: drag to remove shade (blend vertices back to the face's base colour) instead of adding it.
+        _erase = new CheckBox { Left = 14, Top = y, Width = 224, Height = 20, ForeColor = FgNormal,
+            Text = "Erase (drag to remove shade)", FlatStyle = FlatStyle.Flat, Checked = _tool.Erase };
+        _erase.CheckedChanged += (_, _) => _tool.Erase = _erase.Checked;
+        Controls.Add(_erase); y += 26;
 
         Controls.Add(Header("BRUSH SIZE", y)); y += 22;
         _sizeVal = new Label { Left = 150, Top = y, Width = 90, Height = 16, ForeColor = FgNormal, TextAlign = ContentAlignment.MiddleRight };
@@ -61,10 +67,24 @@ public sealed class ShadePaintDialog : Form
         _opacity = new TrackBar { Left = 8, Top = y, Width = 150, Minimum = 1, Maximum = 100, TickFrequency = 20,
             Value = (int)Math.Clamp(_tool.Opacity * 100f, 1, 100), AutoSize = false, Height = 30 };
         _opacity.ValueChanged += (_, _) => { _tool.Opacity = _opacity.Value / 100f; _opacityVal.Text = $"{_opacity.Value}%"; };
-        Controls.Add(_opacity); Controls.Add(_opacityVal); _opacityVal.Text = $"{_opacity.Value}%"; y += 34;
+        Controls.Add(_opacity); Controls.Add(_opacityVal); _opacityVal.Text = $"{_opacity.Value}%"; y += 36;
+
+        // Quick "remove all paint" — clears sprayed shade from the selection (if any solids are selected) or the
+        // whole scene, in one undo step.
+        var clear = Btn("Remove all paint", 14, y, 222, 24, RemoveAllPaint);
+        Controls.Add(clear); y += 30;
 
         Controls.Add(new Label { Left = 14, Top = y, Width = 224, Height = 30, ForeColor = Color.FromArgb(150, 150, 150),
             Font = new Font("Segoe UI", 7.5f), Text = "Drag over brush faces in the 3D view to spray shade into their vertices." });
+    }
+
+    private void RemoveAllPaint()
+    {
+        bool sel = _tool.HasSelection;
+        int n = _tool.ClearPaint(selectionOnly: sel);
+        if (n == 0)
+            MessageBox.Show(this, "No sprayed shade to remove.", "Shade Paint",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     // Remembered across open/close for the session (the sheet is recreated each time the Shade tool is

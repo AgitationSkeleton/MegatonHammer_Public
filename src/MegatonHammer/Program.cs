@@ -654,6 +654,78 @@ static class Program
             return;
         }
 
+        // Slice a PAINTED brush headlessly and verify the halves are valid + no face carries a shade grid /
+        // VertexColors array whose size mismatches its (reshaped) geometry. MegatonHammer --slicetest
+        if (args.Length >= 1 && args[0] == "--slicetest")
+        {
+            int fails = 0;
+            void Chk(bool ok, string m) { if (!ok) { Console.WriteLine($"[slicetest] {m} => FAIL"); fails++; } }
+            var box = Editor.Solid.CreateBox(new OpenTK.Mathematics.Vector3(-64, -64, -64), new OpenTK.Mathematics.Vector3(64, 64, 64));
+            // Paint every quad face: a parametric ShadeGrid + a matching VertexColors fallback.
+            foreach (var f in box.Faces)
+            {
+                if (f.Vertices.Count == 4)
+                    f.ShadePaint = new Editor.SolidFace.ShadeGrid { Nu = 3, Nv = 3,
+                        Colors = Enumerable.Repeat(OpenTK.Mathematics.Vector3.Zero, 16).ToArray() };
+                f.VertexColors = Enumerable.Repeat(OpenTK.Mathematics.Vector3.Zero, f.Vertices.Count).ToArray();
+            }
+            // Cut on an angled plane so at least one quad is trimmed to a non-quad (the reshape case).
+            var n = OpenTK.Mathematics.Vector3.Normalize(new OpenTK.Mathematics.Vector3(1, 0, 0.35f));
+            var (front, back) = box.Split(new Editor.Plane3D(n, 10f));
+            Chk(front != null && back != null, "angled cut yields both halves");
+            foreach (var half in new[] { front, back })
+            {
+                if (half == null) continue;
+                foreach (var f in half.Faces)
+                {
+                    Chk(f.VertexColors == null || f.VertexColors.Length == f.Vertices.Count,
+                        $"VertexColors[{f.VertexColors?.Length}] matches {f.Vertices.Count}-vert face");
+                    Chk(f.ShadePaint == null || (f.Vertices.Count == 4 && f.ShadePaint.Colors.Length == (f.ShadePaint.Nu + 1) * (f.ShadePaint.Nv + 1)),
+                        $"ShadePaint only on quad faces with a well-sized grid ({f.Vertices.Count} verts)");
+                }
+            }
+            Console.WriteLine($"[slicetest] {(fails == 0 ? "ALL PASS" : fails + " FAIL(s)")}");
+            return;
+        }
+
+        // Reproduce editor crashes when opening an actor's Entity Configuration sheet, headlessly: build the
+        // EntityConfigDialog for every curated actor across a spread of variable values and report any that
+        // throw. A hard crash (StackOverflow) will terminate this process on the offending actor — the last
+        // "[configtest] building …" line printed before death names it. MegatonHammer --configtest
+        if (args.Length >= 1 && args[0] == "--configtest")
+        {
+            int fails = 0;
+            var th = new System.Threading.Thread(() =>
+            {
+                ApplicationConfiguration.Initialize();
+                foreach (bool oot in new[] { true, false })
+                {
+                    string tag = oot ? "OoT" : "MM";
+                    var db = Editor.ActorDatabase.Load(oot);
+                    foreach (var info in db.All)
+                    {
+                        ushort id = info.Id;
+                        foreach (ushort v in new ushort[] { 0x0000, 0x00FF, 0x1234, 0xFFFF })
+                        {
+                            Console.WriteLine($"[configtest] building {tag} 0x{id:X4} var=0x{v:X4}");
+                            Console.Out.Flush();
+                            var actor = new Editor.ZActor { Number = id, Variable = v };
+                            try { using var dlg = new Forms.EntityConfigDialog(actor, db, oot, null); }
+                            catch (Exception ex)
+                            {
+                                fails++;
+                                Console.WriteLine($"[configtest] {tag} 0x{id:X4} var=0x{v:X4} THREW {ex.GetType().Name}: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+                Console.WriteLine($"[configtest] {(fails == 0 ? "ALL PASS" : fails + " threw")}");
+            });
+            th.SetApartmentState(System.Threading.ApartmentState.STA);
+            th.Start(); th.Join();
+            return;
+        }
+
         // Verify the Dungeon Mechanism presets emit correct, vanilla, wired actor data: MegatonHammer --presettest
         if (args.Length >= 1 && args[0] == "--presettest")
         {
@@ -1204,6 +1276,14 @@ static class Program
             System.Windows.Forms.Application.EnableVisualStyles();
             try { SelfTest.RenderHarness.Run(args); }
             catch (Exception ex) { Console.WriteLine($"[renderlevel] EXCEPTION: {ex}"); }
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--renderproj")
+        {
+            System.Windows.Forms.Application.EnableVisualStyles();
+            try { SelfTest.RenderHarness.RenderProj(args); }
+            catch (Exception ex) { Console.WriteLine($"[renderproj] EXCEPTION: {ex}"); }
             return;
         }
 

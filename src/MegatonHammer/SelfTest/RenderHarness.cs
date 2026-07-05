@@ -371,6 +371,39 @@ public static class RenderHarness
         finally { form.Controls.Remove(vp); vp.Dispose(); form.Hide(); }
     }
 
+    /// <summary>Loads a real .mhproj and renders it (actors + item/pot/grass preview holograms) to a PNG.
+    /// Reproduces interactive-viewport crashes headlessly. Run: MegatonHammer --renderproj &lt;file.mhproj&gt; [out.png]</summary>
+    public static void RenderProj(string[] args)
+    {
+        if (args.Length < 2) { Console.WriteLine("usage: --renderproj <file.mhproj> [out.png]"); return; }
+        string projPath = args[1];
+        string outPath = args.Length >= 3 ? args[2] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out\projrender.png");
+        Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+
+        using var form = new Form { FormBorderStyle = FormBorderStyle.None, ShowInTaskbar = false,
+            StartPosition = FormStartPosition.Manual, Location = new Point(-4000, -4000), Size = new Size(64, 64) };
+        form.Show(); Application.DoEvents();
+        var doc = new MapDocument();
+        ProjectSerializer.Load(doc, projPath);
+        Console.WriteLine($"loaded '{projPath}': {doc.Scene.Rooms.Count} room(s), {doc.Scene.Rooms.Sum(r => r.Actors.Count)} actor(s)");
+        var vp = new GLViewport(ViewportType.Perspective3D);
+        form.Controls.Add(vp); Application.DoEvents();
+        try
+        {
+            vp.Document = doc;
+            // Bounds from actors + geometry so the camera frames the scene.
+            var pts = doc.Scene.Rooms.SelectMany(r => r.Actors.Select(a => new Vector3(a.XPos, a.YPos, a.ZPos))).ToList();
+            var center = pts.Count > 0 ? pts.Aggregate(Vector3.Zero, (s, p) => s + p) / pts.Count : Vector3.Zero;
+            float radius = pts.Count > 0 ? MathF.Max(200f, pts.Max(p => (p - center).Length)) : 400f;
+            Console.WriteLine("rendering… (a native GL crash here reproduces the editor crash)");
+            Console.Out.Flush();
+            var img = vp.RenderToImage(Cam(center, radius, -45f, -30f, 40f), 1200, 900, showActors: true, Color.FromArgb(20, 20, 28));
+            if (img != null) { img.Save(outPath); img.Dispose(); Console.WriteLine($"wrote {outPath} — NO crash"); }
+            else Console.WriteLine("RenderToImage returned null");
+        }
+        finally { form.Controls.Remove(vp); vp.Dispose(); form.Hide(); }
+    }
+
     /// <summary>Dump the G_VTX loads (segment/offset/first vertex) for one room's mesh, to diagnose
     /// misplaced geometry. Run: MegatonHammer --roomdl [oot|mm] [sceneHex] [room]</summary>
     public static void RoomDl(string[] args)

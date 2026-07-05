@@ -86,10 +86,16 @@ public sealed class Solid
                 face.UAxis = o.UAxis; face.VAxis = o.VAxis;   // carry explicit texture axes (texture lock)
                 face.Color = o.Color;
                 // Carry the spray/shade paint too, else any recompute (transform, a covering brush, an export
-                // rebuild during playtest) silently wipes it. ShadePaint is parametric so it re-maps to the new
-                // geometry; VertexColors is only used when its length still matches (SolidFace guards this).
-                face.ShadePaint = o.ShadePaint;
-                face.VertexColors = o.VertexColors;
+                // rebuild during playtest) silently wipes it. But ONLY when the face keeps its vertex count: a
+                // CLIP (Solid.Split) reshapes the crossed faces (a quad becomes a tri/pentagon), and a stale
+                // grid/VertexColors sized for the old quad no longer matches the new geometry — carrying it
+                // caused the slice of a painted brush to render wrong / fail. On a plain transform the count is
+                // unchanged, so paint survives as before; on a clip the trimmed face just starts unpainted.
+                if (o.Vertices.Count == face.Vertices.Count)
+                {
+                    face.ShadePaint = o.ShadePaint;
+                    face.VertexColors = o.VertexColors;
+                }
             }
             Faces.Add(face);
         }

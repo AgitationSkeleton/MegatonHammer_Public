@@ -69,7 +69,7 @@ public static class OtrSceneWriter
             if (objName != null && !objName.Contains("keep") && objectIds.IdOf(objName) is int id && id > 0)
                 ids.Add((ushort)id);
             // Spawn fix-up: e.g. force the pot onto OBJECT_TSUBO so it loads in any scene (see ActorExportFix).
-            if (Export.ActorExportFix.ExtraRoomObject(mm, a.Number) is var eo && eo != 0)
+            if (Export.ActorExportFix.ExtraRoomObject(mm, a.Number, a.Variable) is var eo && eo != 0)
                 ids.Add(eo);
         }
         return ids.ToList();
