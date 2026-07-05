@@ -620,6 +620,13 @@ public sealed class EntityConfigDialog : Form
     private void ApplyField(ActorParamSchema.Field f, int value)
     {
         _actor.Variable = f.Set(_actor.Variable, value);
+        // Hammer-style multi-edit: apply the same field change to every OTHER selected actor of the SAME type
+        // (same schema), each keeping its own other param bits. Different-type actors have different params, so
+        // they're left alone. Single selection = just this actor.
+        if (_doc != null)
+            foreach (var a in _doc.AllActors)
+                if (a.IsSelected && !ReferenceEquals(a, _actor) && a.Number == _actor.Number)
+                    a.Variable = f.Set(a.Variable, value);
         _loading = true; _varBox.Text = $"0x{_actor.Variable:X4}"; _loading = false;
         SyncBits();
         SyncPresetSelection();   // does not rebuild logic, avoiding recursion

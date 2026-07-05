@@ -690,7 +690,25 @@ public sealed class MainForm : Form, IMessageFilter
     {
         _dirty = true;
         UpdateStatus();
+        SyncOpenEntityConfig();   // keep an open actor-config pop-out on the currently-selected actor
         // viewports redraw on next timer tick
+    }
+
+    // If the actor-config pop-out is open and the selection moves to a DIFFERENT actor (single-click, not just
+    // double-click), reopen it on that actor — matching Hammer, where the properties window follows selection.
+    // Deferred via BeginInvoke so we never rebuild the dialog from inside a selection-change event, and guarded
+    // by the tracked actor so OpenEntityConfig's own re-selection doesn't loop. (The Brush Properties pop-out
+    // already follows selection through its embedded PropertiesPanel.)
+    private void SyncOpenEntityConfig()
+    {
+        if (_entityDlg is not { IsDisposed: false }) return;
+        var a = _document.SelectedActor;
+        if (a == null || ReferenceEquals(a, _entityDlgActor) || !IsHandleCreated) return;
+        BeginInvoke((Action)(() =>
+        {
+            if (_entityDlg is { IsDisposed: false } && _document.SelectedActor is { } cur && !ReferenceEquals(cur, _entityDlgActor))
+                OpenEntityConfig(cur);
+        }));
     }
 
     // Right-clicking a texture opens this little dialog to make it scroll (animate) in the scene. Faces
@@ -3038,11 +3056,15 @@ public sealed class MainForm : Form, IMessageFilter
     }
 
     private EntityConfigDialog? _entityDlg;
+    private ZActor? _entityDlgActor;   // the actor the open config pop-out is bound to (for selection-follow sync)
 
     private void OpenEntityConfig(ZActor actor)
     {
-        _document.ClearSelection();
-        actor.IsSelected = true;
+        _entityDlgActor = actor;          // set BEFORE re-selecting so SyncOpenEntityConfig doesn't re-fire
+        // Preserve a multi-selection: if this actor is already part of one, keep the others selected so the
+        // config edits them all as a group (Hammer). Only collapse to a single selection when opening a fresh
+        // (unselected) actor.
+        if (!actor.IsSelected) { _document.ClearSelection(); actor.IsSelected = true; }
         _document.RecordUndo();           // one undo point for the whole edit session
         // #2: modeless + reopen-in-place — double-clicking another actor while the window is open refreshes
         // it to that actor, and it never blocks interacting with the 2D/3D views.
@@ -3054,7 +3076,7 @@ public sealed class MainForm : Form, IMessageFilter
         dlg.GoToActor += a => OpenEntityConfig(a);
         dlg.FormClosed += (_, _) =>
         {
-            if (_entityDlg == dlg) _entityDlg = null;
+            if (_entityDlg == dlg) { _entityDlg = null; _entityDlgActor = null; }
             _propertiesPanel.ForceRefresh();
             foreach (var vp in AllViewports()) vp.RequestRedraw();
         };
@@ -3071,8 +3093,9 @@ public sealed class MainForm : Form, IMessageFilter
     // the warp fields. Modeless + reopen-in-place, matching the actor config window.
     private void OpenSolidProperties(Editor.Solid solid)
     {
-        _document.ClearSelection();
-        solid.IsSelected = true;
+        // Preserve a multi-selection so Brush Properties edits them all as a group (Hammer); only collapse to a
+        // single selection when opening a fresh (unselected) brush.
+        if (!solid.IsSelected) { _document.ClearSelection(); solid.IsSelected = true; }
         _document.RecordUndo();
         if (_brushDlg is { IsDisposed: false })   // already open → just refocus it on the newly-clicked brush
         {

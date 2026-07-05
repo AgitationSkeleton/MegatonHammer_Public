@@ -211,6 +211,17 @@ public sealed class PropertiesPanel : UserControl
 
     // ── Brush / trigger inspector ──────────────────────────────────────────
 
+    // Hammer-style multi-edit: a brush-property change applies to EVERY selected brush, not just the one whose
+    // values the panel shows. When only one is selected it's just that brush. The panel shows the primary
+    // brush's current values (the setter still applies to all).
+    private System.Collections.Generic.List<Editor.Solid> EditSolids(Editor.Solid primary)
+    {
+        var sel = _doc.Solids.Where(s => s.IsSelected).ToList();
+        return sel.Count > 1 ? sel : new() { primary };
+    }
+    private void ForEachSolid(Editor.Solid primary, Action<Editor.Solid> f)
+    { foreach (var s in EditSolids(primary)) f(s); }
+
     private void BuildSolid(Editor.Solid solid)
     {
         AddHeader("BRUSH");
@@ -221,60 +232,63 @@ public sealed class PropertiesPanel : UserControl
         // A brush is a warp trigger via the IsTrigger flag OR a WARP tool-texture face; either exposes the
         // destination entrance so a WARP-painted brush is configurable without also toggling the flag.
         bool warpByTexture = Export.CollisionBuilder.IsWarpTrigger(solid) && !solid.IsTrigger;
+        // Header notes multi-edit when several brushes are selected.
+        if (EditSolids(solid).Count > 1)
+            AddReadonly("Editing", $"{EditSolids(solid).Count} selected brushes (changes apply to all)");
         AddCheck("Is warp trigger", () => solid.IsTrigger, v =>
         {
-            solid.IsTrigger = v;
-            if (v && solid.ExitEntrance < 0) solid.ExitEntrance = 0;
+            ForEachSolid(solid, s => { s.IsTrigger = v; if (v && s.ExitEntrance < 0) s.ExitEntrance = 0; });
             ForceRefresh();        // show/hide the destination field
             Bubble();
         });
         if (warpByTexture) AddReadonly("Trigger source", "WARP tool texture");
         if (solid.IsTrigger || warpByTexture)
             AddHex("Dest entrance", 4, () => solid.ExitEntrance < 0 ? 0 : solid.ExitEntrance,
-                   v => { solid.ExitEntrance = v; Bubble(); });
+                   v => { ForEachSolid(solid, s => s.ExitEntrance = v); Bubble(); });
 
         AddHeader("WATER");
-        AddCheck("Is water box", () => solid.IsWater, v => { solid.IsWater = v; ForceRefresh(); Bubble(); });
+        AddCheck("Is water box", () => solid.IsWater, v => { ForEachSolid(solid, s => s.IsWater = v); ForceRefresh(); Bubble(); });
         if (solid.IsWater)
-            AddInt("Water room (0x3F = all)", () => solid.WaterRoom, v => { solid.WaterRoom = Clamp(v, 0, 0x3F); Bubble(); });
+            AddInt("Water room (0x3F = all)", () => solid.WaterRoom, v => { ForEachSolid(solid, s => s.WaterRoom = Clamp(v, 0, 0x3F)); Bubble(); });
 
         // Solidity: a non-solid brush still renders but emits no collision (walk-through / fake wall).
         AddHeader("SOLIDITY");
         AddCheck("Non-solid (visual only — no collision)", () => solid.NoCollision,
-                 v => { solid.NoCollision = v; Bubble(); });
+                 v => { ForEachSolid(solid, s => s.NoCollision = v); Bubble(); });
 
         // Collision surface — Hammer-style individual fields, each mapping to the exact decomp SurfaceType
         // bits (so OoT/MM/SoH/2Ship behave identically). Quick presets + raw words remain below for power use.
+        // Every field applies to ALL selected brushes (multi-edit), each keeping its own other bits.
         AddHeader("COLLISION SURFACE");
         AddOptionCombo("Floor property", Editor.SurfaceType.FloorProperties,
             () => Editor.SurfaceType.FloorProperty(solid.SurfaceData0),
-            v => { solid.SurfaceData0 = Editor.SurfaceType.WithFloorProperty(solid.SurfaceData0, v); ForceRefresh(); Bubble(); });
+            v => { ForEachSolid(solid, s => s.SurfaceData0 = Editor.SurfaceType.WithFloorProperty(s.SurfaceData0, v)); ForceRefresh(); Bubble(); });
         // Hurt / lava floors: the FloorType field carries the vanilla contact-damage + fire hazards (see
         // SurfaceType.FloorHazards). Set this to make a brush's floor damage the player, like a lava pit.
         AddOptionCombo("Floor hazard (fire / damage)", Editor.SurfaceType.FloorHazards,
             () => Editor.SurfaceType.FloorType(solid.SurfaceData0),
-            v => { solid.SurfaceData0 = Editor.SurfaceType.WithFloorType(solid.SurfaceData0, v); ForceRefresh(); Bubble(); });
+            v => { ForEachSolid(solid, s => s.SurfaceData0 = Editor.SurfaceType.WithFloorType(s.SurfaceData0, v)); ForceRefresh(); Bubble(); });
         AddOptionCombo("Wall type", Editor.SurfaceType.WallTypes,
             () => Editor.SurfaceType.WallType(solid.SurfaceData0),
-            v => { solid.SurfaceData0 = Editor.SurfaceType.WithWallType(solid.SurfaceData0, v); ForceRefresh(); Bubble(); });
+            v => { ForEachSolid(solid, s => s.SurfaceData0 = Editor.SurfaceType.WithWallType(s.SurfaceData0, v)); ForceRefresh(); Bubble(); });
         AddOptionCombo("Footstep material", Editor.SurfaceType.Materials,
             () => Editor.SurfaceType.Material(solid.SurfaceData1),
-            v => { solid.SurfaceData1 = Editor.SurfaceType.WithMaterial(solid.SurfaceData1, v); ForceRefresh(); Bubble(); });
+            v => { ForEachSolid(solid, s => s.SurfaceData1 = Editor.SurfaceType.WithMaterial(s.SurfaceData1, v)); ForceRefresh(); Bubble(); });
         AddCheck("Hookshot-able", () => Editor.SurfaceType.Hookshot(solid.SurfaceData1),
-            v => { solid.SurfaceData1 = Editor.SurfaceType.WithHookshot(solid.SurfaceData1, v); ForceRefresh(); Bubble(); });
+            v => { ForEachSolid(solid, s => s.SurfaceData1 = Editor.SurfaceType.WithHookshot(s.SurfaceData1, v)); ForceRefresh(); Bubble(); });
         AddCheck("Soft / sinking floor", () => Editor.SurfaceType.Soft(solid.SurfaceData0),
-            v => { solid.SurfaceData0 = Editor.SurfaceType.WithSoft(solid.SurfaceData0, v); ForceRefresh(); Bubble(); });
+            v => { ForEachSolid(solid, s => s.SurfaceData0 = Editor.SurfaceType.WithSoft(s.SurfaceData0, v)); ForceRefresh(); Bubble(); });
         AddCheck("Horse can't cross", () => Editor.SurfaceType.HorseBlocked(solid.SurfaceData0),
-            v => { solid.SurfaceData0 = Editor.SurfaceType.WithHorseBlocked(solid.SurfaceData0, v); ForceRefresh(); Bubble(); });
+            v => { ForEachSolid(solid, s => s.SurfaceData0 = Editor.SurfaceType.WithHorseBlocked(s.SurfaceData0, v)); ForceRefresh(); Bubble(); });
         AddInt("Conveyor speed (0 = off)", () => Editor.SurfaceType.ConveyorSpeed(solid.SurfaceData1),
-            v => { solid.SurfaceData1 = Editor.SurfaceType.WithConveyorSpeed(solid.SurfaceData1, Clamp(v, 0, 7)); ForceRefresh(); Bubble(); });
+            v => { ForEachSolid(solid, s => s.SurfaceData1 = Editor.SurfaceType.WithConveyorSpeed(s.SurfaceData1, Clamp(v, 0, 7))); ForceRefresh(); Bubble(); });
         AddInt("Conveyor direction (0-63)", () => Editor.SurfaceType.ConveyorDirection(solid.SurfaceData1),
-            v => { solid.SurfaceData1 = Editor.SurfaceType.WithConveyorDirection(solid.SurfaceData1, Clamp(v, 0, 63)); ForceRefresh(); Bubble(); });
+            v => { ForEachSolid(solid, s => s.SurfaceData1 = Editor.SurfaceType.WithConveyorDirection(s.SurfaceData1, Clamp(v, 0, 63))); ForceRefresh(); Bubble(); });
 
         AddHeader("SURFACE TYPE (presets / raw)");
         AddSurfaceTypeCombo(solid);
-        AddHex("data[0] (raw)", 8, () => (int)solid.SurfaceData0, v => { solid.SurfaceData0 = (uint)v; ForceRefresh(); Bubble(); });
-        AddHex("data[1] (raw)", 8, () => (int)solid.SurfaceData1, v => { solid.SurfaceData1 = (uint)v; ForceRefresh(); Bubble(); });
+        AddHex("data[0] (raw)", 8, () => (int)solid.SurfaceData0, v => { ForEachSolid(solid, s => s.SurfaceData0 = (uint)v); ForceRefresh(); Bubble(); });
+        AddHex("data[1] (raw)", 8, () => (int)solid.SurfaceData1, v => { ForEachSolid(solid, s => s.SurfaceData1 = (uint)v); ForceRefresh(); Bubble(); });
 
         BuildSceneAndRoom();
     }
@@ -322,7 +336,7 @@ public sealed class PropertiesPanel : UserControl
             if (i >= 0 && i < Editor.SurfaceTypePresets.All.Length)
             {
                 var p = Editor.SurfaceTypePresets.All[i];
-                solid.SurfaceData0 = p.Data0; solid.SurfaceData1 = p.Data1;
+                ForEachSolid(solid, s => { s.SurfaceData0 = p.Data0; s.SurfaceData1 = p.Data1; });   // multi-edit
                 ForceRefresh(); Bubble();   // refresh the raw hex fields
             }
         };

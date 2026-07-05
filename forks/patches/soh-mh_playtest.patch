@@ -120,7 +120,7 @@ index b7ae40d55..c10745cea 100644
  static bool VoidHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
                          std::string* output) {
      if (gPlayState != nullptr) {
-@@ -1510,7 +1569,475 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
+@@ -1510,7 +1569,483 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
      return 0;
  }
  
@@ -147,6 +147,11 @@ index b7ae40d55..c10745cea 100644
 +// Stash the encoded bytes here and re-assert them for the first frames in-scene, exactly like sMhZTarget.
 +static u8 sMhPlayerName[8];
 +static bool sMhNameSet = false;
++// The actual scene number the playtest level loads into: SCENE_MH_APPEND in append mode, or the replaced
++// scene's own id in replace mode. The render probe keys its per-frame re-asserts (name, Z-target) off this
++// — keying off SCENE_MH_APPEND alone skipped them entirely in replace mode, so the player name showed the
++// stored/garbage save name instead of the injected one.
++static s32 sMhPlaytestScene = -1;
 +
 +static void MhApplyCustomInventory(const nlohmann::json& inv) {
 +    int hearts = inv.value("hearts", 3);
@@ -423,6 +428,7 @@ index b7ae40d55..c10745cea 100644
 +    s32 sceneId = j.value("sceneId", 0x52);
 +    bool adult = j.value("adult", false);
 +    bool append = j.value("append", false);
++    sMhPlaytestScene = append ? SCENE_MH_APPEND : sceneId;   // scene the probe watches for its re-asserts
 +    std::string inv = j.value("inventory", std::string("debug"));
 +    MhBootLog("[mh_boot] sceneId=0x" + StringHelper::Sprintf("%X", sceneId) + " adult=" +
 +              std::to_string(adult) + " inventory=" + inv + " append=" + std::to_string(append));
@@ -555,7 +561,9 @@ index b7ae40d55..c10745cea 100644
 +    if (gPlayState == nullptr) {
 +        return;
 +    }
-+    if (gPlayState->sceneNum != SCENE_MH_APPEND) {
++    // Watch the ACTUAL playtest scene (append → SCENE_MH_APPEND, replace → the replaced scene id). Keying off
++    // SCENE_MH_APPEND alone skipped the re-asserts in replace mode (e.g. the injected player name never stuck).
++    if (sMhPlaytestScene < 0 || gPlayState->sceneNum != sMhPlaytestScene) {
 +        framesInScene = 0;
 +        return;
 +    }
@@ -596,7 +604,7 @@ index b7ae40d55..c10745cea 100644
      // Console
      CMD_REGISTER("file_select", { FileSelectHandler, "Returns to the file select." });
      CMD_REGISTER("reset", { ResetHandler, "Resets the game." });
-@@ -1528,6 +2055,13 @@ void DebugConsole_Init(void) {
+@@ -1528,6 +2063,13 @@ void DebugConsole_Init(void) {
      // Map & Location
      CMD_REGISTER("void", { VoidHandler, "Voids out of the current map." });
      CMD_REGISTER("reload", { ReloadHandler, "Reloads the current map." });

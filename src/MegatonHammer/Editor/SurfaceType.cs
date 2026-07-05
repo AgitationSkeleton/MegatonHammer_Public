@@ -55,17 +55,20 @@ public static class SurfaceType
         (6,  "Edge behaviour 6"), (7, "Edge behaviour 7"), (8, "Edge behaviour 8"),
         (9,  "Edge behaviour 9"), (11, "Edge behaviour 11"),
     };
-    // Floor hazard = the FloorType field (data0 >> 13 & 0x1F). Damaging values verified in z_player.c (SoH that
-    // runs the playtest): func_80838144 → floor types 2/3 tick contact damage (4 HP every 120 / 60 frames;
-    // Goron Tunic resists); func_8083816C → types 4/7 set the player on fire (lava; Goron Tunic protects; 7 also
-    // sinks). Void-out is the SEPARATE FloorProperty field above. Type 0 = no hazard.
+    // Floor hazard = the FloorType field (data0 >> 13 & 0x1F). Values RE-verified in z_player.c (SoH that runs
+    // the playtest): the floor that HURTS is type 2/3 — func_80838144 → 4 HP contact damage every 120/60 frames
+    // AND Player_Action_80843CEC sets Link on FIRE (Goron Tunic resists both). Types 4/7 are `func_8083816C` =
+    // deep-lava SINK only (gravity pulls Link down) — NO fire, NO damage on their own. Type 9 = fire animation,
+    // no HP loss. Void-out is the SEPARATE FloorProperty field above. Type 0 = no hazard.
+    // (For a "lava floor that damages", pick 2 or 3 — NOT 4.)
     public static readonly (int Value, string Label)[] FloorHazards =
     {
         (0, "None"),
-        (2, "Damage — slow (≈4 HP / 2s; Goron Tunic resists)"),
-        (3, "Damage — fast (≈4 HP / 1s; Goron Tunic resists)"),
-        (4, "Lava / fire — catch fire (Goron Tunic protects)"),
-        (7, "Lava — deep (sink + fire)"),
+        (2, "Fire / lava — burns you, slow (≈4 HP / 2s; Goron Tunic protects)"),
+        (3, "Fire / lava — burns you, fast (≈4 HP / 1s; Goron Tunic protects)"),
+        (9, "Fire — visual only (catch fire, no HP loss)"),
+        (4, "Deep lava — sink only (no damage)"),
+        (7, "Deep lava — sink faster (no damage)"),
     };
     // VERIFIED vs sWallFlags/D_80119D90 + z_player.c climb checks (was mislabelled: old "1=climbable" is
     // actually WALL_FLAG_0 = NOT climbable; ladder is type 2, vines type 4).
