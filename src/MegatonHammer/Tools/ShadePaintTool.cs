@@ -64,7 +64,20 @@ public sealed class ShadePaintTool : ITool
 
         if (!_undoRecorded) { _doc.RecordUndo(); _undoRecorded = true; }
 
-        var face = hit.Face;
+        if (PaintAt(hit.Face, hit.Point))
+        {
+            _stroked.Add(hit.Face);
+            _doc.NotifyChanged();
+            vp.Invalidate();
+        }
+    }
+
+    /// <summary>Applies one spray dab of the current colour/opacity/radius to <paramref name="face"/> centred at
+    /// world point <paramref name="hitPoint"/>. Returns whether anything changed. Public + viewport-free so it's
+    /// unit-testable (see --shadetest): it is the exact logic the mouse drag runs, so the test proves a dab only
+    /// affects vertices within Radius — NOT the whole brush.</summary>
+    public bool PaintAt(SolidFace face, Vector3 hitPoint)
+    {
         // The renderer draws an UNPAINTED textured face at full brightness (white modulates the texture) and an
         // untextured face at its flat Color. New paint MUST start from that same base, else the instant you
         // touch a textured face every node jumps white→0.5 and the whole face darkens — which also made white
@@ -83,7 +96,7 @@ public sealed class ShadePaintTool : ITool
             for (int j = 0; j <= g.Nv; j++)
                 for (int i = 0; i <= g.Nu; i++)
                 {
-                    float dist = (face.ShadeGridPos(i, j, g.Nu, g.Nv) - hit.Point).Length;
+                    float dist = (face.ShadeGridPos(i, j, g.Nu, g.Nv) - hitPoint).Length;
                     if (dist > Radius) continue;
                     float w = Math.Clamp(Opacity * (1f - dist / Radius), 0f, 1f);
                     int k = g.Index(i, j);
@@ -100,7 +113,7 @@ public sealed class ShadePaintTool : ITool
             changed = false;
             for (int i = 0; i < face.Vertices.Count; i++)
             {
-                float dist = (face.Vertices[i] - hit.Point).Length;
+                float dist = (face.Vertices[i] - hitPoint).Length;
                 if (dist > Radius) continue;
                 float w = Math.Clamp(Opacity * (1f - dist / Radius), 0f, 1f);
                 face.VertexColors![i] = Vector3.Lerp(face.VertexColors[i], target, w);
@@ -109,12 +122,7 @@ public sealed class ShadePaintTool : ITool
             if (Erase && changed && face.VertexColors!.All(c => (c - baseCol).LengthSquared < 1e-6f))
                 face.VertexColors = null;
         }
-        if (changed)
-        {
-            _stroked.Add(face);
-            _doc.NotifyChanged();
-            vp.Invalidate();
-        }
+        return changed;
     }
 
     /// <summary>True if any solid is currently selected — lets the dialog scope "remove all paint" to the

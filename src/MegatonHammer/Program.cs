@@ -654,6 +654,37 @@ static class Program
             return;
         }
 
+        // Prove a spray dab only shades vertices within the brush radius, NOT the whole face (the "whole brush
+        // tints" bug). Paints one dab near a corner of a big TEXTURED quad and checks the far corner stays at
+        // the unpainted base (white). MegatonHammer --shadetest
+        if (args.Length >= 1 && args[0] == "--shadetest")
+        {
+            int fails = 0;
+            void Chk(bool ok, string m) { if (!ok) { Console.WriteLine($"[shadetest] {m} => FAIL"); fails++; } }
+            var box = Editor.Solid.CreateBox(new OpenTK.Mathematics.Vector3(-256, -8, -256), new OpenTK.Mathematics.Vector3(256, 8, 256));
+            // The top face (a 512×512 quad); mark it textured so the base is white (the reported case).
+            var top = box.Faces.OrderByDescending(f => f.Plane.Normal.Y).First();
+            top.TextureName = "test_tex";
+            var tool = new Tools.ShadePaintTool(new Editor.MapDocument())
+            { PaintColor = OpenTK.Mathematics.Vector3.Zero, Radius = 32f, Opacity = 1f, Erase = false };
+            var corner = new OpenTK.Mathematics.Vector3(256, 8, 256);   // dab near one corner
+            Chk(tool.PaintAt(top, corner), "dab reports a change");
+            var g = top.ShadePaint;
+            Chk(g != null, "textured quad got a shade grid");
+            if (g != null)
+            {
+                var white = OpenTK.Mathematics.Vector3.One;
+                int atBase = g.Colors.Count(c => (c - white).LengthSquared < 1e-4f);
+                int darkened = g.Colors.Count(c => c.LengthSquared < 0.25f);   // pulled toward black
+                Chk(atBase > g.Colors.Length / 2, $"most nodes stay at unpainted white ({atBase}/{g.Colors.Length}) — whole face NOT tinted");
+                Chk(darkened >= 1, $"at least one node near the dab darkened ({darkened})");
+                // The far corner node specifically must be untouched (radius 32 << 724-unit diagonal).
+                Chk((g.Colors[0] - white).LengthSquared < 1e-4f, "far corner node is still white (dab is local)");
+            }
+            Console.WriteLine($"[shadetest] {(fails == 0 ? "ALL PASS — spray is local, no whole-brush tint" : fails + " FAIL(s)")}");
+            return;
+        }
+
         // Slice a PAINTED brush headlessly and verify the halves are valid + no face carries a shade grid /
         // VertexColors array whose size mismatches its (reshaped) geometry. MegatonHammer --slicetest
         if (args.Length >= 1 && args[0] == "--slicetest")
