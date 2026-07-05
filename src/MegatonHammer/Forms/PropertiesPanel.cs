@@ -831,6 +831,18 @@ public sealed class PropertiesPanel : UserControl
         return info != null ? info.Name : $"Actor 0x{id:X4}";
     }
 
-    /// <summary>Forces a full rebuild (e.g. after load or active-room change).</summary>
-    public void ForceRefresh() => Rebuild(force: true);
+    /// <summary>Forces a full rebuild (e.g. after load or active-room change). DEFERRED via BeginInvoke: the
+    /// surface/collision combos call this from their own SelectedIndexChanged, and Rebuild disposes every panel
+    /// control — disposing the combo synchronously from inside its own event (while its dropdown is still
+    /// closing) is a hard crash. Posting the rebuild to the message queue lets the event finish first. Coalesced
+    /// with a queued flag so a burst of changes rebuilds once. When the handle isn't up yet (initial load) run
+    /// it inline — there's no live control to dispose mid-event then.</summary>
+    public void ForceRefresh()
+    {
+        if (!IsHandleCreated) { Rebuild(force: true); return; }
+        if (_forceQueued) return;
+        _forceQueued = true;
+        BeginInvoke(() => { _forceQueued = false; Rebuild(force: true); });
+    }
+    private bool _forceQueued;
 }
