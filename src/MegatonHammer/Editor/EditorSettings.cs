@@ -66,6 +66,8 @@ public static class EditorSettings
         public bool ShowSky { get; set; } = true;
         public bool ShowGrid3D { get; set; } = false;
         public bool ShowPrerenderedBackground { get; set; } = false;
+        public int LastReplaceSceneOoT { get; set; } = 0x51;   // Playtest → Replace scene, remembered per game
+        public int LastReplaceSceneMm { get; set; } = -1;
         public bool ShowEntities3D { get; set; } = true;
         public bool ShowEntities2D { get; set; } = true;
         public bool TrilinearFilter { get; set; } = true;
@@ -246,6 +248,8 @@ public static class EditorSettings
     public static bool ShowSky { get => _d.ShowSky; set { _d.ShowSky = value; Save(); } }
     public static bool ShowGrid3D { get => _d.ShowGrid3D; set { _d.ShowGrid3D = value; Save(); } }
     public static bool ShowPrerenderedBackground { get => _d.ShowPrerenderedBackground; set { _d.ShowPrerenderedBackground = value; Save(); } }
+    public static int LastReplaceSceneOoT { get => _d.LastReplaceSceneOoT; set { _d.LastReplaceSceneOoT = value; Save(); } }
+    public static int LastReplaceSceneMm { get => _d.LastReplaceSceneMm; set { _d.LastReplaceSceneMm = value; Save(); } }
     public static bool ShowEntities3D { get => _d.ShowEntities3D; set { _d.ShowEntities3D = value; Save(); } }
     public static bool ShowEntities2D { get => _d.ShowEntities2D; set { _d.ShowEntities2D = value; Save(); } }
     /// <summary>Trilinear (mipmap) filtering for world textures; off → crisp N64-style sampling.</summary>
