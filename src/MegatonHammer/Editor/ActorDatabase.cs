@@ -18,6 +18,16 @@ public sealed class ActorDatabase
             new Dictionary<ushort, string>());
     }
 
+    /// <summary>Corrections for inaccurate SharpOcarina actor names (decomp-verified). OoT actor ids; applied
+    /// after the XML load so the shown name is right.</summary>
+    private static readonly Dictionary<ushort, string> OotNameCorrections = new()
+    {
+        // SharpOcarina calls En_Kusa "Grass Clump, doesn't regrow", but z_en_kusa.c has EnKusa_Regrow /
+        // EnKusa_CutWaitRegrow / EnKusa_SetupRegrow — the standard cuttable grass DOES regrow (a replenishable
+        // Deku-Tree resource). Its own preset even reads "Cut-able, regenerating grass".
+        [0x0125] = "Cuttable Grass / Bush (En_Kusa)",
+    };
+
     public static ActorDatabase Load(bool isOoT)
     {
         var db   = new ActorDatabase();
@@ -47,6 +57,12 @@ public sealed class ActorDatabase
             }
         }
         catch { /* silently fall back to empty database */ }
+
+        // Fix inaccurate SharpOcarina names (decomp-verified). OoT-only: the ids are OoT actor ids.
+        if (isOoT)
+            foreach (var (id, name) in OotNameCorrections)
+                if (db._actors.TryGetValue(id, out var info))
+                    db._actors[id] = info with { Name = name };
 
         return db;
     }
