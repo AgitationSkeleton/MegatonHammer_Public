@@ -685,6 +685,30 @@ static class Program
             return;
         }
 
+        // Measure the world-space size of freestanding En_Item00 models (rupee vs heart) so the editor preview
+        // scales can be tuned to match. MegatonHammer --itemscale
+        if (args.Length >= 1 && args[0] == "--itemscale")
+        {
+            string romPath = Editor.AppPaths.Rom("Legend of Zelda, The - Ocarina of Time (USA).z64");
+            if (!System.IO.File.Exists(romPath)) { Console.WriteLine($"[itemscale] no ROM at {romPath}"); return; }
+            var rom = new Rom.RomImage(romPath);
+            var resolver = new Editor.ActorModelResolver(rom);
+            foreach (int t in new[] { 0x00, 0x02, 0x13, 0x14, 0x03, 0x06, 0x07 })
+            {
+                var a = new Editor.ZActor { Number = 0x0015, Variable = (ushort)t };
+                var m = resolver.Resolve(a, adult: true);
+                if (m == null || m.Tris.Count == 0) { Console.WriteLine($"[itemscale] type 0x{t:X2}: no model"); continue; }
+                var mn = new OpenTK.Mathematics.Vector3(float.MaxValue);
+                var mx = new OpenTK.Mathematics.Vector3(float.MinValue);
+                foreach (var tri in m.Tris)
+                    foreach (var p in new[] { tri.P0, tri.P1, tri.P2 })
+                    { mn = OpenTK.Mathematics.Vector3.ComponentMin(mn, p); mx = OpenTK.Mathematics.Vector3.ComponentMax(mx, p); }
+                float objSize = (mx - mn).Length;
+                Console.WriteLine($"[itemscale] type 0x{t:X2}: objSize={objSize,8:F1}  scale={m.Scale:F4}  worldSize={objSize * m.Scale,7:F3}  ({m.Tris.Count} tris)");
+            }
+            return;
+        }
+
         // Verify the vanilla-SoH .o2r export + level-pack merge: write a single-level o2r, add a 2nd scene, and
         // check entries/paths/conflict detection. MegatonHammer --exporto2rtest [file.mhproj]
         if (args.Length >= 1 && args[0] == "--exporto2rtest")

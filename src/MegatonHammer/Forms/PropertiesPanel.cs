@@ -249,6 +249,11 @@ public sealed class PropertiesPanel : UserControl
         AddOptionCombo("Floor property", Editor.SurfaceType.FloorProperties,
             () => Editor.SurfaceType.FloorProperty(solid.SurfaceData0),
             v => { solid.SurfaceData0 = Editor.SurfaceType.WithFloorProperty(solid.SurfaceData0, v); ForceRefresh(); Bubble(); });
+        // Hurt / lava floors: the FloorType field carries the vanilla contact-damage + fire hazards (see
+        // SurfaceType.FloorHazards). Set this to make a brush's floor damage the player, like a lava pit.
+        AddOptionCombo("Floor hazard (fire / damage)", Editor.SurfaceType.FloorHazards,
+            () => Editor.SurfaceType.FloorType(solid.SurfaceData0),
+            v => { solid.SurfaceData0 = Editor.SurfaceType.WithFloorType(solid.SurfaceData0, v); ForceRefresh(); Bubble(); });
         AddOptionCombo("Wall type", Editor.SurfaceType.WallTypes,
             () => Editor.SurfaceType.WallType(solid.SurfaceData0),
             v => { solid.SurfaceData0 = Editor.SurfaceType.WithWallType(solid.SurfaceData0, v); ForceRefresh(); Bubble(); });

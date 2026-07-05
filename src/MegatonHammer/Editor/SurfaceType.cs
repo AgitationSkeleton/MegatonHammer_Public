@@ -55,6 +55,18 @@ public static class SurfaceType
         (6,  "Edge behaviour 6"), (7, "Edge behaviour 7"), (8, "Edge behaviour 8"),
         (9,  "Edge behaviour 9"), (11, "Edge behaviour 11"),
     };
+    // Floor hazard = the FloorType field (data0 >> 13 & 0x1F). Damaging values verified in z_player.c (SoH that
+    // runs the playtest): func_80838144 → floor types 2/3 tick contact damage (4 HP every 120 / 60 frames;
+    // Goron Tunic resists); func_8083816C → types 4/7 set the player on fire (lava; Goron Tunic protects; 7 also
+    // sinks). Void-out is the SEPARATE FloorProperty field above. Type 0 = no hazard.
+    public static readonly (int Value, string Label)[] FloorHazards =
+    {
+        (0, "None"),
+        (2, "Damage — slow (≈4 HP / 2s; Goron Tunic resists)"),
+        (3, "Damage — fast (≈4 HP / 1s; Goron Tunic resists)"),
+        (4, "Lava / fire — catch fire (Goron Tunic protects)"),
+        (7, "Lava — deep (sink + fire)"),
+    };
     // VERIFIED vs sWallFlags/D_80119D90 + z_player.c climb checks (was mislabelled: old "1=climbable" is
     // actually WALL_FLAG_0 = NOT climbable; ladder is type 2, vines type 4).
     public static readonly (int Value, string Label)[] WallTypes =

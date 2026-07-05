@@ -680,11 +680,19 @@ public static class ActorParamSchema
             new Field("Total to spawn", 0, 6, FieldKind.Int, "How many it spawns before it stops (0–63)"),
         ], "Continuously spawns the chosen enemy up to the caps. It kills itself if params are all-zero — set a count."),
 
-        // Door_Ana (0x009B) grotto/hole — z_door_ana.c: reveal type=(params>>8)&3 (0 open, 0x200 bit = bomb/hammer).
+        // Door_Ana (0x009B) grotto/hole — z_door_ana.c. reveal=(params>>8)&3 (0x100 hidden, 0x200 bomb). The
+        // DESTINATION is destinationIdx = ((params>>12)&7)-1, and when that's <0 it falls back to (Rot Z + 1),
+        // indexing a FIXED 15-entry `entrances[]` table of grotto exits (the shared Grottos scene setups + a
+        // couple specials) — NOT an arbitrary scene. The low bits are saved to the return-respawn data and pick
+        // the grotto's contents/chest at the destination. (The old schema wrongly labelled the low byte as the
+        // destination.)
         [0x009B] = new Def("Grotto / Hole (Door_Ana)", [
             new Field("Reveal", 8, 2, FieldKind.Enum, "How the grotto is opened/found",
                       ["Open hole", "Hidden (song / scarecrow)", "Bomb or Hammer to open", "Hidden + destructible"]),
-            new Field("Grotto id (destination)", 0, 8, FieldKind.Int, "Selects which grotto it leads to / its contents (grotto index)"),
+            new Field("Destination", 12, 3, FieldKind.Int,
+                      "Which grotto you fall into: 1–7 pick a fixed grotto exit directly; 0 = take the index from Rot Z instead (reaches all 15 exits). Grotto exits are vanilla grotto entrances (the shared Grottos scene), not an arbitrary scene."),
+            new Field("Content / chest data", 0, 8, FieldKind.Int,
+                      "Grotto contents + collected-chest flag, saved to the return-respawn data (picks the chest item / grotto variant at the destination)."),
         ]),
 
         // En_Floormas (0x008E) Floormaster — z_en_floormas.c: SPAWN_INVISIBLE=0x8000. (SPAWN_SMALL 0x10 = runtime split.)
