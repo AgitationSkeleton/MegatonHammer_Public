@@ -71,6 +71,11 @@ public static class CollisionBuilder
         {
             if (IsWaterBrush(solid)) { waterBoxes.Add(WaterBoxOf(solid)); continue; }
             if (solid.NoCollision) continue;   // solidity: non-solid brush renders but emits no collision
+            // A warp trigger is emitted as a NON-BLOCKING exit floor (below), not as its solid box: OoT fires a
+            // scene exit only from the FLOOR poly the player stands on (data[0] bits 8-12), never from a wall
+            // (z_player.c func_80839034). Emitting the box's vertical faces made the trigger a solid wall you
+            // bumped into and never warped through — so skip them here and lay down a walk-over floor instead.
+            if (triggerIdx.ContainsKey(solid)) continue;
             foreach (var face in solid.Faces)
         {
             var verts = face.Vertices;
@@ -105,6 +110,34 @@ public static class CollisionBuilder
                                          normX, normY, normZ, dist));
             }
         }
+        }
+
+        // ── Warp-trigger floors: a flat, upward-facing exit floor across each trigger brush's footprint, a
+        // hair above its base, carrying the exit index. Walking onto it (floorPoly gains a nonzero exit index)
+        // fires the entrance — the vanilla loading-zone mechanism — WITHOUT the box's walls blocking you. Sat a
+        // couple units above the brush base so it reliably wins BgCheck's floor pick over an arena floor the
+        // trigger rests on. ──
+        foreach (var solid in triggers)
+        {
+            var (mn, mx) = solid.GetAABB();
+            short y = (short)MathF.Round(mn.Y + 2f);
+            // Surface type = base surface bits + this trigger's 1-based exit index in data[0] bits 8-12.
+            uint d0 = solid.SurfaceData0 | (uint)((triggerIdx[solid] & 0x1F) << 8);
+            var key = (d0, solid.SurfaceData1);
+            if (!surfTypeIndex.TryGetValue(key, out int tIdx))
+            { tIdx = surfTypes.Count; surfTypes.Add(key); surfTypeIndex[key] = tIdx; }
+            var p0 = new Vector3(mn.X, y, mn.Z); var p1 = new Vector3(mx.X, y, mn.Z);
+            var p2 = new Vector3(mx.X, y, mx.Z); var p3 = new Vector3(mn.X, y, mx.Z);
+            void FloorTri(Vector3 a, Vector3 b, Vector3 c)
+            {
+                var va = SnapVtx(a); var vb = SnapVtx(b); var vc = SnapVtx(c);
+                int ia = GetOrAdd(vtxDict, vtxList, va), ib = GetOrAdd(vtxDict, vtxList, vb), ic = GetOrAdd(vtxDict, vtxList, vc);
+                short dist = (short)Math.Round(-(double)(32767 * va.Y) / 32767.0);   // upward normal (0,1,0) → dist = -y
+                polyList.Add(new ColPoly((ushort)tIdx, (ushort)ia, (ushort)ib, (ushort)ic, 0, 32767, 0, dist));
+            }
+            // Wind CCW when viewed from above so the face normal points up (+Y).
+            FloorTri(p0, p3, p2);
+            FloorTri(p0, p2, p1);
         }
 
         // Imported OBJ mesh triangles also become collision, honouring the #nocollision group tag.

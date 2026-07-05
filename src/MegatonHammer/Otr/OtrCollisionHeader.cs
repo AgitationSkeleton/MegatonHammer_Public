@@ -62,6 +62,29 @@ public static class OtrCollisionHeader
             // A trigger brush's polygons carry an exit index (surface type = the exit index).
             int exitIdx = solidExit?.GetValueOrDefault(solid) ?? 0;
 
+            // A warp trigger is a NON-BLOCKING exit FLOOR, not its solid box: OoT fires a scene exit only from
+            // the floor poly the player stands on (data[0] bits 8-12), never from a wall (z_player.c). Emitting
+            // the box's walls made it a solid you bumped into and never warped through. Lay a flat exit floor
+            // across the footprint, a hair above the base so it wins BgCheck's floor pick, and skip the walls.
+            if (exitIdx != 0)
+            {
+                var (mn, mx) = solid.GetAABB();
+                float fy = mn.Y + 2f;
+                var up = new Vector3(0, 1, 0);
+                void ExitFloor(Vector3 a, Vector3 b, Vector3 c)
+                {
+                    var tri = OrderTri(Snap(a), Snap(b), Snap(c), up);
+                    int ia = GetOrAdd(vtxDict, vtxList, tri.a), ib = GetOrAdd(vtxDict, vtxList, tri.b), ic = GetOrAdd(vtxDict, vtxList, tri.c);
+                    long dot = 32767L * tri.a.Y;
+                    polyList.Add(new ColPoly((ushort)exitIdx, (ushort)ia, (ushort)ib, (ushort)ic, 0, 32767, 0, (short)Math.Round(-(double)dot / 32767.0), 0));
+                }
+                var q0 = new Vector3(mn.X, fy, mn.Z); var q1 = new Vector3(mx.X, fy, mn.Z);
+                var q2 = new Vector3(mx.X, fy, mx.Z); var q3 = new Vector3(mn.X, fy, mx.Z);
+                ExitFloor(q0, q3, q2);
+                ExitFloor(q0, q2, q1);
+                continue;
+            }
+
             foreach (var face in solid.Faces)
             {
                 var verts = face.Vertices;

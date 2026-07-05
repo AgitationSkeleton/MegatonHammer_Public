@@ -208,10 +208,12 @@ public static class DisplayListBuilder
             int tw = bmp.Width, th = bmp.Height;
             string key = "d:" + decal.TextureName;
             var c = decal.Corners();   // BL, BR, TR, TL, lifted off the surface
-            // The whole texture maps once across the quad (texel-space UVs, as EmitFace uses).
+            // The whole texture maps ONCE across the quad. ToVtx expects NORMALISED (tile-unit) UVs — it
+            // multiplies by tw*32 internally — so the corners span 0..1, NOT 0..tw. (Passing tw made s reach
+            // tw*tw*32, overflowing s16 → the texture tiled ~tw times across the decal = "tiny tiling".)
             Vtx V(OpenTK.Mathematics.Vector3 p, float u, float v) => ToVtx(p, new Vector2(u, v), tw, th, 255, 255, 255);
-            Add(key, bmp, V(c[0], 0, th), V(c[1], tw, th), V(c[2], tw, 0));
-            Add(key, bmp, V(c[0], 0, th), V(c[2], tw, 0), V(c[3], 0, 0));
+            Add(key, bmp, V(c[0], 0, 1), V(c[1], 1, 1), V(c[2], 1, 0));
+            Add(key, bmp, V(c[0], 0, 1), V(c[2], 1, 0), V(c[3], 0, 0));
         }
 
         if (room.ObjMesh is { } objMesh)

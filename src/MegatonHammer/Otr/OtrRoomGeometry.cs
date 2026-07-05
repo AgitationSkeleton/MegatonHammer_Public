@@ -134,9 +134,11 @@ public static class OtrRoomGeometry
             if (!groups.TryGetValue(decal.TextureName, out var grp)) { groups[decal.TextureName] = grp = (bmp, []); order.Add(decal.TextureName); }
             int tw = bmp.Width, th = bmp.Height;
             var c = decal.Corners();   // BL, BR, TR, TL, lifted off the surface
+            // ToVtx expects NORMALISED (tile-unit) UVs (it multiplies by tw*32), so the corners span 0..1 to
+            // map the texture ONCE across the quad. Passing tw overflowed s16 → the texture tiled ~tw× ("tiny").
             Vtx V(Vector3 p, float u, float v) => ToVtx(p, Vector3.One, new Vector2(u, v), tw, th);
-            grp.tris.Add((V(c[0], 0, th), V(c[1], tw, th), V(c[2], tw, 0)));
-            grp.tris.Add((V(c[0], 0, th), V(c[2], tw, 0), V(c[3], 0, 0)));
+            grp.tris.Add((V(c[0], 0, 1), V(c[1], 1, 1), V(c[2], 1, 0)));
+            grp.tris.Add((V(c[0], 0, 1), V(c[2], 1, 0), V(c[3], 0, 0)));
         }
 
         // ── Imported OBJ mesh geometry: grouped by material the same way (UVs already 0..1) ──
