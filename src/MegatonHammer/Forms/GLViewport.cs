@@ -417,6 +417,13 @@ public sealed class GLViewport : Panel
                         potFairies.Add((new ZActor { Number = 0x0018, XPos = a.XPos, YPos = a.YPos + 60f, ZPos = a.ZPos },
                             Editor.ActorSpriteMap.IconFor(0x0018, mm)));
                 }
+                // Cuttable grass (En_Kusa 0x125) drop preview. Unlike a pot (a fixed Item00), grass drops a
+                // RANDOM table selected by (params>>8)&0xF — there's no single "contents" — so we float a
+                // representative rupee ghost over grass the user has CONFIGURED with a non-default drop group.
+                foreach (var a in Document.VisibleActors.Where(a => a.Number == 0x0125))
+                    if (((a.Variable >> 8) & 0xF) != 0)
+                        potGhosts.Add(new ZActor { Number = 0x0015, Variable = 0x00,   // green rupee = "drops a collectible"
+                            XPos = a.XPos, YPos = a.YPos + 40f, ZPos = a.ZPos });
                 if (potGhosts.Count > 0)
                     _importedRenderer!.RenderActors(potGhosts, resolver, adult: true, modelRom, cam, w, h, cacheSlot: 1);
                 if (potFairies.Count > 0 && _itemIcons.Available)

@@ -110,7 +110,7 @@ public static class RoomExporter
             w.WriteS16(MmRot(a.XRot, mm, a.IdFlags, 0x4000));
             w.WriteS16(MmRot(a.YRot, mm, a.IdFlags, 0x8000));
             w.WriteS16(MmRot(a.ZRot, mm, a.IdFlags, 0x2000));
-            w.WriteU16(ActorExportFix.Variable(mm, a.Number, a.Variable));
+            w.WriteU16(ActorExportFix.Variable(mm, a.Number, a.Variable, lighting?.Dungeon ?? false));
         }
 
         // ── MeshHeader (type 0, 12 bytes) ─────────────────────────────────
@@ -222,7 +222,7 @@ public static class RoomExporter
             w.WriteU32(i == 0 ? 0u : (uint)((SEG << 24) | hdrOff[i]));
 
         foreach (var list in lists)
-            foreach (var a in list) WriteActor(w, a, mm);
+            foreach (var a in list) WriteActor(w, a, mm, lighting?.Dungeon ?? false);
 
         w.AlignTo(8);   // → meshHdrOff
         w.WriteU8(0x00); w.WriteU8(0x01); w.WriteU16(0);
@@ -264,14 +264,14 @@ public static class RoomExporter
         w.WriteU64(0x1400000000000000UL);
     }
 
-    private static void WriteActor(N64BinaryWriter w, ZActor a, bool mm)
+    private static void WriteActor(N64BinaryWriter w, ZActor a, bool mm, bool isDungeon = false)
     {
         w.WriteU16((ushort)(a.Number | a.IdFlags));   // IdFlags carries MM spawn-condition bits (0 for OoT)
         w.WriteS16((short)a.XPos); w.WriteS16((short)a.YPos); w.WriteS16((short)a.ZPos);
         w.WriteS16(MmRot(a.XRot, mm, a.IdFlags, 0x4000));
         w.WriteS16(MmRot(a.YRot, mm, a.IdFlags, 0x8000));
         w.WriteS16(MmRot(a.ZRot, mm, a.IdFlags, 0x2000));
-        w.WriteU16(a.Variable);
+        w.WriteU16(ActorExportFix.Variable(mm, a.Number, a.Variable, isDungeon));
     }
 
     // MM's Actor_SpawnEntry reads the actor-entry rotation as DEGREES in the high 9 bits and packs csId

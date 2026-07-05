@@ -141,7 +141,7 @@ public static class OtrSceneWriter
                 foreach (var tex in geom.Textures)
                     res.Add(new OtrResource(tex.Path, tex.Data));   // OTEX texture resources
             }
-            res.Add(new OtrResource(roomPath, BuildRoom(scene.Rooms[i], hasGeom ? dlPath : null, hasWater ? xluDlPath : null, mm)));
+            res.Add(new OtrResource(roomPath, BuildRoom(scene.Rooms[i], hasGeom ? dlPath : null, hasWater ? xluDlPath : null, mm, s.Dungeon)));
         }
 
         // ── Animated-material resource (TSH_TexAnim) referenced by the scene's cmd 0x1A ──────
@@ -290,7 +290,7 @@ public static class OtrSceneWriter
     }
 
     // ── Room header ───────────────────────────────────────────────────────
-    private static byte[] BuildRoom(ZRoom room, string? dlPath, string? xluPath, bool mm)
+    private static byte[] BuildRoom(ZRoom room, string? dlPath, string? xluPath, bool mm, bool isDungeon = false)
     {
         var cmds = new List<Action<OtrResourceWriter>>();
 
@@ -350,7 +350,7 @@ public static class OtrSceneWriter
                 {
                     w.S16(a.XRot); w.S16(a.YRot); w.S16(a.ZRot);
                 }
-                w.U16(Export.ActorExportFix.Variable(mm, a.Number, a.Variable));
+                w.U16(Export.ActorExportFix.Variable(mm, a.Number, a.Variable, isDungeon));
             }
         });
 

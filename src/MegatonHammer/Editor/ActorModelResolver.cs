@@ -287,9 +287,9 @@ public sealed class ActorModelResolver
             0x00 or 0x01 or 0x02 => ("object_gameplay_keep", new[] { 0x45150 }, 0.015f),          // gRupeeDL (green/blue/red)
             0x13                 => ("object_gameplay_keep", new[] { 0x45150 }, 0.045f),          // orange / huge (200) rupee
             0x14                 => ("object_gameplay_keep", new[] { 0x45150 }, 0.030f),          // purple (50) rupee
-            0x03                 => ("object_gi_heart", new[] { 0x00E0 }, 0.020f),                // recovery heart (gGiRecoveryHeartDL)
-            0x06                 => ("object_gameplay_keep", new[] { 0x3B030 }, 0.020f),          // gHeartPieceInteriorDL (was 0x3B860, wrong)
-            0x07                 => ("object_gameplay_keep", new[] { 0x3C3D0, 0x3C508 }, 0.020f), // heart container: ext + int
+            0x03                 => ("object_gi_heart", new[] { 0x00E0 }, 0.05f),                 // recovery heart (gGiRecoveryHeartDL) — bumped from 0.02 (rendered as a tiny speck over pots)
+            0x06                 => ("object_gameplay_keep", new[] { 0x3B030 }, 0.035f),          // gHeartPieceInteriorDL (was 0x3B860, wrong)
+            0x07                 => ("object_gameplay_keep", new[] { 0x3C3D0, 0x3C508 }, 0.035f), // heart container: ext + int
             _ => null,
         };
     }
