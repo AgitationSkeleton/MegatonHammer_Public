@@ -1365,20 +1365,12 @@ public sealed class MainForm : Form, IMessageFilter
         foreach (var a in actors) { a.Position += delta; a.IsSelected = true; _document.AddActor(a); }
         // Clones inherit the source's GroupId (Clone copies it — needed for undo snapshots), so a pasted
         // object would otherwise join the ORIGINAL's group: clicking the paste would also grab the sources
-        // (and same-actor pastes would appear "linked"). Clear it first. THEN, when more than one object is
-        // pasted, group the pasted set under a FRESH shared id so the paste acts as one unit (Ctrl+U ungroups).
+        // (and same-actor pastes would appear "linked"). Clear it so every pasted item is INDEPENDENT — the
+        // pasted set is NOT auto-grouped; use Ctrl+G to group them if you want the paste to move as one unit.
         foreach (var s in solids) s.GroupId = 0;
         foreach (var a in actors) a.GroupId = 0;
         // A pasted chest keeps the source's treasure flag (a collision → shared opened-state); give it a fresh one.
         _document.NormalizeChestFlags();
-        if (solids.Count + actors.Count > 1)
-        {
-            int g = 1 + Math.Max(
-                _document.Solids.Select(s => s.GroupId).DefaultIfEmpty(0).Max(),
-                _document.AllActors.Select(a => a.GroupId).DefaultIfEmpty(0).Max());
-            foreach (var s in solids) s.GroupId = g;
-            foreach (var a in actors) a.GroupId = g;
-        }
         // #14: the pasted content is now the selection — make the Select tool active in fresh Scale mode so
         // it's immediately draggable and a click cycles to Rotate (Hammer pastes ready-to-manipulate).
         SetActiveTool(_selectTool);
@@ -1488,18 +1480,10 @@ public sealed class MainForm : Form, IMessageFilter
                 _document.AddActor(a);
             }
             // Clones inherit the source's GroupId (Clone copies it) — clear it so a special-pasted copy
-            // isn't "linked" to the original, then group THIS copy as a unit when it has >1 object.
+            // isn't "linked" to the original. Not auto-grouped (Ctrl+G to group), matching plain Paste.
             foreach (var s in solids) s.GroupId = 0;
             foreach (var a in actors) a.GroupId = 0;
             _document.NormalizeChestFlags();   // pasted chests get a fresh treasure flag (no shared opened-state)
-            if (solids.Count + actors.Count > 1)
-            {
-                int g = 1 + Math.Max(
-                    _document.Solids.Select(s => s.GroupId).DefaultIfEmpty(0).Max(),
-                    _document.AllActors.Select(a => a.GroupId).DefaultIfEmpty(0).Max());
-                foreach (var s in solids) s.GroupId = g;
-                foreach (var a in actors) a.GroupId = g;
-            }
         }
         _document.NotifyChanged();
         RedrawAll(); UpdateStatus();
