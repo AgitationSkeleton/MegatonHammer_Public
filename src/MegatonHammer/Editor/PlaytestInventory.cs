@@ -69,6 +69,9 @@ public static class InventoryCatalog
         new("sword",     "Sword",      ["None", "Kokiri", "Master", "Biggoron"],                 0),
         new("shield",    "Shield",     ["None", "Deku", "Hylian", "Mirror"],                     0),
         new("ocarina",   "Ocarina",    ["None", "Fairy", "Of Time"],                             0),
+        // Hookshot & Longshot share one inventory slot (SLOT_HOOKSHOT) — Longshot is the upgrade — so it's a
+        // tier, not two toggles: pick which one occupies the slot.
+        new("hookshot",  "Hookshot",   ["None", "Hookshot", "Longshot"],                         0),
         new("magic",     "Magic",      ["None", "Single", "Double"],                             0),
         new("wallet",    "Wallet",     ["Child (99)", "Adult (200)", "Giant (500)"],             0),
         new("strength",  "Strength",   ["None", "Goron Bracelet", "Silver Gauntlets", "Gold Gauntlets"], 0),
@@ -93,7 +96,7 @@ public static class InventoryCatalog
         // C-item subscreen: 6 columns × 3 rows, in the pause-menu order.
         new("Items", 6, [
             ("stick","Deku Stick"), ("nut","Deku Nut"), ("bomb","Bomb"), ("bow","Fairy Bow"), ("fire_arrow","Fire Arrow"), ("dins_fire","Din's Fire"),
-            ("slingshot","Slingshot"), ("bombchu","Bombchu"), ("hookshot","Hookshot"), ("ice_arrow","Ice Arrow"), ("farores_wind","Farore's Wind"), ("boomerang","Boomerang"),
+            ("slingshot","Slingshot"), ("bombchu","Bombchu"), ("ice_arrow","Ice Arrow"), ("farores_wind","Farore's Wind"), ("boomerang","Boomerang"),
             ("lens","Lens of Truth"), ("bean","Magic Bean"), ("hammer","Megaton Hammer"), ("light_arrow","Light Arrow"), ("nayrus_love","Nayru's Love"), ("bottle","Bottle"),
         ]),
         new("Songs", 6, [

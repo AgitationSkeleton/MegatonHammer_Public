@@ -31,7 +31,8 @@ public static class N64SavePokes
     private static readonly (string key, int slot, byte item, sbyte ammo)[] OotItems =
     [
         ("stick",0,0,10), ("nut",1,1,20), ("bomb",2,2,20), ("bow",3,3,30), ("fire_arrow",4,4,0),
-        ("dins_fire",5,5,0), ("slingshot",6,6,30), ("bombchu",8,9,20), ("hookshot",9,10,0),
+        ("dins_fire",5,5,0), ("slingshot",6,6,30), ("bombchu",8,9,20),
+        // hookshot/longshot share slot 9 → handled as a tier below (item 10 = Hookshot, 11 = Longshot).
         ("ice_arrow",10,12,0), ("farores_wind",11,13,0), ("boomerang",12,14,0), ("lens",13,15,0),
         ("bean",14,16,10), ("hammer",15,17,0), ("light_arrow",16,18,0), ("nayrus_love",17,19,0),
         ("bottle",18,20,0),
@@ -127,6 +128,10 @@ public static class N64SavePokes
         foreach (var (key, slot, item, am) in OotItems)
             if (Has(key) && InventoryCatalog.AmmoFor(true, key) is null)
             { items[slot] = item; if (am != 0) ammo[slot] = (byte)am; }
+        // Hookshot/Longshot tier → slot 9 (both share it): 1 = Hookshot (item 10), 2 = Longshot (item 11).
+        int hookTier = Tier("hookshot");
+        if (hookTier == 1) items[9] = 10;
+        else if (hookTier >= 2) items[9] = 11;
         // #13: varying-amount items — the count sets ammo[slot] (item present) and auto-grants its capacity upgrade.
         foreach (var a in InventoryCatalog.Ammo(true))
         {

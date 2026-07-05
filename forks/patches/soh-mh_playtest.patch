@@ -120,7 +120,7 @@ index b7ae40d55..c10745cea 100644
  static bool VoidHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
                          std::string* output) {
      if (gPlayState != nullptr) {
-@@ -1510,7 +1569,469 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
+@@ -1510,7 +1569,475 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
      return 0;
  }
  
@@ -256,12 +256,18 @@ index b7ae40d55..c10745cea 100644
 +    if (tier("bombbag"))   Inventory_ChangeUpgrade(UPG_BOMB_BAG, tier("bombbag"));
 +    if (tier("bulletbag")) Inventory_ChangeUpgrade(UPG_BULLET_BAG, tier("bulletbag"));
 +
++    // Hookshot / Longshot share one inventory slot (SLOT_HOOKSHOT) — Longshot is the upgrade — so it's a tier:
++    // 1 = Hookshot, 2 = Longshot. INV_CONTENT for either item writes the same slot.
++    int hookTier = tier("hookshot");
++    if (hookTier == 1)      INV_CONTENT(ITEM_HOOKSHOT) = ITEM_HOOKSHOT;
++    else if (hookTier >= 2) INV_CONTENT(ITEM_LONGSHOT) = ITEM_LONGSHOT;
++
 +    // C-items (with a sensible starting ammo where applicable).
 +    struct ItemDef { const char* key; u8 item; s8 ammo; };
 +    static const ItemDef kItems[] = {
 +        { "stick", ITEM_STICK, 10 }, { "nut", ITEM_NUT, 20 }, { "bomb", ITEM_BOMB, 20 }, { "bow", ITEM_BOW, 30 },
 +        { "fire_arrow", ITEM_ARROW_FIRE, 0 }, { "dins_fire", ITEM_DINS_FIRE, 0 }, { "slingshot", ITEM_SLINGSHOT, 30 },
-+        { "bombchu", ITEM_BOMBCHU, 20 }, { "hookshot", ITEM_HOOKSHOT, 0 }, { "ice_arrow", ITEM_ARROW_ICE, 0 },
++        { "bombchu", ITEM_BOMBCHU, 20 }, { "ice_arrow", ITEM_ARROW_ICE, 0 },   // hookshot/longshot: tier above
 +        { "farores_wind", ITEM_FARORES_WIND, 0 }, { "boomerang", ITEM_BOOMERANG, 0 }, { "lens", ITEM_LENS, 0 },
 +        { "bean", ITEM_BEAN, 10 }, { "hammer", ITEM_HAMMER, 0 }, { "light_arrow", ITEM_ARROW_LIGHT, 0 },
 +        { "nayrus_love", ITEM_NAYRUS_LOVE, 0 },
@@ -590,7 +596,7 @@ index b7ae40d55..c10745cea 100644
      // Console
      CMD_REGISTER("file_select", { FileSelectHandler, "Returns to the file select." });
      CMD_REGISTER("reset", { ResetHandler, "Resets the game." });
-@@ -1528,6 +2049,13 @@ void DebugConsole_Init(void) {
+@@ -1528,6 +2055,13 @@ void DebugConsole_Init(void) {
      // Map & Location
      CMD_REGISTER("void", { VoidHandler, "Voids out of the current map." });
      CMD_REGISTER("reload", { ReloadHandler, "Reloads the current map." });
