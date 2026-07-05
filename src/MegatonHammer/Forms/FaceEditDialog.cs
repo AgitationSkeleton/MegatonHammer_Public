@@ -52,7 +52,7 @@ public sealed class FaceEditDialog : Form
         Text = "Face Edit Sheet";
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         StartPosition = FormStartPosition.Manual;
-        ClientSize = new Size(412, 340);
+        ClientSize = new Size(440, 340);
         BackColor = Bg; ForeColor = Fg;
         DoubleBuffered = true;
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
@@ -75,10 +75,10 @@ public sealed class FaceEditDialog : Form
         foreach (var n in new[] { _scaleS, _scaleT, _shiftS, _shiftT, _rotate }) n.ValueChanged += (_, _) => ApplyMapping();
 
         // ── World / Face mapping + treat-as-one ──────────────────────────────
-        _alignFace = Chk("Face-aligned (vs World)", 300, 84);
+        _alignFace = Chk("Face-aligned (vs World)", 264, 84);
         _alignFace.CheckedChanged += (_, _) => ApplyMapping();
         Controls.Add(_alignFace);
-        _treatAsOne = Chk("Treat selection as one", 300, 108);
+        _treatAsOne = Chk("Treat selection as one", 264, 108);
         Controls.Add(_treatAsOne);
 
         // ── Texture preview + name/size + material buttons ───────────────────
