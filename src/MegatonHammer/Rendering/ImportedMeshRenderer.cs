@@ -188,7 +188,7 @@ void main() {
         }
         GL.BindTexture(TextureTarget.Texture2D, 0);
 
-        RenderBackgrounds(level, useLoc);
+        if (Editor.ViewOptions.ShowPrerenderedBackground) RenderBackgrounds(level, useLoc);   // View ▸ toggle, off by default
         GL.DepthMask(true);   // restore: a depthWrite:false (X-ray) pass must not leave depth-writes off for the brushes
         if (ghost) { GL.Disable(EnableCap.Blend); GL.Uniform1(GL.GetUniformLocation(_shader.Handle, "uGhostAlpha"), 1f); }   // don't leak to later draws
     }

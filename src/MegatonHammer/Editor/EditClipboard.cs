@@ -13,19 +13,65 @@ public static class EditClipboard
     public static List<ZActor> Actors { get; private set; } = [];
     public static Vector3 Center { get; private set; }
 
-    public static bool HasContent => Solids.Count > 0 || Actors.Count > 0;
+    // The Windows clipboard is the cross-instance bridge: Copy mirrors the selection there as marked JSON, and
+    // Paste pulls it back — so copying in one Megaton Hammer window and pasting in another works (the in-process
+    // lists alone are per-process). The marker keeps us from trying to paste arbitrary text from other apps.
+    private const string Marker = "MegatonHammerClipboard/v1\n";
 
-    /// <summary>Copies the document's current selection into the clipboard (deep copies).</summary>
+    public static bool HasContent => Solids.Count > 0 || Actors.Count > 0 || SystemClipboardHasPayload();
+
+    /// <summary>Copies the document's current selection into the clipboard (deep copies), and mirrors it to the
+    /// Windows clipboard so another editor window can paste it.</summary>
     public static void CopyFrom(MapDocument doc)
     {
         Solids = doc.Solids.Where(s => s.IsSelected).Select(s => s.Clone()).ToList();
         Actors = doc.AllActors.Where(a => a.IsSelected).Select(a => a.Clone()).ToList();
         Center = ComputeCenter();
+        WriteSystemClipboard();
     }
 
-    /// <summary>Fresh deep copies of the clipboard contents (so multiple pastes don't alias).</summary>
+    /// <summary>Fresh deep copies of the clipboard contents (so multiple pastes don't alias). Pulls the latest
+    /// cross-instance copy from the Windows clipboard first, so a copy from another window wins.</summary>
     public static (List<Solid> solids, List<ZActor> actors) Instantiate()
-        => (Solids.Select(s => s.Clone()).ToList(), Actors.Select(a => a.Clone()).ToList());
+    {
+        SyncFromSystemClipboard();
+        return (Solids.Select(s => s.Clone()).ToList(), Actors.Select(a => a.Clone()).ToList());
+    }
+
+    // Mirror the current selection to the Windows clipboard as marked JSON (best-effort; the clipboard can be
+    // momentarily locked by another process — the in-process copy still works if this fails).
+    private static void WriteSystemClipboard()
+    {
+        try
+        {
+            string json = ProjectSerializer.SerializeSelection(Solids, Actors);
+            System.Windows.Forms.Clipboard.SetText(Marker + json);
+        }
+        catch { /* clipboard busy/unavailable — same-window paste is unaffected */ }
+    }
+
+    // If the Windows clipboard holds a Megaton Hammer payload (from THIS or ANOTHER window), adopt it — it is by
+    // definition the most recent copy across all windows. Otherwise keep the in-process contents.
+    private static void SyncFromSystemClipboard()
+    {
+        try
+        {
+            if (!System.Windows.Forms.Clipboard.ContainsText()) return;
+            string t = System.Windows.Forms.Clipboard.GetText();
+            if (!t.StartsWith(Marker, StringComparison.Ordinal)) return;
+            var (solids, actors) = ProjectSerializer.DeserializeSelection(t[Marker.Length..]);
+            if (solids.Count == 0 && actors.Count == 0) return;
+            Solids = solids; Actors = actors; Center = ComputeCenter();
+        }
+        catch { /* keep in-process contents on any clipboard/parse failure */ }
+    }
+
+    private static bool SystemClipboardHasPayload()
+    {
+        try { return System.Windows.Forms.Clipboard.ContainsText()
+                     && System.Windows.Forms.Clipboard.GetText().StartsWith(Marker, StringComparison.Ordinal); }
+        catch { return false; }
+    }
 
     private static Vector3 ComputeCenter()
     {

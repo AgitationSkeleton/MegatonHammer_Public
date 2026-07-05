@@ -101,6 +101,7 @@ public sealed class MainForm : Form, IMessageFilter
         Editor.ViewOptions.SnapToGrid     = Editor.EditorSettings.SnapToGrid;
         Editor.ViewOptions.ShowSky        = Editor.EditorSettings.ShowSky;
         Editor.ViewOptions.ShowGrid3D     = Editor.EditorSettings.ShowGrid3D;
+        Editor.ViewOptions.ShowPrerenderedBackground = Editor.EditorSettings.ShowPrerenderedBackground;
         Editor.ViewOptions.ShowEntities3D = Editor.EditorSettings.ShowEntities3D;
         Editor.ViewOptions.ShowEntities2D = Editor.EditorSettings.ShowEntities2D;
         Editor.ViewOptions.TrilinearFilter = Editor.EditorSettings.TrilinearFilter;
@@ -1898,6 +1899,8 @@ public sealed class MainForm : Form, IMessageFilter
                       v => { Editor.ViewOptions.ShowSky = v; Editor.EditorSettings.ShowSky = v; _vp3D.Viewport.RequestRedraw(); }),
             CheckItem("Show 3D Grid", Editor.ViewOptions.ShowGrid3D,
                       v => { Editor.ViewOptions.ShowGrid3D = v; Editor.EditorSettings.ShowGrid3D = v; _vp3D.Viewport.RequestRedraw(); }),
+            CheckItem("Show Pre-rendered Background", Editor.ViewOptions.ShowPrerenderedBackground,
+                      v => { Editor.ViewOptions.ShowPrerenderedBackground = v; Editor.EditorSettings.ShowPrerenderedBackground = v; foreach (var vp in AllViewports()) vp.RequestRedraw(); }),
             CheckItem("Show Entities (3D)", Editor.ViewOptions.ShowEntities3D,
                       v => { Editor.ViewOptions.ShowEntities3D = v; foreach (var vp in AllViewports()) vp.RequestRedraw(); }),
             CheckItem("Show Entities (2D)", Editor.ViewOptions.ShowEntities2D,

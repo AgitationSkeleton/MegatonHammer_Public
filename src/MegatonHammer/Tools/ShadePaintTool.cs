@@ -65,14 +65,20 @@ public sealed class ShadePaintTool : ITool
         if (!_undoRecorded) { _doc.RecordUndo(); _undoRecorded = true; }
 
         var face = hit.Face;
-        // Erase blends toward the face's flat base colour (removing shade); paint blends toward PaintColor.
-        Vector3 target = Erase ? face.Color : PaintColor;
+        // The renderer draws an UNPAINTED textured face at full brightness (white modulates the texture) and an
+        // untextured face at its flat Color. New paint MUST start from that same base, else the instant you
+        // touch a textured face every node jumps white→0.5 and the whole face darkens — which also made white
+        // spray look impossible (it lerped toward white from an already-darkened base). White = "no shade"
+        // (a multiply can't brighten a texture past its own pixels); black adds shadow.
+        Vector3 baseCol = face.TextureName != null ? Vector3.One : face.Color;
+        // Erase blends back toward that unpainted base (removing shade); paint blends toward PaintColor.
+        Vector3 target = Erase ? baseCol : PaintColor;
         bool changed;
         // Quad faces get a dense parametric shade GRID so the spray shades a LOCAL patch instead of tinting
         // the whole face via corner interpolation. Non-quads fall back to per-corner painting.
         if (face.Vertices.Count == 4)
         {
-            var g = EnsureGrid(face);
+            var g = EnsureGrid(face, baseCol);
             changed = false;
             for (int j = 0; j <= g.Nv; j++)
                 for (int i = 0; i <= g.Nu; i++)
@@ -85,12 +91,12 @@ public sealed class ShadePaintTool : ITool
                     changed = true;
                 }
             // Fully-erased grid (every node back at base) → drop the paint so the face is truly unpainted.
-            if (Erase && changed && g.Colors.All(c => (c - face.Color).LengthSquared < 1e-6f))
+            if (Erase && changed && g.Colors.All(c => (c - baseCol).LengthSquared < 1e-6f))
                 face.ShadePaint = null;
         }
         else
         {
-            EnsurePainted(face);
+            EnsurePainted(face, baseCol);
             changed = false;
             for (int i = 0; i < face.Vertices.Count; i++)
             {
@@ -100,7 +106,7 @@ public sealed class ShadePaintTool : ITool
                 face.VertexColors![i] = Vector3.Lerp(face.VertexColors[i], target, w);
                 changed = true;
             }
-            if (Erase && changed && face.VertexColors!.All(c => (c - face.Color).LengthSquared < 1e-6f))
+            if (Erase && changed && face.VertexColors!.All(c => (c - baseCol).LengthSquared < 1e-6f))
                 face.VertexColors = null;
         }
         if (changed)
@@ -131,7 +137,7 @@ public sealed class ShadePaintTool : ITool
 
     // Build (once) a parametric shade grid over a quad face, dense enough that the smallest brush shades a
     // local patch. ~24-unit cells, clamped 2..16 per axis to bound the exported vertex count.
-    private static SolidFace.ShadeGrid EnsureGrid(SolidFace face)
+    private static SolidFace.ShadeGrid EnsureGrid(SolidFace face, Vector3 baseCol)
     {
         if (face.ShadePaint is { } g && g.Colors.Length == (g.Nu + 1) * (g.Nv + 1)) return g;
         var q = face.Vertices;
@@ -140,17 +146,17 @@ public sealed class ShadePaintTool : ITool
         int nu = Math.Clamp((int)MathF.Round(edgeU / 24f), 2, 16);
         int nv = Math.Clamp((int)MathF.Round(edgeV / 24f), 2, 16);
         var grid = new SolidFace.ShadeGrid { Nu = nu, Nv = nv, Colors = new Vector3[(nu + 1) * (nv + 1)] };
-        for (int i = 0; i < grid.Colors.Length; i++) grid.Colors[i] = face.Color;
+        for (int i = 0; i < grid.Colors.Length; i++) grid.Colors[i] = baseCol;   // = the unpainted render colour
         face.ShadePaint = grid;
         return grid;
     }
 
-    // Initialise a face's per-vertex colour array (from its flat colour) on first paint (non-quad fallback).
-    private static void EnsurePainted(SolidFace face)
+    // Initialise a face's per-vertex colour array (from its unpainted render colour) on first paint (non-quad).
+    private static void EnsurePainted(SolidFace face, Vector3 baseCol)
     {
         if (face.VertexColors != null && face.VertexColors.Length == face.Vertices.Count) return;
         var arr = new Vector3[face.Vertices.Count];
-        for (int i = 0; i < arr.Length; i++) arr[i] = face.Color;
+        for (int i = 0; i < arr.Length; i++) arr[i] = baseCol;
         face.VertexColors = arr;
     }
 }

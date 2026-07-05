@@ -32,6 +32,11 @@ public static class ViewOptions
     /// <summary>Draw the ground reference grid in the 3D view (off by default — it clutters the scene).</summary>
     public static bool ShowGrid3D { get; set; } = false;
 
+    /// <summary>Draw a prerendered-room's baked JFIF background image (Forest Temple / Deku-Tree-style scenes)
+    /// as a camera-facing billboard behind the geometry. OFF by default — it's a fixed backdrop that only
+    /// matches one camera angle and obscures the brushes you're editing (see Rooms with pre-rendered BGs).</summary>
+    public static bool ShowPrerenderedBackground { get; set; } = false;
+
     // Trilinear (mipmap) texture filtering for world geometry. On → smooth; off → crisp, point-sampled
     // N64-style textures. Toggling bumps FilterEpoch so renderers re-apply filters to cached textures.
     private static bool _trilinear = true;

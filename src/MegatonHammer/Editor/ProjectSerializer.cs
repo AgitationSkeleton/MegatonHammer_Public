@@ -23,6 +23,29 @@ public static class ProjectSerializer
 
     public static void Save(MapDocument doc, string path, string? game = null) => File.WriteAllText(path, Serialize(doc, game));
 
+    /// <summary>Serializes a loose SELECTION (brushes + actors) to JSON, reusing the project DTO mapping so the
+    /// full texture/paint/logic state round-trips. Used by the cross-instance clipboard (copy in one editor
+    /// window, paste in another). Not a document — no scenes/rooms.</summary>
+    public static string SerializeSelection(IEnumerable<Solid> solids, IEnumerable<ZActor> actors)
+        => JsonSerializer.Serialize(new ClipboardDto
+        {
+            Solids = solids.Select(ToDto).ToList(),
+            Actors = actors.Select(ToDto).ToList(),
+        }, Opts);
+
+    /// <summary>Inverse of <see cref="SerializeSelection"/>: rebuilds deep-copied brushes + actors from a
+    /// clipboard JSON payload. Returns empty lists on any malformed input.</summary>
+    public static (List<Solid> solids, List<ZActor> actors) DeserializeSelection(string json)
+    {
+        try
+        {
+            var dto = JsonSerializer.Deserialize<ClipboardDto>(json, Opts);
+            if (dto == null) return ([], []);
+            return ((dto.Solids ?? []).Select(FromDto).ToList(), (dto.Actors ?? []).Select(FromDto).ToList());
+        }
+        catch { return ([], []); }
+    }
+
     /// <summary>Serializes the whole document (all scenes) to a JSON string (save + undo snapshots).
     /// <paramref name="game"/> ("oot"/"mm") is recorded only for the recent-files colour coding.</summary>
     public static string Serialize(MapDocument doc, string? game = null)
@@ -369,6 +392,13 @@ public static class ProjectSerializer
     private static Vector3 Unpack01(int v) => new(((v >> 16) & 0xFF) / 255f, ((v >> 8) & 0xFF) / 255f, (v & 0xFF) / 255f);
 
     // ── DTOs ──────────────────────────────────────────────────────────────────
+
+    /// <summary>Cross-instance clipboard payload: a loose set of brushes + actors (no scene/room).</summary>
+    public sealed class ClipboardDto
+    {
+        public List<SolidDto>? Solids { get; set; }
+        public List<ActorDto>? Actors { get; set; }
+    }
 
     public sealed class ProjectDto
     {
