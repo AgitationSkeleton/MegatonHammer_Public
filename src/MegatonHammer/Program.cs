@@ -685,6 +685,42 @@ static class Program
             return;
         }
 
+        // Verify the vanilla-SoH .o2r export + level-pack merge: write a single-level o2r, add a 2nd scene, and
+        // check entries/paths/conflict detection. MegatonHammer --exporto2rtest [file.mhproj]
+        if (args.Length >= 1 && args[0] == "--exporto2rtest")
+        {
+            int fails = 0;
+            void Chk(bool ok, string m) { if (!ok) { Console.WriteLine($"[exporto2rtest] {m} => FAIL"); fails++; } }
+            var doc = new Editor.MapDocument();
+            if (args.Length >= 2 && System.IO.File.Exists(args[1])) Editor.ProjectSerializer.Load(doc, args[1]);
+            var scene = doc.Scene;
+            string outDir = System.IO.Path.Combine(Editor.AppPaths.BaseDir, "out");
+            System.IO.Directory.CreateDirectory(outDir);
+            string o2r = System.IO.Path.Combine(outDir, "exporttest.o2r");
+            if (System.IO.File.Exists(o2r)) System.IO.File.Delete(o2r);
+
+            // New archive overriding Hyrule Field (0x51).
+            var resA = Export.O2RPacker.BuildVanillaSceneResources(scene, 0x51, mm: false, masterQuest: false, texResolver: null);
+            Chk(resA.Count > 0, "built scene resources for 0x51");
+            Chk(resA.All(r => r.Path.StartsWith("scenes/", StringComparison.OrdinalIgnoreCase)), "resources live under scenes/ path");
+            var ow0 = Export.O2RPacker.WriteLevelO2R(o2r, resA, merge: false);
+            Chk(ow0.Count == 0 && System.IO.File.Exists(o2r), "fresh o2r written");
+
+            // Merge a 2nd scene (Kokiri Forest 0x55) → pack now overrides both, no conflict.
+            var resB = Export.O2RPacker.BuildVanillaSceneResources(scene, 0x55, mm: false, masterQuest: false, texResolver: null);
+            var ow1 = Export.O2RPacker.WriteLevelO2R(o2r, resB, merge: true);
+            Chk(ow1.Count == 0, "adding a DIFFERENT scene reports no overwrite");
+            var entries = Export.O2RPacker.ListEntries(o2r);
+            Chk(entries.Any(p => p.Contains("spot00")), "pack still contains scene 0x51 (spot00) after merge");
+            Chk(resB.All(p => entries.Contains(p.Path)), "pack contains scene 0x55 after merge");
+
+            // Re-merge scene 0x51 → conflict: every 0x51 path already present ⇒ reported as overwritten.
+            var ow2 = Export.O2RPacker.WriteLevelO2R(o2r, resA, merge: true);
+            Chk(ow2.Count == resA.Count, $"re-adding scene 0x51 reports {resA.Count} overwrite(s) (got {ow2.Count})");
+            Console.WriteLine($"[exporto2rtest] {(fails == 0 ? "ALL PASS" : fails + " FAIL(s)")}  (o2r: {o2r})");
+            return;
+        }
+
         // Slice a PAINTED brush headlessly and verify the halves are valid + no face carries a shade grid /
         // VertexColors array whose size mismatches its (reshaped) geometry. MegatonHammer --slicetest
         if (args.Length >= 1 && args[0] == "--slicetest")

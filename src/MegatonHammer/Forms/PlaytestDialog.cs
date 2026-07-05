@@ -406,18 +406,6 @@ public sealed class PlaytestDialog : Form
     // via the matching reserved entrance, so no existing scene or entrance is touched.
     private int AppendSlotId() => _mm ? 0x71 : 0x6E;
 
-    // OoT scenes whose B button (sword/weapons) is disabled by the game's hardcoded sRestrictionFlags[] table
-    // (z_parameter.c), keyed by scene NUMBER — the "safe" indoor houses/shops/minigames + Link's House. This
-    // is baked into the executable, NOT the scene data, so it can't be overridden vanilla-compatibly by scene
-    // properties: a level placed in one of these slots CANNOT draw weapons. We flag them so an arena/combat map
-    // author picks a weapon-safe slot instead. (Any scene NOT listed — every dungeon, field, town exterior —
-    // leaves weapons enabled.)
-    private static readonly HashSet<int> OotWeaponsDisabledScenes = new()
-    {
-        0x10, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34,
-        0x35, 0x36, 0x37, 0x39, 0x3A, 0x42, 0x44, 0x45, 0x46, 0x49, 0x4B, 0x4E,
-    };
-
     // Fills the replace-scene combo with friendly names per game; restores the last-picked slot (persisted),
     // else defaults to Hyrule Field (OoT). OoT scenes that disable weapons are flagged inline.
     private void PopulateSceneCombo(bool mm)
@@ -431,7 +419,7 @@ public sealed class PlaytestDialog : Form
                 if (OotSceneFiles.IsValid(id))
                 {
                     _sceneIds.Add(id);
-                    string tag = OotWeaponsDisabledScenes.Contains(id) ? "   ⚠ weapons disabled here" : "";
+                    string tag = OotSceneFiles.WeaponsDisabled(id) ? "   ⚠ weapons disabled here" : "";
                     _sceneCombo.Items.Add($"0x{id:X2}  {OotSceneNames.Pretty(id)}{tag}");
                 }
         // Restore the user's last replaced scene (persisted); fall back to Hyrule Field (0x51) for OoT.

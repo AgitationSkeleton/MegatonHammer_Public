@@ -64,4 +64,17 @@ public static class OotSceneFiles
         var name = Name(sceneId);
         return name == null ? null : $"scenes/{Version(sceneId, masterQuest)}/{name}/{name}";
     }
+
+    // Scenes whose B button (sword/weapons) is disabled by the game's hardcoded sRestrictionFlags[] table
+    // (z_parameter.c), keyed by scene NUMBER — the "safe" indoor houses/shops/minigames + Link's House. A
+    // level overriding one of these slots CANNOT draw weapons, and it's baked into the executable (not scene
+    // data), so it can't be overridden vanilla-compatibly. Combat maps should pick a slot NOT in this set.
+    private static readonly HashSet<int> WeaponsDisabledScenes = new()
+    {
+        0x10, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34,
+        0x35, 0x36, 0x37, 0x39, 0x3A, 0x42, 0x44, 0x45, 0x46, 0x49, 0x4B, 0x4E,
+    };
+
+    /// <summary>True if a level placed in this scene slot cannot draw weapons (hardcoded restriction).</summary>
+    public static bool WeaponsDisabled(int sceneId) => WeaponsDisabledScenes.Contains(sceneId);
 }

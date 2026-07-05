@@ -1923,6 +1923,7 @@ public sealed class MainForm : Form, IMessageFilter
             CheckItem("Boot straight into level (N64)", Editor.EditorSettings.PlaytestN64AutoBoot,
                       v => Editor.EditorSettings.PlaytestN64AutoBoot = v),
             new ToolStripSeparator(),
+            Item("Export as .o2r (vanilla SoH)…", Keys.None, (_, _) => OpenExportO2RDialog()),
             Item("Export Scene Binary", Keys.None, (_, _) => OpenExportDialog()),
             Item("Generate Minimap…",   Keys.None, (_, _) => GenerateMinimap()));
 
@@ -2963,6 +2964,14 @@ public sealed class MainForm : Form, IMessageFilter
             Fov = fov, Yaw = yaw, Pitch = pitch, Position = center - front * dist,
             Near = MathF.Max(4f, dist - radius * 1.3f), Far = dist + radius * 1.6f,
         };
+    }
+
+    // Build ▸ Export as .o2r: a plain vanilla-SoH level mod (overrides a chosen scene), optionally added to an
+    // existing .o2r as a multi-level pack. No fork required — regular SoH loads the scene resources by path.
+    private void OpenExportO2RDialog()
+    {
+        using var dlg = new ExportO2RDialog(_document.Scene, _config.IsMMBased, n => _textureLib.Find(n)?.Image);
+        dlg.ShowDialog(this);
     }
 
     private void OpenPlaytestDialog()

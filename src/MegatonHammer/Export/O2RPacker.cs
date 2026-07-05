@@ -221,6 +221,65 @@ public static class O2RPacker
         }
     }
 
+    // ── Vanilla-SoH level export (a plain .o2r level mod, no playtest boot metadata) ────────────────────
+    // A regular SoH loads scene resources by path from any mounted .o2r, so writing our native OTR scene at a
+    // vanilla scene's resource path makes SoH render our level in that scene's place — no fork needed. The
+    // user just walks into that scene in-game. Multiple levels (each at its own scene path) coexist in one
+    // .o2r as a level pack.
+
+    /// <summary>The vanilla resource base path a scene loads from ("scenes/.../name/name"), or null.</summary>
+    public static string? VanillaScenePath(int sceneId, bool mm, bool masterQuest = false) =>
+        mm ? MmSceneFiles.ScenePath(sceneId) : OotSceneFiles.ScenePath(sceneId, masterQuest);
+
+    /// <summary>Builds the native OTR resources (scene / rooms / collision / textures) that override a vanilla
+    /// scene slot, for a plain vanilla-SoH level mod.</summary>
+    public static List<OtrSceneWriter.OtrResource> BuildVanillaSceneResources(
+        ZScene scene, int sceneId, bool mm, bool masterQuest, Func<string, System.Drawing.Bitmap?>? texResolver)
+    {
+        string basePath = VanillaScenePath(sceneId, mm, masterQuest)
+            ?? throw new ArgumentOutOfRangeException(nameof(sceneId), $"Scene id 0x{sceneId:X2} has no resource path.");
+        return OtrSceneWriter.BuildLevel(scene, basePath, mm, texResolver);
+    }
+
+    /// <summary>All entry paths in an .o2r (empty if the file is absent), for conflict inspection.</summary>
+    public static HashSet<string> ListEntries(string o2rPath)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!File.Exists(o2rPath)) return set;
+        using var zip = ZipFile.OpenRead(o2rPath);
+        foreach (var e in zip.Entries) set.Add(e.FullName);
+        return set;
+    }
+
+    /// <summary>Writes (merge=false) or updates (merge=true) a vanilla-SoH .o2r with one level override. In
+    /// merge mode the level is ADDED to the existing archive (a multi-level pack); existing entries whose path
+    /// collides with the new resources are replaced and returned (non-empty ⇒ the same scene was already
+    /// overridden). A .mhbak backup of the prior archive is kept.</summary>
+    public static List<string> WriteLevelO2R(string o2rPath, IReadOnlyList<OtrSceneWriter.OtrResource> res, bool merge)
+    {
+        var overwritten = new List<string>();
+        Directory.CreateDirectory(Path.GetDirectoryName(o2rPath)!);
+        bool exists = File.Exists(o2rPath);
+        if (exists) File.Copy(o2rPath, o2rPath + ".mhbak", overwrite: true);
+
+        if (!merge || !exists)
+        {
+            if (exists) File.Delete(o2rPath);
+            using var zip = ZipFile.Open(o2rPath, ZipArchiveMode.Create);
+            foreach (var r in res) AddEntry(zip, r.Path, r.Data);
+            return overwritten;
+        }
+
+        using (var zip = ZipFile.Open(o2rPath, ZipArchiveMode.Update))
+        {
+            var newPaths = new HashSet<string>(res.Select(r => r.Path), StringComparer.OrdinalIgnoreCase);
+            foreach (var e in zip.Entries.ToList())
+                if (newPaths.Contains(e.FullName)) { overwritten.Add(e.FullName); e.Delete(); }
+            foreach (var r in res) AddEntry(zip, r.Path, r.Data);
+        }
+        return overwritten;
+    }
+
     /// <summary>JSON array of authored messages for the fork: id (textId), box type / position / icon,
     /// and the friendly-markup text (&amp; newline, ^ new box, %r/%g/%b/%y/%w/%p colour) which the fork's
     /// custom-message converter lowers to engine control bytes.</summary>
