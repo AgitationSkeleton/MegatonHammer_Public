@@ -634,12 +634,45 @@ public sealed class PropertiesPanel : UserControl
         0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64, 0x6C, 0x6D, 0x6E, 0x70, 0x74, 0x75, 0x77, 0x78, 0x79,
         0x7A, 0x7C, 0x7E, 0x7F,
     };
-    // OoT one-shots: fanfares/jingles/ocarina playbacks/file-select/game-over (NA_BGM ids).
+    // OoT one-shots: genuine fanfares / get-jingles / cutscene stings / ocarina song melodies that carry NO
+    // loop point (NA_BGM ids, names cross-checked against the fast64 seqId enum). The OLD list wrongly flagged
+    // ~20 LOOPING area/boss/dungeon themes (Jabu 0x26, Mini-Boss 0x38, Kokiri 0x3C, Lost Woods 0x3E, Zora's
+    // 0x50, Temple of Time 0x3A, Kakariko 0x19, Ganondorf/Ganon 0x64/0x65, Fire Boss 0x6B, field segments,
+    // …) → false warnings on tracks that DO loop. This set is only the tracks that truly play once and stop.
     private static readonly HashSet<byte> OotNonLooping = new()
     {
-        0x00, 0x08, 0x10, 0x11, 0x13, 0x19, 0x22, 0x26, 0x32, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D,
-        0x3E, 0x42, 0x43, 0x46, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x59, 0x5A, 0x60, 0x61, 0x62,
-        0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B,
+        // Fanfares / get-jingles / cutscene stings
+        0x20, // Game Over
+        0x21, // Boss Clear
+        0x22, // Item Get
+        0x24, // Heart Get
+        0x2B, // Open Treasure Chest
+        0x32, // Spiritual Stone Get
+        0x39, // Obtain Small Item
+        0x3B, // Escape from Lon Lon Ranch (event-clear jingle)
+        0x3D, // Obtain Fairy Ocarina
+        0x41, // Horse Race Goal
+        0x43, // Obtain Medallion
+        0x51, // Enter Zelda (Appear)
+        0x52, // Goodbye to Zelda
+        0x53, // Master Sword
+        0x54, // Ganon Intro
+        0x59, // Open Door of Temple of Time
+        0x66, // Seal of Six Sages (End Demo)
+        // Ocarina song melodies — play the tune once, no loop
+        0x25, // Prelude of Light
+        0x33, // Bolero of Fire
+        0x34, // Minuet of Forest
+        0x35, // Serenade of Water
+        0x36, // Requiem of Spirit
+        0x37, // Nocturne of Shadow
+        0x44, // Saria's Song
+        0x45, // Epona's Song
+        0x46, // Zelda's Lullaby
+        0x47, // Sun's Song
+        0x48, // Song of Time
+        0x49, // Song of Storms
+        0x5E, // Ocarina of Time
     };
     private static bool IsNonLoopingSeq(byte id, bool oot) => (oot ? OotNonLooping : MmNonLooping).Contains(id);
 
