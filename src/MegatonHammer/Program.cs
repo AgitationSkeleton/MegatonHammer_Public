@@ -711,6 +711,38 @@ static class Program
             return;
         }
 
+        // Build a project's N64 scene/room binaries headlessly and dump the object list, actor count and sizes,
+        // to catch an object-bank overflow / oversized DL that hangs the debug ROM. MegatonHammer --n64validate <file.mhproj>
+        if (args.Length >= 1 && args[0] == "--n64validate")
+        {
+            var doc = new Editor.MapDocument();
+            if (args.Length >= 2 && System.IO.File.Exists(args[1])) Editor.ProjectSerializer.Load(doc, args[1]);
+            var scene = doc.Scene;
+            var objRes = Export.ActorObjectResolver.Build(mm: false);
+            var (sceneBin, rooms) = Export.SceneExporter.BuildBinaries(scene, texResolver: null, objResolver: objRes, n64Hw: true, mm: false);
+            Console.WriteLine($"[n64validate] scene {sceneBin.Length} bytes, {rooms.Count} room(s)");
+            for (int ri = 0; ri < rooms.Count; ri++)
+            {
+                var rb = rooms[ri];
+                Console.WriteLine($"[n64validate] room {ri}: {rb.Length} bytes");
+                // Parse the room header commands (8 bytes each until 0x14 End).
+                for (int p = 0; p + 8 <= rb.Length; p += 8)
+                {
+                    byte cmd = rb[p];
+                    if (cmd == 0x14) break;                                  // end
+                    if (cmd == 0x0B) Console.WriteLine($"    objects: count={rb[p + 1]}  (bank max is 19; >19 overflows)");
+                    if (cmd == 0x01) Console.WriteLine($"    actors:  count={rb[p + 1]}");
+                    if (cmd == 0x0A) Console.WriteLine($"    mesh header present");
+                }
+            }
+            // Collision stats.
+            var col = Export.CollisionBuilder.Build(scene, 0x03, 0);
+            int nv = col[12] << 8 | col[13];   // numVerts at header offset 12 (s16 BE)
+            int np = col[16] << 8 | col[17];   // numPolys at offset 16
+            Console.WriteLine($"[n64validate] collision: {col.Length} bytes, ~{nv} verts, ~{np} polys");
+            return;
+        }
+
         // Dump the exported OTR scene/room skybox commands (0x11 SetSkyboxSettings + 0x12 SetSkyboxModifier) for
         // a project, to verify SoH gets a valid skyboxId + the sky-disable command. MegatonHammer --skyboxdump <file.mhproj>
         if (args.Length >= 1 && args[0] == "--skyboxdump")

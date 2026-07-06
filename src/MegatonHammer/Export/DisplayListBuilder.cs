@@ -127,20 +127,33 @@ public static class DisplayListBuilder
             for (int i = 0; i < verts.Count; i++) uvs[i] -= off;
 
             // A shade-painted quad bakes its dense grid (local spray) instead of the 4-corner fan, so the
-            // painted shading exports at full resolution and isn't smeared across the whole face.
+            // painted shading exports at full resolution. BUT the editor's grid can be up to 16×16 (512 tris)
+            // per face — on N64 that overflows the fixed room buffer (a level with ~100 painted faces built a
+            // ~480 KB room that hung the debug ROM on load). So on N64 the grid is DOWN-SAMPLED to at most
+            // N64ShadeGridCap cells per axis (colours sampled from the full grid), keeping a coarse gradient
+            // that fits; SoH/2Ship (OtrRoomGeometry) still bake the full grid.
+            const int N64ShadeGridCap = 4;
             var grid = face.ShadePaint;
             if (grid != null && verts.Count == 4 && grid.Colors.Length == (grid.Nu + 1) * (grid.Nv + 1))
             {
                 (byte r, byte g, byte b) GShade(Vector3 c) => selected ? (sr, sg, sb)
                     : ((byte)(Math.Clamp(c.X, 0f, 1f) * 255), (byte)(Math.Clamp(c.Y, 0f, 1f) * 255), (byte)(Math.Clamp(c.Z, 0f, 1f) * 255));
                 Vtx GV(Vector3 p, Vector3 c) { var s = GShade(c); return ToVtx(p, face.UVAt(p) - off, tw, th, s.r, s.g, s.b); }
-                for (int j = 0; j < grid.Nv; j++)
-                    for (int i = 0; i < grid.Nu; i++)
+                int cnu = Math.Min(grid.Nu, N64ShadeGridCap), cnv = Math.Min(grid.Nv, N64ShadeGridCap);
+                // Sample the stored (fine) grid's colour at the full-res node nearest this coarse node.
+                Vector3 CoarseColor(int ci, int cj)
+                {
+                    int fi = Math.Clamp((int)MathF.Round((float)ci * grid.Nu / cnu), 0, grid.Nu);
+                    int fj = Math.Clamp((int)MathF.Round((float)cj * grid.Nv / cnv), 0, grid.Nv);
+                    return grid.Colors[grid.Index(fi, fj)];
+                }
+                for (int j = 0; j < cnv; j++)
+                    for (int i = 0; i < cnu; i++)
                     {
-                        Vector3 p00 = face.ShadeGridPos(i, j, grid.Nu, grid.Nv), p10 = face.ShadeGridPos(i + 1, j, grid.Nu, grid.Nv);
-                        Vector3 p11 = face.ShadeGridPos(i + 1, j + 1, grid.Nu, grid.Nv), p01 = face.ShadeGridPos(i, j + 1, grid.Nu, grid.Nv);
-                        Vector3 c00 = grid.Colors[grid.Index(i, j)], c10 = grid.Colors[grid.Index(i + 1, j)];
-                        Vector3 c11 = grid.Colors[grid.Index(i + 1, j + 1)], c01 = grid.Colors[grid.Index(i, j + 1)];
+                        Vector3 p00 = face.ShadeGridPos(i, j, cnu, cnv), p10 = face.ShadeGridPos(i + 1, j, cnu, cnv);
+                        Vector3 p11 = face.ShadeGridPos(i + 1, j + 1, cnu, cnv), p01 = face.ShadeGridPos(i, j + 1, cnu, cnv);
+                        Vector3 c00 = CoarseColor(i, j), c10 = CoarseColor(i + 1, j);
+                        Vector3 c11 = CoarseColor(i + 1, j + 1), c01 = CoarseColor(i, j + 1);
                         Add(key, bmp, GV(p00, c00), GV(p10, c10), GV(p11, c11));
                         Add(key, bmp, GV(p00, c00), GV(p11, c11), GV(p01, c01));
                     }
