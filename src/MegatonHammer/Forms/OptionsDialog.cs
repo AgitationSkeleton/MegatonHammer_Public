@@ -3,7 +3,7 @@ using MegatonHammer.Editor;
 namespace MegatonHammer.Forms;
 
 /// <summary>Which tab the Options dialog opens on.</summary>
-public enum OptionsTab { General, Viewports, AutoSave, Playtest, CrossGame, Logging }
+public enum OptionsTab { General, Viewports, AutoSave, Playtest, CrossGame, Logging, Discord }
 
 /// <summary>
 /// Editor preferences, organised into Hammer-style tabs:
@@ -49,7 +49,12 @@ public sealed class OptionsDialog : Form
     // Logging
     private readonly NumericUpDown _logMax;
     private readonly RadioButton _logSeparate, _logOneFile;
+    // Discord Rich Presence
+    private readonly CheckBox _discordEnabled, _discordShowMap, _discordShowGame;
+    private readonly TextBox _discordAppId;
 
+    /// <summary>Raised on OK when a Discord Rich Presence setting changed (host re-applies the presence).</summary>
+    public event Action? DiscordChanged;
     /// <summary>Raised on OK when the cross-game source or texture toggle changed.</summary>
     public event Action? SourcesChanged;
     /// <summary>Raised on OK when an auto-save setting changed (host restarts the timer).</summary>
@@ -269,7 +274,31 @@ public sealed class OptionsDialog : Form
             Left = 16, Top = y, AutoSize = true, ForeColor = FgNormal, Checked = EditorSettings.PlaytestLogOneFile };
         lg.Controls.Add(_logOneFile);
 
-        tabs.TabPages.AddRange([gen, vw, au, pt, cg, lg]);
+        // ── Discord Rich Presence ───────────────────────────────────────────
+        var dc = Page("Discord");
+        y = 14;
+        dc.Controls.Add(Header("DISCORD RICH PRESENCE", y)); y += 26;
+        _discordEnabled = Check("Show my activity on Discord (Rich Presence)", 16, y, EditorSettings.DiscordRpcEnabled);
+        dc.Controls.Add(_discordEnabled); y += 30;
+        _discordShowMap = Check("Show the name of the map I'm editing  (“Editing: oot_pvpmap”)", 32, y, EditorSettings.DiscordShowMap);
+        dc.Controls.Add(_discordShowMap); y += 26;
+        _discordShowGame = Check("Show which game it's for  (“For Ocarina of Time” / “Majora's Mask” / “Zelda 64”)", 32, y, EditorSettings.DiscordShowGame);
+        dc.Controls.Add(_discordShowGame); y += 34;
+
+        dc.Controls.Add(Header("DISCORD APPLICATION ID", y)); y += 26;
+        dc.Controls.Add(Label("Application (client) ID:", 16, y));
+        _discordAppId = Input(EditorSettings.DiscordAppId, 200, y - 3, 356); dc.Controls.Add(_discordAppId); y += 30;
+        dc.Controls.Add(new Label
+        {
+            Left = 16, Top = y, Width = 540, Height = 96, ForeColor = Color.FromArgb(150, 150, 150),
+            Font = new Font("Segoe UI", 8f),
+            Text = "Pre-filled with the official “Megaton Hammer” Discord application (its name is the top line of "
+                 + "the presence, and it provides the mh / oot / mm icons). You normally don't need to change this "
+                 + "— only override it with your own Application ID (from discord.com/developers/applications) if "
+                 + "you want a different title/icons. Clear it to disable. Nothing is uploaded except the two lines above.",
+        }); y += 100;
+
+        tabs.TabPages.AddRange([gen, vw, au, pt, cg, lg, dc]);
         tabs.SelectedIndex = (int)initialTab;
         Controls.Add(tabs);
 
@@ -384,6 +413,13 @@ public sealed class OptionsDialog : Form
         // Logging
         EditorSettings.PlaytestLogMax = (int)_logMax.Value;
         EditorSettings.PlaytestLogOneFile = _logOneFile.Checked;
+
+        // Discord Rich Presence
+        EditorSettings.DiscordRpcEnabled = _discordEnabled.Checked;
+        EditorSettings.DiscordShowMap = _discordShowMap.Checked;
+        EditorSettings.DiscordShowGame = _discordShowGame.Checked;
+        EditorSettings.DiscordAppId = _discordAppId.Text.Trim();
+        DiscordChanged?.Invoke();
     }
 
     // ── tiny control helpers ────────────────────────────────────────────────

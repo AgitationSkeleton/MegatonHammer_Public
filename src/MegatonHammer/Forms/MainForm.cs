@@ -750,7 +750,14 @@ public sealed class MainForm : Form, IMessageFilter
     {
         // A pending game change already prompted-to-save in CloseProject; don't double-prompt here.
         if (PendingGameChange == null && !e.Cancel && !PromptSaveIfDirty("closing")) e.Cancel = true;
+        if (!e.Cancel) Editor.DiscordRpc.Stop();   // clear the Discord presence on exit
         base.OnFormClosing(e);
+    }
+
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        UpdateDiscordPresence();   // start Rich Presence for this session (even before a project is opened)
     }
 
     // #8a: while the window is being border-dragged/resized, suspend the four viewports' live GL renders
@@ -2339,6 +2346,32 @@ public sealed class MainForm : Form, IMessageFilter
     {
         string file = _currentPath != null ? Path.GetFileName(_currentPath) : "untitled";
         Text = $"Megaton Hammer — {file} — {_config.DisplayName}";
+        UpdateDiscordPresence();
+    }
+
+    // Discord Rich Presence: "Megaton Hammer" (the app name) / "Editing: <map>" / "For <game>", with an icon
+    // per game (oot / mm / mh-generic). No SoH-vs-OoT or 2Ship-vs-MM distinction; a custom romhack base is
+    // "Zelda 64" (mh icon). Best-effort — does nothing if disabled, no App ID, or Discord isn't running.
+    private (string game, string image) DiscordGameInfo() => _config.Mode switch
+    {
+        Editor.GameMode.OcarinaOfTime or Editor.GameMode.ShipOfHarkinian => ("Ocarina of Time", "oot"),
+        Editor.GameMode.MajorasMask or Editor.GameMode.TwoShip2Harkinian => ("Majora's Mask", "mm"),
+        _ => ("Zelda 64", "mh"),   // CustomOoT / CustomMM
+    };
+
+    private void UpdateDiscordPresence()
+    {
+        if (!Editor.EditorSettings.DiscordRpcEnabled) { Editor.DiscordRpc.Stop(); return; }
+        Editor.DiscordRpc.Start(Editor.EditorSettings.DiscordAppId);
+        var (game, gameImage) = DiscordGameInfo();
+        string map = _currentPath != null ? Path.GetFileNameWithoutExtension(_currentPath) : "";
+        string? details = Editor.EditorSettings.DiscordShowMap
+            ? (map.Length > 0 ? $"Editing: {map}" : "Editing a new level")
+            : "Editing a level";
+        string? state = Editor.EditorSettings.DiscordShowGame ? $"For {game}" : null;
+        // Icon: the game being edited; mh (generic) when nothing is open or it's a Zelda-64 custom base.
+        string image = (map.Length > 0) ? gameImage : "mh";
+        Editor.DiscordRpc.SetPresence(details, state, image);
     }
 
     // Loading a project made for the OTHER game: its native ROM textures ("rom_FILE_OFF") are THIS session's
@@ -3036,6 +3069,7 @@ public sealed class MainForm : Form, IMessageFilter
         placement.AddRange(_actorDb.All.Where(a => a.Id != 0).Select(a => ((ushort)a.Id, a.Name)));
         using var dlg = new OptionsDialog(_config.IsOoTBased, _gridSize, tab, placement);
         dlg.DefaultActorChanged += () => _hierarchyPanel.RefreshActorCombo();
+        dlg.DiscordChanged += UpdateDiscordPresence;
         dlg.SourcesChanged += () =>
         {
             // Music list rebuilds itself on the next properties refresh; textures need reloading.

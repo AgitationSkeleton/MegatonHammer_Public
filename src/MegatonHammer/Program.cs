@@ -711,6 +711,21 @@ static class Program
             return;
         }
 
+        // Verify the Discord Rich Presence IPC handshake against a running Discord client. MegatonHammer --discordtest
+        if (args.Length >= 1 && args[0] == "--discordtest")
+        {
+            string appId = args.Length >= 2 ? args[1] : "1523530435831922882";
+            Console.WriteLine($"[discordtest] app id {appId} — is Discord running?");
+            Editor.DiscordRpc.Start(appId);
+            Editor.DiscordRpc.SetPresence("Editing: oot_pvparena", "For Ocarina of Time", "oot");
+            for (int i = 0; i < 12 && !Editor.DiscordRpc.Connected; i++) System.Threading.Thread.Sleep(500);
+            Console.WriteLine($"[discordtest] connected={Editor.DiscordRpc.Connected} " +
+                              (Editor.DiscordRpc.Connected ? "(presence should be visible for 3s)" : "(Discord not running / no IPC pipe)"));
+            System.Threading.Thread.Sleep(3000);
+            Editor.DiscordRpc.Stop();
+            return;
+        }
+
         // Measure the world-space size of freestanding En_Item00 models (rupee vs heart) so the editor preview
         // scales can be tuned to match. MegatonHammer --itemscale
         if (args.Length >= 1 && args[0] == "--itemscale")

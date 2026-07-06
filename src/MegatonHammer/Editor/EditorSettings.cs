@@ -68,6 +68,10 @@ public static class EditorSettings
         public bool ShowPrerenderedBackground { get; set; } = false;
         public int LastReplaceSceneOoT { get; set; } = 0x51;   // Playtest → Replace scene, remembered per game
         public int LastReplaceSceneMm { get; set; } = -1;
+        public bool DiscordRpcEnabled { get; set; } = true;    // Discord Rich Presence (on by default)
+        public bool DiscordShowMap { get; set; } = true;       // show "Editing: <map>"
+        public bool DiscordShowGame { get; set; } = true;      // show "For <game>"
+        public string DiscordAppId { get; set; } = "1523530435831922882";  // the "Megaton Hammer" Discord app (assets: mh/oot/mm)
         public bool ShowEntities3D { get; set; } = true;
         public bool ShowEntities2D { get; set; } = true;
         public bool TrilinearFilter { get; set; } = true;
@@ -248,6 +252,10 @@ public static class EditorSettings
     public static bool ShowSky { get => _d.ShowSky; set { _d.ShowSky = value; Save(); } }
     public static bool ShowGrid3D { get => _d.ShowGrid3D; set { _d.ShowGrid3D = value; Save(); } }
     public static bool ShowPrerenderedBackground { get => _d.ShowPrerenderedBackground; set { _d.ShowPrerenderedBackground = value; Save(); } }
+    public static bool DiscordRpcEnabled { get => _d.DiscordRpcEnabled; set { _d.DiscordRpcEnabled = value; Save(); } }
+    public static bool DiscordShowMap { get => _d.DiscordShowMap; set { _d.DiscordShowMap = value; Save(); } }
+    public static bool DiscordShowGame { get => _d.DiscordShowGame; set { _d.DiscordShowGame = value; Save(); } }
+    public static string DiscordAppId { get => _d.DiscordAppId ?? ""; set { _d.DiscordAppId = value ?? ""; Save(); } }
     public static int LastReplaceSceneOoT { get => _d.LastReplaceSceneOoT; set { _d.LastReplaceSceneOoT = value; Save(); } }
     public static int LastReplaceSceneMm { get => _d.LastReplaceSceneMm; set { _d.LastReplaceSceneMm = value; Save(); } }
     public static bool ShowEntities3D { get => _d.ShowEntities3D; set { _d.ShowEntities3D = value; Save(); } }
