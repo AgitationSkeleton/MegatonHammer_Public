@@ -28,6 +28,7 @@ public static class OtrSceneWriter
     private const int CmdTransitionActorList = 0x0E;
     private const int CmdSpecialObjects    = 0x07;
     private const int CmdRoomBehavior      = 0x08;
+    private const int CmdSkyboxDisables    = 0x12;   // room-level: disableSky / disableSunMoon
     private const int CmdMesh              = 0x0A;
     private const int CmdObjectList        = 0x0B;
     private const int CmdLightingSettings  = 0x0F;
@@ -353,6 +354,21 @@ public static class OtrSceneWriter
                 w.U16(Export.ActorExportFix.Variable(mm, a.Number, a.Variable, isDungeon));
             }
         });
+
+        // OoT (SoH): the room's Skybox Disables command (0x12) — SoH's skybox draw is gated on
+        // envCtx.skyboxDisabled, which is ONLY set by this command and is NOT reset by Environment_Init. Every
+        // vanilla room has it, and the N64 RoomExporter emits it too; without it SoH left skyboxDisabled at its
+        // stale value (often 1, from a prior indoor scene / unzeroed field) → the skybox never drew (while the
+        // N64 path, MM and 2Ship did). Emit it explicitly (disableSky/disableSunMoon from the room settings, both
+        // default off). MM/2Ship keeps drawing via its own path, so this is OoT-only. Format (SetSkyboxModifier
+        // factory): cmd id, then u8 skyboxDisabled, u8 sunMoonDisabled.
+        if (!mm)
+            cmds.Add(w =>
+            {
+                Cmd(w, CmdSkyboxDisables);
+                w.U8((byte)(room.Settings.DisableSkybox ? 1 : 0));
+                w.U8((byte)(room.Settings.DisableSunMoon ? 1 : 0));
+            });
 
         // SetRoomBehavior payload differs by game. OoT (SoH): u8 behaviorType + s32 flags.
         // MM (2Ship): six int8 — gameplayFlags + five room/effect fields we leave at 0.

@@ -711,6 +711,29 @@ static class Program
             return;
         }
 
+        // Dump the exported OTR scene/room skybox commands (0x11 SetSkyboxSettings + 0x12 SetSkyboxModifier) for
+        // a project, to verify SoH gets a valid skyboxId + the sky-disable command. MegatonHammer --skyboxdump <file.mhproj>
+        if (args.Length >= 1 && args[0] == "--skyboxdump")
+        {
+            var doc = new Editor.MapDocument();
+            if (args.Length >= 2 && System.IO.File.Exists(args[1])) Editor.ProjectSerializer.Load(doc, args[1]);
+            var res = Otr.OtrSceneWriter.BuildLevel(doc.Scene, "scenes/test/test/test", mm: false, texResolver: null);
+            Console.WriteLine($"[skyboxdump] scene SkyboxId setting = {doc.Scene.Settings.SkyboxId}, IndoorLighting = {doc.Scene.Settings.IndoorLighting}");
+            foreach (var r in res)
+            {
+                var d = r.Data;
+                for (int i = 0; i + 4 <= d.Length; i++)
+                {
+                    int id = d[i] | d[i + 1] << 8 | d[i + 2] << 16 | d[i + 3] << 24;   // s32 LE command id
+                    if (id == 0x11 && i + 8 <= d.Length)
+                        Console.WriteLine($"[skyboxdump] {r.Path}: 0x11 SkyboxSettings -> unk={d[i+4]} skyboxId={d[i+5]} weather={d[i+6]} indoors={d[i+7]}");
+                    if (id == 0x12 && i + 6 <= d.Length)
+                        Console.WriteLine($"[skyboxdump] {r.Path}: 0x12 SkyboxModifier -> disableSky={d[i+4]} disableSunMoon={d[i+5]}");
+                }
+            }
+            return;
+        }
+
         // Verify the Discord Rich Presence IPC handshake against a running Discord client. MegatonHammer --discordtest
         if (args.Length >= 1 && args[0] == "--discordtest")
         {
