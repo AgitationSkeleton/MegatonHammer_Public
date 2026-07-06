@@ -71,7 +71,10 @@ public static class EditorSettings
         public bool DiscordRpcEnabled { get; set; } = true;    // Discord Rich Presence (on by default)
         public bool DiscordShowMap { get; set; } = true;       // show "Editing: <map>"
         public bool DiscordShowGame { get; set; } = true;      // show "For <game>"
-        public string DiscordAppId { get; set; } = "1523530435831922882";  // the "Megaton Hammer" Discord app (assets: mh/oot/mm)
+        // N64/PJ64 spray-paint export: cells per axis a painted quad's shade grid bakes to (0 = OFF, paint not
+        // shaded on N64). N64 rooms have a fixed buffer; the full 16×16 grid can bloat a heavily-painted room
+        // past it and hang the debug ROM. Default 4 (a coarse gradient that fits). SoH/2Ship always use full detail.
+        public int N64ShadeGridCap { get; set; } = 4;
         public bool ShowEntities3D { get; set; } = true;
         public bool ShowEntities2D { get; set; } = true;
         public bool TrilinearFilter { get; set; } = true;
@@ -255,7 +258,10 @@ public static class EditorSettings
     public static bool DiscordRpcEnabled { get => _d.DiscordRpcEnabled; set { _d.DiscordRpcEnabled = value; Save(); } }
     public static bool DiscordShowMap { get => _d.DiscordShowMap; set { _d.DiscordShowMap = value; Save(); } }
     public static bool DiscordShowGame { get => _d.DiscordShowGame; set { _d.DiscordShowGame = value; Save(); } }
-    public static string DiscordAppId { get => _d.DiscordAppId ?? ""; set { _d.DiscordAppId = value ?? ""; Save(); } }
+    /// <summary>The Discord Application (client) ID — hardcoded to the official "Megaton Hammer" app; not user-
+    /// configurable (its assets provide the mh/oot/mm icons and its name is the presence title).</summary>
+    public const string DiscordAppId = "1523530435831922882";
+    public static int N64ShadeGridCap { get => _d.N64ShadeGridCap; set { _d.N64ShadeGridCap = value; Save(); } }
     public static int LastReplaceSceneOoT { get => _d.LastReplaceSceneOoT; set { _d.LastReplaceSceneOoT = value; Save(); } }
     public static int LastReplaceSceneMm { get => _d.LastReplaceSceneMm; set { _d.LastReplaceSceneMm = value; Save(); } }
     public static bool ShowEntities3D { get => _d.ShowEntities3D; set { _d.ShowEntities3D = value; Save(); } }

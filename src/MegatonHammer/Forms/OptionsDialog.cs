@@ -51,7 +51,8 @@ public sealed class OptionsDialog : Form
     private readonly RadioButton _logSeparate, _logOneFile;
     // Discord Rich Presence
     private readonly CheckBox _discordEnabled, _discordShowMap, _discordShowGame;
-    private readonly TextBox _discordAppId;
+    // N64/PJ64 spray-paint export detail
+    private readonly NumericUpDown _n64ShadeCap;
 
     /// <summary>Raised on OK when a Discord Rich Presence setting changed (host re-applies the presence).</summary>
     public event Action? DiscordChanged;
@@ -208,7 +209,17 @@ public sealed class OptionsDialog : Form
         pt.Controls.Add(Browse(452, y - 1, () => PickExe(_pj64Box))); y += 26;
         _n64Debug = Check("Enable N64 debug controls (L+R+Z map-select, L+D-pad no-clip — no debug inventory)",
                           16, y, EditorSettings.PlaytestN64DebugControls);
-        pt.Controls.Add(_n64Debug); y += 30;
+        pt.Controls.Add(_n64Debug); y += 26;
+        // N64 rooms have a fixed buffer; a heavily spray-painted map can bake too many tris and hang the ROM
+        // on load. Cap the painted-shade detail on N64 export (0 = off — painted faces render flat on N64).
+        pt.Controls.Add(Label("N64 spray-paint detail (0 = off, 4 = default):", 16, y));
+        _n64ShadeCap = Spin(300, y - 3, 0, 16, EditorSettings.N64ShadeGridCap); pt.Controls.Add(_n64ShadeCap); y += 28;
+        pt.Controls.Add(new Label
+        {
+            Left = 16, Top = y, Width = 520, Height = 30, ForeColor = Color.FromArgb(150, 150, 150),
+            Font = new Font("Segoe UI", 8f),
+            Text = "Lower = smaller N64 rooms (fewer painted-shade triangles). SoH/2Ship always use full detail.",
+        }); y += 32;
 
         // #12b: startup auto-detection of base ROMs (validated by MD5) + forks at their known build paths.
         // The "Detect & verify now" button shares the checkbox row (the page bottom was clipping it).
@@ -284,19 +295,13 @@ public sealed class OptionsDialog : Form
         dc.Controls.Add(_discordShowMap); y += 26;
         _discordShowGame = Check("Show which game it's for  (“For Ocarina of Time” / “Majora's Mask” / “Zelda 64”)", 32, y, EditorSettings.DiscordShowGame);
         dc.Controls.Add(_discordShowGame); y += 34;
-
-        dc.Controls.Add(Header("DISCORD APPLICATION ID", y)); y += 26;
-        dc.Controls.Add(Label("Application (client) ID:", 16, y));
-        _discordAppId = Input(EditorSettings.DiscordAppId, 200, y - 3, 356); dc.Controls.Add(_discordAppId); y += 30;
         dc.Controls.Add(new Label
         {
-            Left = 16, Top = y, Width = 540, Height = 96, ForeColor = Color.FromArgb(150, 150, 150),
+            Left = 16, Top = y, Width = 540, Height = 44, ForeColor = Color.FromArgb(150, 150, 150),
             Font = new Font("Segoe UI", 8f),
-            Text = "Pre-filled with the official “Megaton Hammer” Discord application (its name is the top line of "
-                 + "the presence, and it provides the mh / oot / mm icons). You normally don't need to change this "
-                 + "— only override it with your own Application ID (from discord.com/developers/applications) if "
-                 + "you want a different title/icons. Clear it to disable. Nothing is uploaded except the two lines above.",
-        }); y += 100;
+            Text = "Uses the official “Megaton Hammer” Discord application (its name is the presence title, and it "
+                 + "provides the mh / oot / mm icons). Nothing is uploaded except the two lines above.",
+        }); y += 48;
 
         tabs.TabPages.AddRange([gen, vw, au, pt, cg, lg, dc]);
         tabs.SelectedIndex = (int)initialTab;
@@ -418,8 +423,9 @@ public sealed class OptionsDialog : Form
         EditorSettings.DiscordRpcEnabled = _discordEnabled.Checked;
         EditorSettings.DiscordShowMap = _discordShowMap.Checked;
         EditorSettings.DiscordShowGame = _discordShowGame.Checked;
-        EditorSettings.DiscordAppId = _discordAppId.Text.Trim();
         DiscordChanged?.Invoke();
+
+        EditorSettings.N64ShadeGridCap = (int)_n64ShadeCap.Value;
     }
 
     // ── tiny control helpers ────────────────────────────────────────────────

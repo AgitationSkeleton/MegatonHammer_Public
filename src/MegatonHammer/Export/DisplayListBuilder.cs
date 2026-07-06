@@ -130,16 +130,16 @@ public static class DisplayListBuilder
             // painted shading exports at full resolution. BUT the editor's grid can be up to 16×16 (512 tris)
             // per face — on N64 that overflows the fixed room buffer (a level with ~100 painted faces built a
             // ~480 KB room that hung the debug ROM on load). So on N64 the grid is DOWN-SAMPLED to at most
-            // N64ShadeGridCap cells per axis (colours sampled from the full grid), keeping a coarse gradient
-            // that fits; SoH/2Ship (OtrRoomGeometry) still bake the full grid.
-            const int N64ShadeGridCap = 4;
+            // N64ShadeGridCap cells per axis (colours sampled from the full grid), configurable in Options and
+            // 0 = OFF (painted faces render flat via the fallback path below). SoH/2Ship keep the full grid.
+            int shadeCap = Math.Clamp(Editor.EditorSettings.N64ShadeGridCap, 0, 16);
             var grid = face.ShadePaint;
-            if (grid != null && verts.Count == 4 && grid.Colors.Length == (grid.Nu + 1) * (grid.Nv + 1))
+            if (shadeCap > 0 && grid != null && verts.Count == 4 && grid.Colors.Length == (grid.Nu + 1) * (grid.Nv + 1))
             {
                 (byte r, byte g, byte b) GShade(Vector3 c) => selected ? (sr, sg, sb)
                     : ((byte)(Math.Clamp(c.X, 0f, 1f) * 255), (byte)(Math.Clamp(c.Y, 0f, 1f) * 255), (byte)(Math.Clamp(c.Z, 0f, 1f) * 255));
                 Vtx GV(Vector3 p, Vector3 c) { var s = GShade(c); return ToVtx(p, face.UVAt(p) - off, tw, th, s.r, s.g, s.b); }
-                int cnu = Math.Min(grid.Nu, N64ShadeGridCap), cnv = Math.Min(grid.Nv, N64ShadeGridCap);
+                int cnu = Math.Min(grid.Nu, shadeCap), cnv = Math.Min(grid.Nv, shadeCap);
                 // Sample the stored (fine) grid's colour at the full-res node nearest this coarse node.
                 Vector3 CoarseColor(int ci, int cj)
                 {
