@@ -715,6 +715,11 @@ static class Program
         // to catch an object-bank overflow / oversized DL that hangs the debug ROM. MegatonHammer --n64validate <file.mhproj>
         if (args.Length >= 1 && args[0] == "--n64validate")
         {
+            Editor.EditorSettings.Load();   // respect the user's ShadeGridCap / CullUnseenFaces (else compiled defaults)
+            // Optional overrides so the diagnostic can measure the effect: --n64validate <proj> [cap] [cull]
+            if (args.Length >= 3 && int.TryParse(args[2], out int capArg)) Editor.EditorSettings.N64ShadeGridCap = capArg;
+            if (args.Length >= 4 && bool.TryParse(args[3], out bool cullArg)) Editor.EditorSettings.CullUnseenFaces = cullArg;
+            Console.WriteLine($"[n64validate] settings: N64ShadeGridCap={Editor.EditorSettings.N64ShadeGridCap} CullUnseenFaces={Editor.EditorSettings.CullUnseenFaces}");
             var doc = new Editor.MapDocument();
             if (args.Length >= 2 && System.IO.File.Exists(args[1])) Editor.ProjectSerializer.Load(doc, args[1]);
             var scene = doc.Scene;

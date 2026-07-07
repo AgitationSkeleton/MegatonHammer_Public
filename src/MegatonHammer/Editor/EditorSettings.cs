@@ -73,8 +73,9 @@ public static class EditorSettings
         public bool DiscordShowGame { get; set; } = true;      // show "For <game>"
         // N64/PJ64 spray-paint export: cells per axis a painted quad's shade grid bakes to (0 = OFF, paint not
         // shaded on N64). N64 rooms have a fixed buffer; the full 16×16 grid can bloat a heavily-painted room
-        // past it and hang the debug ROM. Default 4 (a coarse gradient that fits). SoH/2Ship always use full detail.
-        public int N64ShadeGridCap { get; set; } = 4;
+        // past it and hang the debug ROM (measured: a painted arena is 492 KB at 16, 44 KB at 0). Default 0
+        // (OFF) so N64 export is safe out-of-box; raise it for a baked gradient. SoH/2Ship always use full detail.
+        public int N64ShadeGridCap { get; set; } = 0;
         public bool ShowEntities3D { get; set; } = true;
         public bool ShowEntities2D { get; set; } = true;
         public bool TrilinearFilter { get; set; } = true;

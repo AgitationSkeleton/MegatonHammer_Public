@@ -212,14 +212,15 @@ public sealed class OptionsDialog : Form
         pt.Controls.Add(_n64Debug); y += 26;
         // N64 rooms have a fixed buffer; a heavily spray-painted map can bake too many tris and hang the ROM
         // on load. Cap the painted-shade detail on N64 export (0 = off — painted faces render flat on N64).
-        pt.Controls.Add(Label("N64 spray-paint detail (0 = off, 4 = default):", 16, y));
-        _n64ShadeCap = Spin(300, y - 3, 0, 16, EditorSettings.N64ShadeGridCap); pt.Controls.Add(_n64ShadeCap); y += 28;
+        pt.Controls.Add(Label("N64 spray-paint detail (0 = off = default; raise for detail):", 16, y));
+        _n64ShadeCap = Spin(360, y - 3, 0, 16, EditorSettings.N64ShadeGridCap); pt.Controls.Add(_n64ShadeCap); y += 28;
         pt.Controls.Add(new Label
         {
             Left = 16, Top = y, Width = 520, Height = 30, ForeColor = Color.FromArgb(150, 150, 150),
             Font = new Font("Segoe UI", 8f),
-            Text = "Lower = smaller N64 rooms (fewer painted-shade triangles). SoH/2Ship always use full detail.",
-        }); y += 32;
+            Text = "0 keeps N64 rooms small (paint renders flat); higher bakes a finer gradient but can bloat the "
+                 + "room past the N64 buffer and hang the ROM. SoH/2Ship always use full detail.",
+        }); y += 34;
 
         // #12b: startup auto-detection of base ROMs (validated by MD5) + forks at their known build paths.
         // The "Detect & verify now" button shares the checkbox row (the page bottom was clipping it).
