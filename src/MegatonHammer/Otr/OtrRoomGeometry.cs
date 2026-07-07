@@ -50,6 +50,15 @@ public static class OtrRoomGeometry
         var order = new List<string>();
         var groups = new Dictionary<string, (Bitmap? bmp, List<(Vtx a, Vtx b, Vtx c)> tris)>();
 
+        // Optional compile-time face culling: skip render faces fully buried against a neighbouring brush
+        // (Options ▸ "Cull unseen faces"). Render-only — collision keeps every face. Mirrors the N64
+        // DisplayListBuilder so the setting behaves identically on SoH/2Ship. NB: this removes only faces
+        // BURIED in an adjacent solid (brush-to-brush contact); it does NOT cull the interior faces of a
+        // boundary wall that face the open play area (those are legitimately visible), and geometry is
+        // exported double-sided (see the geometry-mode note below), so looking in from outside the arena
+        // still shows interior faces — that is inherent to single-shell OoT geometry, not this setting.
+        bool cullUnseen = Editor.EditorSettings.CullUnseenFaces;
+
         Bitmap? waterBmp = null;
         foreach (var solid in room.Geometry)
         {
@@ -72,6 +81,7 @@ public static class OtrRoomGeometry
                 else
                 {
                     if (SpecialTextures.IsNoRender(face.TextureName)) continue;   // NODRAW/CLIP
+                    if (cullUnseen && Export.FaceCuller.IsObscured(face, solid, room.Geometry)) continue;
                     string? tn = face.TextureName;
                     bmp = tn != null && texResolver != null ? texResolver(tn) : null;
                     key = bmp != null ? tn! : "";
