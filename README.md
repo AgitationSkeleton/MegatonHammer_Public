@@ -63,3 +63,8 @@ the Project64 changes in `forks/pj64/` are **GPLv2**. Full attribution to Harbou
 (SoH / 2Ship / libultraship), the Project64 team, and the zeldaret decompilation
 community is in **`THIRD-PARTY-NOTICES.md`**. This is a fan-made tool, not affiliated
 with or endorsed by Nintendo.
+
+The editor's source was written with substantial **AI coding assistance**. That
+disclosure, and full credit for every project Megaton Hammer was built from — following
+GameBanana's **AI Generated Content Policy** for the release — is in
+**[`AI_GENERATED_CONTENT.md`](AI_GENERATED_CONTENT.md)**.
