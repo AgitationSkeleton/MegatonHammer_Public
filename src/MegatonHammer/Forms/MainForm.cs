@@ -931,6 +931,25 @@ public sealed class MainForm : Form, IMessageFilter
         const int WM_KEYDOWN = 0x0100;
         if (m.Msg != WM_KEYDOWN) return false;
         var focused = Control.FromHandle(m.HWnd);
+
+        // A focused text box must keep the standard editing chords in EVERY window (docked panels and popout
+        // dialogs alike). Otherwise the editor's menu accelerators hijack them — Ctrl+A "Select All" was
+        // selecting every brush in the world instead of the field's text, and Ctrl+Z would fire a global
+        // undo mid-type. WinForms TextBox has no built-in Ctrl+A, so we run select-all ourselves. Handled
+        // here (an app-wide message filter) so it wins before ProcessCmdKey / the menu ever see the key.
+        if (focused is TextBoxBase tb
+            && (Control.ModifierKeys & Keys.Control) != 0 && (Control.ModifierKeys & Keys.Alt) == 0)
+        {
+            switch ((Keys)(int)m.WParam & Keys.KeyCode)
+            {
+                case Keys.A: tb.SelectAll();                          return true;
+                case Keys.C: tb.Copy();                               return true;
+                case Keys.X: if (!tb.ReadOnly) tb.Cut(); else tb.Copy(); return true;
+                case Keys.V: if (!tb.ReadOnly) tb.Paste();            return true;
+                case Keys.Z: if (tb.CanUndo) tb.Undo();               return true;
+            }
+        }
+
         if (focused?.FindForm() is not { } top || !IsOwnedToolWindow(top)) return false;
 
         Keys keyData = (Keys)(int)m.WParam | Control.ModifierKeys;
