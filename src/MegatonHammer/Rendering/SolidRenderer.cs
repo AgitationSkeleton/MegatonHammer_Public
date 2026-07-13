@@ -45,9 +45,10 @@ in vec3 vNormal;
 in vec3 vColor;
 in vec3 vWorld;
 out vec4 fragColor;
+uniform float uAlpha;   // 1.0 = opaque; < 1.0 = translucent (untextured xlu brush preview)
 " + EnvUniforms + @"
 void main() {
-    fragColor = vec4(applyEnv(vColor, normalize(vNormal), vWorld), 1.0);
+    fragColor = vec4(applyEnv(vColor, normalize(vNormal), vWorld), uAlpha);
 }";
 
     // ── Line shader: position only, uniform color ──────────────────────────────
@@ -446,6 +447,18 @@ void main() {
         var waterVerts = new List<float>();   // water brushes' surface (translucent, scrolling — drawn last)
         var white = Vector3.One;
 
+        // Translucent/additive brushes → their own blended batches (drawn last), one per (blend, opacity,
+        // texture) so each can bind the right blend func + alpha. Previews the poly_xlu export in the editor.
+        var xluBatches = new List<(Editor.BrushBlend blend, byte op, string? tex, List<float> verts)>();
+        var xluKeyToIdx = new Dictionary<string, int>();
+        List<float> XluBatch(Editor.BrushBlend blend, byte op, string? tex)
+        {
+            string k = $"{(int)blend}|{op}|{tex ?? ""}";
+            if (!xluKeyToIdx.TryGetValue(k, out int idx))
+            { idx = xluBatches.Count; xluBatches.Add((blend, op, tex, [])); xluKeyToIdx[k] = idx; }
+            return xluBatches[idx].verts;
+        }
+
         foreach (var room in scene.Rooms.Where(r => r.Visible))   // room-tree eye toggle hides a room's brushes
         {
             foreach (var solid in room.Geometry)
@@ -481,6 +494,33 @@ void main() {
 
                     bool textured = Library != null &&
                                     face.TextureName != null && Library.Find(face.TextureName) != null;
+
+                    // Translucent / additive brush → a blended batch drawn after the opaque geometry (previews
+                    // the poly_xlu export). Skips the grid special-case; scroll is applied at draw by texture.
+                    if (solid.IsXlu)
+                    {
+                        var xb = XluBatch(solid.Blend, solid.Opacity, textured ? face.TextureName : null);
+                        for (int i = 1; i < face.Vertices.Count - 1; i++)
+                            if (textured)
+                            {
+                                PushTexVert(xb, face.Vertices[0],   n, face, face.ColorAt(0,   white));
+                                PushTexVert(xb, face.Vertices[i],   n, face, face.ColorAt(i,   white));
+                                PushTexVert(xb, face.Vertices[i+1], n, face, face.ColorAt(i+1, white));
+                            }
+                            else
+                            {
+                                PushFaceVert(xb, face.Vertices[0],   n, face.ColorAt(0,   room.Color));
+                                PushFaceVert(xb, face.Vertices[i],   n, face.ColorAt(i,   room.Color));
+                                PushFaceVert(xb, face.Vertices[i+1], n, face.ColorAt(i+1, room.Color));
+                            }
+                        if (solid.IsSelected)
+                            for (int i = 1; i < face.Vertices.Count - 1; i++)
+                            {
+                                var a = face.Vertices[0]; var b = face.Vertices[i]; var c = face.Vertices[i + 1];
+                                selOverlay.AddRange([a.X, a.Y, a.Z, b.X, b.Y, b.Z, c.X, c.Y, c.Z]);
+                            }
+                        continue;
+                    }
 
                     // A shade-painted quad renders its dense grid (local spray) instead of the flat corners.
                     bool useGrid = face.ShadePaint is { } sg && face.Vertices.Count == 4
@@ -529,6 +569,7 @@ void main() {
             _faceShader.Use();
             _faceShader.SetMatrix4("uMVP", mvp);
             SetEnv(_faceShader, scene, cam);
+            GL.Uniform1(GL.GetUniformLocation(_faceShader.Handle, "uAlpha"), 1.0f);   // opaque (uAlpha defaults to 0)
             UploadDrawFaces(faceVerts);
         }
 
@@ -578,6 +619,50 @@ void main() {
             GL.DepthMask(true);
             GL.Disable(EnableCap.Blend);
             GL.BindTexture(TextureTarget.Texture2D, 0);
+        }
+
+        // Translucent / additive brushes — drawn after opaque + water, depth-tested but not depth-writing
+        // (like water), so they blend over the geometry behind. Translucent = alpha-over; Additive = add.
+        if (xluBatches.Count > 0)
+        {
+            GL.Enable(EnableCap.Blend);
+            GL.DepthMask(false);
+            var scrolls = scene.Settings.TextureScrolls;
+            foreach (var (blend, op, tex, verts) in xluBatches)
+            {
+                if (verts.Count == 0) continue;
+                GL.BlendFunc(BlendingFactor.SrcAlpha,
+                             blend == Editor.BrushBlend.Additive ? BlendingFactor.One : BlendingFactor.OneMinusSrcAlpha);
+                float a = op / 255f;
+                if (tex != null)
+                {
+                    _texShader.Use();
+                    _texShader.SetMatrix4("uMVP", mvp);
+                    SetEnv(_texShader, scene, cam);
+                    GL.ActiveTexture(TextureUnit.Texture0);
+                    GL.Uniform1(GL.GetUniformLocation(_texShader.Handle, "uTex"), 0);
+                    GL.Uniform1(GL.GetUniformLocation(_texShader.Handle, "uAlpha"), a);
+                    var sc = scrolls.FirstOrDefault(t => t.Name == tex);
+                    if (sc != null) { float fx = sc.U * AnimTime, fy = sc.V * AnimTime; GL.Uniform2(GL.GetUniformLocation(_texShader.Handle, "uUVScroll"), fx - MathF.Floor(fx), fy - MathF.Floor(fy)); }
+                    else GL.Uniform2(GL.GetUniformLocation(_texShader.Handle, "uUVScroll"), 0f, 0f);
+                    GL.BindTexture(TextureTarget.Texture2D, GetGlTexture(tex));
+                    UploadDrawTexFaces(verts);
+                    GL.BindTexture(TextureTarget.Texture2D, 0);
+                }
+                else
+                {
+                    _faceShader.Use();
+                    _faceShader.SetMatrix4("uMVP", mvp);
+                    SetEnv(_faceShader, scene, cam);
+                    GL.Uniform1(GL.GetUniformLocation(_faceShader.Handle, "uAlpha"), a);
+                    UploadDrawFaces(verts);
+                }
+            }
+            GL.DepthMask(true);
+            GL.Disable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);   // restore default
+            _faceShader.Use();
+            GL.Uniform1(GL.GetUniformLocation(_faceShader.Handle, "uAlpha"), 1.0f);   // reset for next frame's opaque pass
         }
 
         // Selection tint: a translucent orange wash over selected faces (keeps the texture readable).
