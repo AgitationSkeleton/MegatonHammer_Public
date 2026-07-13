@@ -36,8 +36,13 @@ public static class BlendTest
         bool n64Trans = Contains(dl.XluDlCommands, RM_XLU);
         bool n64Add   = Contains(dl.XluDlCommands, RM_ADD);
         bool n64OpaqueClean = !Contains(dl.DlCommands, RM_XLU) && !Contains(dl.DlCommands, RM_ADD);
-        Console.WriteLine($"  N64: xlu list={dl.XluDlCommands.Length}b translucentRM={n64Trans} additiveRM={n64Add} opaqueListClean={n64OpaqueClean}");
-        bool n64Ok = n64Xlu && n64Trans && n64Add && n64OpaqueClean && dl.DlCommands.Length > 0;
+        // Opacity must be emitted as PRIM alpha (op 128 = 0x80, op 200 = 0xC8), and untextured xlu uses the
+        // SHADE-colour/PRIM-alpha combiner. This is the actual fix (vertex alpha was ignored by Fast3D).
+        bool n64Prim = Contains(dl.XluDlCommands, [0xFA, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x80])
+                    && Contains(dl.XluDlCommands, [0xFA, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xC8]);
+        bool n64FlatCc = Contains(dl.XluDlCommands, [0xFC, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE, 0x77, 0x3B]);
+        Console.WriteLine($"  N64: xlu list={dl.XluDlCommands.Length}b translucentRM={n64Trans} additiveRM={n64Add} opaqueListClean={n64OpaqueClean} primAlpha={n64Prim} flatCombiner={n64FlatCc}");
+        bool n64Ok = n64Xlu && n64Trans && n64Add && n64OpaqueClean && n64Prim && n64FlatCc && dl.DlCommands.Length > 0;
         Console.WriteLine(n64Ok ? "  PASS — N64 routes translucent+additive into poly_xlu with the right render modes."
                                 : "  FAIL — N64 xlu routing wrong.");
 
@@ -46,8 +51,12 @@ public static class BlendTest
         bool otrXlu = res.XluDl.Length > 0;
         bool otrTrans = Contains(res.XluDl, RM_XLU_OTR);
         bool otrAdd   = Contains(res.XluDl, RM_ADD_OTR);
-        Console.WriteLine($"  OTR: xlu list={res.XluDl.Length}b translucentRM={otrTrans} additiveRM={otrAdd}");
-        bool otrOk = otrXlu && otrTrans && otrAdd && res.Dl.Length > 0;
+        // PRIM alpha (LE): prim cmd 0xFA000000 / 0xFFFFFF80 (op128) and /0xFFFFFFC8 (op200); flat combiner LE.
+        bool otrPrim = Contains(res.XluDl, [0x00, 0x00, 0x00, 0xFA, 0x80, 0xFF, 0xFF, 0xFF])
+                    && Contains(res.XluDl, [0x00, 0x00, 0x00, 0xFA, 0xC8, 0xFF, 0xFF, 0xFF]);
+        bool otrFlatCc = Contains(res.XluDl, [0xFF, 0xFF, 0xFF, 0xFC, 0x3B, 0x77, 0xFE, 0xFF]);
+        Console.WriteLine($"  OTR: xlu list={res.XluDl.Length}b translucentRM={otrTrans} additiveRM={otrAdd} primAlpha={otrPrim} flatCombiner={otrFlatCc}");
+        bool otrOk = otrXlu && otrTrans && otrAdd && otrPrim && otrFlatCc && res.Dl.Length > 0;
         Console.WriteLine(otrOk ? "  PASS — OTR routes translucent+additive into poly_xlu with the right render modes."
                                 : "  FAIL — OTR xlu routing wrong.");
 

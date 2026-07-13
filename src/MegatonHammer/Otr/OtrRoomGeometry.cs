@@ -49,9 +49,9 @@ public static class OtrRoomGeometry
         // ── 1. Group faces by texture (key "" = untextured); fan-triangulate with per-vertex UVs ──
         var order = new List<string>();
         var groups = new Dictionary<string, (Bitmap? bmp, List<(Vtx a, Vtx b, Vtx c)> tris)>();
-        // Translucent/additive brush groups → their blend, so the DL emission routes them into the poly_xlu
-        // list with the matching Fast3D render mode (mirrors the N64 DisplayListBuilder).
-        var groupBlend = new Dictionary<string, Editor.BrushBlend>();
+        // Translucent/additive brush groups → their blend + opacity, so the DL emission routes them into the
+        // poly_xlu list with the matching Fast3D render mode and a per-group PRIM alpha (mirrors the N64 path).
+        var groupBlend = new Dictionary<string, (Editor.BrushBlend blend, byte op)>();
 
         // Optional compile-time face culling: skip render faces fully buried against a neighbouring brush
         // (Options ▸ "Cull unseen faces"). Render-only — collision keeps every face. Mirrors the N64
@@ -89,17 +89,18 @@ public static class OtrRoomGeometry
                     string? tn = face.TextureName;
                     bmp = tn != null && texResolver != null ? texResolver(tn) : null;
                     // Opaque keeps the raw texture name as its key (scroll matching + texture dedup rely on it);
-                    // translucent/additive get a blend-tagged key so they don't merge with opaque geometry, and
-                    // bake opacity into the vertex alpha (the xlu render mode blends by A_IN).
+                    // translucent/additive get a blend+opacity-tagged key so they don't merge with opaque
+                    // geometry or across opacities. Opacity is emitted as PRIM alpha at draw (not vertex alpha,
+                    // which Fast3D ignored — it rendered these opaque in SoH).
                     var blend = solid.Blend;
                     if (blend == Editor.BrushBlend.Opaque)
                         key = bmp != null ? tn! : "";
                     else
                     {
-                        alpha = solid.Opacity;
+                        byte op = solid.Opacity;
                         string tag = blend == Editor.BrushBlend.Translucent ? "t" : "a";
-                        key = bmp != null ? $"b{tag}:{tn}" : $"x{tag}:";
-                        groupBlend[key] = blend;
+                        key = bmp != null ? $"b{tag}{op}:{tn}" : $"x{tag}{op}:";
+                        groupBlend[key] = (blend, op);
                     }
                 }
                 if (!groups.TryGetValue(key, out var grp)) { groups[key] = grp = (bmp, []); order.Add(key); }
@@ -282,16 +283,19 @@ public static class OtrRoomGeometry
                 }
                 else
                 {
-                    // Translucent = alpha-blend (0x005049D8); Additive = light-add (0x005A49D8). Opacity is in
-                    // the vertex alpha, which the render mode reads via A_IN, so a plain MODULATE/SHADE combiner
-                    // (alpha from vertex) suffices — no per-group prim needed.
-                    uint rm = groupBlend[key] == Editor.BrushBlend.Additive ? 0x005A49D8u : 0x005049D8u;
+                    // Translucent = alpha-blend (0x005049D8); Additive = light-add (0x005A49D8). Opacity → PRIM
+                    // alpha (per group). Fast3D ignored vertex alpha (rendered these opaque), so use PRIM like
+                    // water: textured = MODULATEI_PRIM (colour texel, alpha PRIM); untextured = SHADE colour +
+                    // PRIM alpha (combiner 0,0,0,SHADE, 0,0,0,PRIMITIVE).
+                    var (blend, op) = groupBlend[key];
+                    uint rm = blend == Editor.BrushBlend.Additive ? 0x005A49D8u : 0x005049D8u;
                     if (curX != rm) { WriteGfx(xw, 0xE200001Cu, rm); curX = rm; }
+                    WriteGfx(xw, 0xFA000000u, 0xFFFFFF00u | op);   // prim white, alpha = opacity
                     if (bmp != null)
                     {
                         string texPath = $"{texBasePath}_tex{texIdx++}";
                         textures.Add(new TexRes(texPath, BuildTextureResource(bmp)));
-                        WriteGfx(xw, 0xFC121824u, 0xFF33FFFFu);   // G_CC_MODULATERGBA (TEXEL0×SHADE, alpha from vertex)
+                        WriteGfx(xw, 0xFC11FE23u, 0xFFFFF7FBu);   // G_CC_MODULATEI_PRIM (TEXEL0×PRIM, alpha PRIM)
                         EmitTextureLoad(xw, texPath, bmp.Width, bmp.Height);
                         // A scrolling xlu brush (Chamber-of-Sages-style water): bind its animated tile on seg 8+i.
                         int si = -1;
@@ -303,7 +307,7 @@ public static class OtrRoomGeometry
                         if (si >= 0) WriteGfx(xw, (uint)G_DL << 24, (uint)(((0x08 + si) << 24) | 1));
                     }
                     else
-                        WriteGfx(xw, 0xFC000000u, 0x00041104u);   // G_CC_SHADE (colour + alpha from vertex)
+                        WriteGfx(xw, 0xFCFFFFFFu, 0xFFFE773Bu);   // SHADE colour, PRIM alpha (0,0,0,SHADE,0,0,0,PRIM)
                 }
                 EmitTris(xw, tris, allVerts, vtxHash);
             }

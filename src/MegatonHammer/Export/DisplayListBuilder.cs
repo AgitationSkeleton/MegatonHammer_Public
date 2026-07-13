@@ -70,10 +70,10 @@ public static class DisplayListBuilder
         // ── 1. Group triangles by texture bitmap (key "" = untextured) ──
         var order = new List<string>();
         var groups = new Dictionary<string, (Bitmap? bmp, List<(Vtx a, Vtx b, Vtx c)> tris)>();
-        // Translucent/additive brush groups → their blend, so the DL emission routes them into the poly_xlu
-        // list with the right render mode. The group key encodes the blend (b:/bt:/ba:) so an opaque and a
-        // translucent brush that share a texture never merge.
-        var groupBlend = new Dictionary<string, BrushBlend>();
+        // Translucent/additive brush groups → their blend + opacity, so the DL emission routes them into the
+        // poly_xlu list with the right render mode AND a per-group PRIM alpha (opacity). The group key encodes
+        // blend AND opacity so brushes never merge across those (opacity drives PRIM, which is per-group).
+        var groupBlend = new Dictionary<string, (BrushBlend blend, byte op)>();
         Vector3 col = room.Color;
         byte cr = (byte)(col.X * 255), cg = (byte)(col.Y * 255), cb = (byte)(col.Z * 255);
 
@@ -185,11 +185,11 @@ public static class DisplayListBuilder
             // be baked into the compiled/exported DL — doing so tinted the selected brush orange in-game.
             // Always export as unselected (selected: false); sr/sg/sb are unused when not selected.
             byte sr = cr, sg = cg, sb = cb;
-            // Translucent/additive brushes route into the poly_xlu list; opacity becomes vertex alpha (the
-            // xlu render mode blends by A_IN). Blend is baked into the group key so they never merge with
-            // opaque geometry. Tag: "" opaque, "t" translucent, "a" additive.
+            // Translucent/additive brushes route into the poly_xlu list; opacity is emitted as PRIM alpha at
+            // draw (the proven water path — Fast3D honours PRIM alpha, not vertex alpha). Blend + opacity are
+            // baked into the group key so they never merge with opaque geometry or across opacities.
             var blend = solid.Blend;
-            byte alpha = blend == BrushBlend.Opaque ? (byte)0xFF : solid.Opacity;
+            byte op = solid.Opacity;
             string tag = blend == BrushBlend.Translucent ? "t" : blend == BrushBlend.Additive ? "a" : "";
             foreach (var face in solid.Faces)
             {
@@ -198,9 +198,11 @@ public static class DisplayListBuilder
                 if (cullUnseen && FaceCuller.IsObscured(face, solid, room.Geometry)) continue;
                 string? tn = face.TextureName;
                 Bitmap? bmp = tn != null && texResolver != null ? FitResolve(tn) : null;
-                string key = bmp != null ? $"b{tag}:{tn}" : (tag.Length > 0 ? $"x{tag}:" : "");
-                if (blend != BrushBlend.Opaque) groupBlend[key] = blend;
-                EmitFace(key, bmp, face, sr, sg, sb, false, alpha);
+                string key = blend == BrushBlend.Opaque
+                    ? (bmp != null ? "b:" + tn : "")
+                    : (bmp != null ? $"b{tag}{op}:{tn}" : $"x{tag}{op}:");
+                if (blend != BrushBlend.Opaque) groupBlend[key] = (blend, op);
+                EmitFace(key, bmp, face, sr, sg, sb, false);
             }
         }
 
@@ -314,6 +316,12 @@ public static class DisplayListBuilder
         // Additive XLU render mode: G_RM_AA_ZB_XLU_SURF with the blender B operand changed from G_BL_1MA (1-α)
         // to G_BL_1, i.e. out = in·α + mem·1 (light adds to what's behind). Same word on RDP and Fast3D.
         const ulong RM_ADD = 0xE200001C005A49D8UL;
+        // xlu brush combiners — alpha ALWAYS from PRIM (Fast3D honours PRIM alpha; vertex alpha was ignored,
+        // which made translucent brushes render opaque in SoH). Textured: G_CC_MODULATEI_PRIM (colour = texel,
+        // alpha = PRIM) — identical to water. Untextured: colour = SHADE (per-face colour), alpha = PRIM
+        // (combiner 0,0,0,SHADE, 0,0,0,PRIMITIVE, verified against the gbi encoder).
+        const ulong COMBINE_XLU_TEX  = 0xFC11FE23FFFFF7FBUL;
+        const ulong COMBINE_XLU_FLAT = 0xFCFFFFFFFFFE773BUL;
         const ulong GEOM_MODE = 0xD900000500000005UL;   // SetGeometryMode(ZBUFFER|SHADE), no back-face cull
         const ulong OTHERMODE_H = 0xE300081300082000UL; // 1-CYCLE + persp + bilerp + TT_NONE
         const ulong SP_TEXTURE  = 0xD7000002FFFFFFFFUL; // SPTexture enable, scale 1.0
@@ -402,13 +410,15 @@ public static class DisplayListBuilder
                 }
                 else
                 {
-                    // Translucent = alpha-blend; Additive = light-add. Opacity is already in the vertex alpha,
-                    // which the xlu render mode reads via A_IN — so a plain MODULATE/SHADE combiner suffices.
-                    ulong rm = groupBlend[key] == BrushBlend.Additive ? RM_ADD : RM_WATER_XLU;
+                    // Translucent = alpha-blend; Additive = light-add. Opacity → PRIM alpha (per group) — the
+                    // proven water path; Fast3D ignored vertex alpha, which rendered these brushes opaque.
+                    var (blend, op) = groupBlend[key];
+                    ulong rm = blend == BrushBlend.Additive ? RM_ADD : RM_WATER_XLU;
                     if (curX != rm) { xw.WriteU64(rm); curX = rm; }
+                    xw.WriteU64(0xFA000000FFFFFF00UL | op);  // gsDPSetPrimColor white, alpha = opacity
                     if (bmp != null && texOffset.TryGetValue(key, out int tOff))
                     {
-                        xw.WriteU64(0xFC121824FF33FFFFUL);      // MODULATERGBA TEXEL0×SHADE (alpha from vertex)
+                        xw.WriteU64(COMBINE_XLU_TEX);           // TEXEL0 × PRIM, alpha = PRIM
                         EmitTextureLoad(xw, seg, tOff, bmp.Width, bmp.Height);
                         // A scrolling xlu brush (e.g. Chamber of Sages water): bind its animated tile on seg 8+i.
                         int si = scrolls == null || key.Length == 0 || key[0] != 'b' ? -1
@@ -416,7 +426,7 @@ public static class DisplayListBuilder
                         if (si >= 0) { xw.WriteU32(0xDE000000u); xw.WriteU32((uint)(0x08 + si) << 24); }
                     }
                     else
-                        xw.WriteU64(0xFC00000000041104UL);      // SHADE, SHADE (alpha from vertex)
+                        xw.WriteU64(COMBINE_XLU_FLAT);          // SHADE colour, PRIM alpha
                     EmitBatches(xw, batches);
                 }
             }
