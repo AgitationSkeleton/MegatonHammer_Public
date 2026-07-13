@@ -518,7 +518,7 @@ public static class ModelSelfTest
             int before = doc.Count;
             // Mirror PasteClipboard's core: instantiate, offset, add (selected).
             doc.ClearSelection();
-            var (solids, _) = Editor.EditClipboard.Instantiate();
+            var (solids, _, _) = Editor.EditClipboard.Instantiate();
             foreach (var s in solids) { s.Translate(new Vector3(64, 0, 64)); s.IsSelected = true; doc.AddSolid(s); }
             int after = doc.Count;
             var pasted = doc.Solids.LastOrDefault();

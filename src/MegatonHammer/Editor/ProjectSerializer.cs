@@ -26,24 +26,27 @@ public static class ProjectSerializer
     /// <summary>Serializes a loose SELECTION (brushes + actors) to JSON, reusing the project DTO mapping so the
     /// full texture/paint/logic state round-trips. Used by the cross-instance clipboard (copy in one editor
     /// window, paste in another). Not a document — no scenes/rooms.</summary>
-    public static string SerializeSelection(IEnumerable<Solid> solids, IEnumerable<ZActor> actors)
+    public static string SerializeSelection(IEnumerable<Solid> solids, IEnumerable<ZActor> actors, IEnumerable<Decal>? decals = null)
         => JsonSerializer.Serialize(new ClipboardDto
         {
             Solids = solids.Select(ToDto).ToList(),
             Actors = actors.Select(ToDto).ToList(),
+            Decals = (decals ?? []).Select(ToDto).ToList(),
         }, Opts);
 
-    /// <summary>Inverse of <see cref="SerializeSelection"/>: rebuilds deep-copied brushes + actors from a
+    /// <summary>Inverse of <see cref="SerializeSelection"/>: rebuilds deep-copied brushes + actors + decals from a
     /// clipboard JSON payload. Returns empty lists on any malformed input.</summary>
-    public static (List<Solid> solids, List<ZActor> actors) DeserializeSelection(string json)
+    public static (List<Solid> solids, List<ZActor> actors, List<Decal> decals) DeserializeSelection(string json)
     {
         try
         {
             var dto = JsonSerializer.Deserialize<ClipboardDto>(json, Opts);
-            if (dto == null) return ([], []);
-            return ((dto.Solids ?? []).Select(FromDto).ToList(), (dto.Actors ?? []).Select(FromDto).ToList());
+            if (dto == null) return ([], [], []);
+            return ((dto.Solids ?? []).Select(FromDto).ToList(),
+                    (dto.Actors ?? []).Select(FromDto).ToList(),
+                    (dto.Decals ?? []).Select(FromDto).ToList());
         }
-        catch { return ([], []); }
+        catch { return ([], [], []); }
     }
 
     /// <summary>Serializes the whole document (all scenes) to a JSON string (save + undo snapshots).
@@ -398,6 +401,7 @@ public static class ProjectSerializer
     {
         public List<SolidDto>? Solids { get; set; }
         public List<ActorDto>? Actors { get; set; }
+        public List<DecalDto>? Decals { get; set; }
     }
 
     public sealed class ProjectDto

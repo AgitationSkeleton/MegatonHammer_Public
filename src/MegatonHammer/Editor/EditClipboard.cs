@@ -11,6 +11,7 @@ public static class EditClipboard
 {
     public static List<Solid>  Solids { get; private set; } = [];
     public static List<ZActor> Actors { get; private set; } = [];
+    public static List<Decal>  Decals { get; private set; } = [];
     public static Vector3 Center { get; private set; }
 
     // The Windows clipboard is the cross-instance bridge: Copy mirrors the selection there as marked JSON, and
@@ -18,7 +19,7 @@ public static class EditClipboard
     // lists alone are per-process). The marker keeps us from trying to paste arbitrary text from other apps.
     private const string Marker = "MegatonHammerClipboard/v1\n";
 
-    public static bool HasContent => Solids.Count > 0 || Actors.Count > 0 || SystemClipboardHasPayload();
+    public static bool HasContent => Solids.Count > 0 || Actors.Count > 0 || Decals.Count > 0 || SystemClipboardHasPayload();
 
     /// <summary>Copies the document's current selection into the clipboard (deep copies), and mirrors it to the
     /// Windows clipboard so another editor window can paste it.</summary>
@@ -26,16 +27,18 @@ public static class EditClipboard
     {
         Solids = doc.Solids.Where(s => s.IsSelected).Select(s => s.Clone()).ToList();
         Actors = doc.AllActors.Where(a => a.IsSelected).Select(a => a.Clone()).ToList();
+        Decals = doc.AllDecals.Where(d => d.IsSelected).Select(d => d.Clone()).ToList();
         Center = ComputeCenter();
         WriteSystemClipboard();
     }
 
     /// <summary>Fresh deep copies of the clipboard contents (so multiple pastes don't alias). Pulls the latest
     /// cross-instance copy from the Windows clipboard first, so a copy from another window wins.</summary>
-    public static (List<Solid> solids, List<ZActor> actors) Instantiate()
+    public static (List<Solid> solids, List<ZActor> actors, List<Decal> decals) Instantiate()
     {
         SyncFromSystemClipboard();
-        return (Solids.Select(s => s.Clone()).ToList(), Actors.Select(a => a.Clone()).ToList());
+        return (Solids.Select(s => s.Clone()).ToList(), Actors.Select(a => a.Clone()).ToList(),
+                Decals.Select(d => d.Clone()).ToList());
     }
 
     // Mirror the current selection to the Windows clipboard as marked JSON (best-effort; the clipboard can be
@@ -44,7 +47,7 @@ public static class EditClipboard
     {
         try
         {
-            string json = ProjectSerializer.SerializeSelection(Solids, Actors);
+            string json = ProjectSerializer.SerializeSelection(Solids, Actors, Decals);
             System.Windows.Forms.Clipboard.SetText(Marker + json);
         }
         catch { /* clipboard busy/unavailable — same-window paste is unaffected */ }
@@ -59,9 +62,9 @@ public static class EditClipboard
             if (!System.Windows.Forms.Clipboard.ContainsText()) return;
             string t = System.Windows.Forms.Clipboard.GetText();
             if (!t.StartsWith(Marker, StringComparison.Ordinal)) return;
-            var (solids, actors) = ProjectSerializer.DeserializeSelection(t[Marker.Length..]);
-            if (solids.Count == 0 && actors.Count == 0) return;
-            Solids = solids; Actors = actors; Center = ComputeCenter();
+            var (solids, actors, decals) = ProjectSerializer.DeserializeSelection(t[Marker.Length..]);
+            if (solids.Count == 0 && actors.Count == 0 && decals.Count == 0) return;
+            Solids = solids; Actors = actors; Decals = decals; Center = ComputeCenter();
         }
         catch { /* keep in-process contents on any clipboard/parse failure */ }
     }
@@ -81,6 +84,7 @@ public static class EditClipboard
 
         foreach (var s in Solids) { var (a, b) = s.GetAABB(); Acc(a); Acc(b); }
         foreach (var a in Actors) Acc(a.Position);
+        foreach (var d in Decals) Acc(d.Position);
         return any ? (mn + mx) * 0.5f : Vector3.Zero;
     }
 }

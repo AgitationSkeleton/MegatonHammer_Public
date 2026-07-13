@@ -83,6 +83,12 @@ public sealed class SelectTool : ITool
     private float   _decalStartH, _decalStartV;   // ortho grab point (move delta)
     private Vector3 _decalStartPos;               // decal position at grab
 
+    // ── Active decal transform via the Hammer selection handles (2D, decals-only selection) ──
+    private bool _decalHandleScale, _decalHandleRotate;   // dragging a handle to scale / rotate selected decals
+    // Snapshot of each selected decal at grab time (size + rotation + position), so a scale/rotate maps the
+    // ORIGINALS by the absolute transform each frame (drift-free, like the brush snapshots).
+    private readonly Dictionary<Decal, (float su, float sv, float rot, Vector3 pos)> _decalSnap = [];
+
     // ── Active decal move in the 3D view ──────────────────────────────────
     private Decal?  _dragDecal3D;         // decal being slid along its own plane in the 3D view
     private Vector3 _decal3DGrabOffset;   // (rayHit - Position) at grab, so the decal follows the cursor
@@ -155,10 +161,19 @@ public sealed class SelectTool : ITool
         var cam = vp.ActiveCamera2D!;
         var (oh, ov) = ScreenToOrtho(e.X, e.Y, vp.Width, vp.Height, cam);
 
-        // ── Try grabbing a handle on the current brush selection (mode-specific) ──
+        // ── Try grabbing a handle on the current selection (mode-specific) ──
         if (TryGetSelectionRect(cam.Axis, vp.Resolver, out var rect) &&
             TryHitHandle(rect, oh, ov, cam.Zoom, out _grabCol, out _grabRow))
         {
+            // A decals-ONLY selection routes the handles to the decal transform (resize its U/V extents in
+            // Scale/Skew, spin its facing in Rotate), so a sticker overlay has the same handle interactivity
+            // as a brush. Mixed selections keep the brush/actor transform (decals ride along on body moves).
+            if (DecalsOnlySelection())
+            {
+                if (_mode == SelectMode.Rotate) BeginDecalRotate(vp, rect, oh, ov);
+                else                            BeginDecalScale(vp, rect);
+                return;
+            }
             switch (_mode)
             {
                 case SelectMode.Rotate: BeginRotate(vp, rect, oh, ov); break;
@@ -173,12 +188,15 @@ public sealed class SelectTool : ITool
         if (TryPickDecal2D(cam, oh, ov, out var pd, out bool pdResize))
         {
             bool addD = (Control.ModifierKeys & (Keys.Control | Keys.Shift)) != 0;
+            bool wasSelected = pd.IsSelected;
             if (addD) pd.IsSelected = !pd.IsSelected;
-            else if (!pd.IsSelected) { _doc.ClearSelection(); pd.IsSelected = true; }
+            else if (!pd.IsSelected) { _doc.ClearSelection(); pd.IsSelected = true; _mode = SelectMode.Scale; }
             if (pd.IsSelected)
             {
                 _dragDecal = pd; _decalResize = pdResize; _decalAxis = cam.Axis; _dragVp = vp;
                 _decalStartH = oh; _decalStartV = ov; _decalStartPos = pd.Position; _undoRecorded = false;
+                // Clicking (no drag) the body of an already-selected decal cycles the handle mode, like a brush.
+                _pendingCycle = !pdResize && wasSelected && !addD;
             }
             _doc.NotifyChanged();
             return;
@@ -308,7 +326,10 @@ public sealed class SelectTool : ITool
                 if (t > 0f)
                 {
                     RecordUndoOnce();
-                    _dragDecal3D.Position = ray.Origin + ray.Direction * t - _decal3DGrabOffset;
+                    var pos = ray.Origin + ray.Direction * t - _decal3DGrabOffset;
+                    if ((Control.ModifierKeys & Keys.Alt) == 0) pos = SnapVec(pos, GridSnap.ActiveStep(vp.GridSize, 1f));
+                    _dragDecal3D.Position = pos;
+                    ProjectDecalToSurface(_dragDecal3D);   // conform to the brush surface it now sits over (Hammer overlay)
                     _moved = true; _doc.NotifyChanged(); vp.Invalidate();
                 }
             }
@@ -316,8 +337,15 @@ public sealed class SelectTool : ITool
         }
         var cam = vp.ActiveCamera2D!;
         var (oh, ov) = ScreenToOrtho(e.X, e.Y, vp.Width, vp.Height, cam);
+        bool freeSnap = (Control.ModifierKeys & Keys.Alt) != 0;   // Alt = ignore the grid (Hammer)
+        float grid = GridSnap.ActiveStep(vp.GridSize, cam.Zoom);
 
-        // Decal drag: resize its U/V extents (corner grab) or move its position (body grab).
+        // Decal handle transforms (Hammer selection handles on a decals-only selection).
+        if (_decalHandleScale)  { ApplyDecalScale(vp, oh, ov); return; }
+        if (_decalHandleRotate) { ApplyDecalRotate(vp, oh, ov); return; }
+
+        // Decal drag: resize its U/V extents (corner grab) or move its position (body grab). Both snap to the
+        // grid like a brush (Alt frees them); a move also re-projects onto the surface it's over.
         if (_dragDecal != null)
         {
             RecordUndoOnce();
@@ -325,11 +353,19 @@ public sealed class SelectTool : ITool
             {
                 var world = OrthoToWorld(oh, ov, _decalAxis, _dragDecal.Position);
                 var (u, v) = _dragDecal.Axes();
-                _dragDecal.SizeU = MathF.Max(4f, MathF.Abs(Vector3.Dot(world - _dragDecal.Position, u)));
-                _dragDecal.SizeV = MathF.Max(4f, MathF.Abs(Vector3.Dot(world - _dragDecal.Position, v)));
+                float su = MathF.Abs(Vector3.Dot(world - _dragDecal.Position, u));
+                float sv = MathF.Abs(Vector3.Dot(world - _dragDecal.Position, v));
+                if (!freeSnap) { su = Snap(su, grid); sv = Snap(sv, grid); }
+                _dragDecal.SizeU = MathF.Max(4f, su);
+                _dragDecal.SizeV = MathF.Max(4f, sv);
             }
             else
-                _dragDecal.Position = _decalStartPos + OrthoToWorldDelta(oh - _decalStartH, ov - _decalStartV, _decalAxis);
+            {
+                var pos = _decalStartPos + OrthoToWorldDelta(oh - _decalStartH, ov - _decalStartV, _decalAxis);
+                if (!freeSnap) pos = SnapVec(pos, grid);
+                _dragDecal.Position = pos;
+                ProjectDecalToSurface(_dragDecal);   // stick to the brush surface beneath (Hammer overlay projection)
+            }
             _moved = true; _doc.NotifyChanged(); vp.Invalidate();
             return;
         }
@@ -400,9 +436,19 @@ public sealed class SelectTool : ITool
 
     public void OnMouseUp(GLViewport vp, MouseEventArgs e)
     {
+        if (_decalHandleScale || _decalHandleRotate)
+        {
+            _decalHandleScale = _decalHandleRotate = false; _dragVp = null; _moved = false;
+            _undoRecorded = false; _decalSnap.Clear();
+            _doc.NotifyChanged(); vp.Invalidate();
+            return;
+        }
         if (_dragDecal != null)
         {
-            _dragDecal = null; _dragVp = null; _moved = false;
+            // A click (no drag) on the already-selected decal body cycles Scale ↔ Rotate (decals don't skew).
+            if (_pendingCycle && !_moved)
+                _mode = _mode == SelectMode.Scale ? SelectMode.Rotate : SelectMode.Scale;
+            _dragDecal = null; _dragVp = null; _moved = false; _pendingCycle = false;
             _doc.NotifyChanged(); vp.Invalidate();
             return;
         }
@@ -920,6 +966,10 @@ public sealed class SelectTool : ITool
         // instead of a fixed origin box. No-model actors fall back to a small default box.
         foreach (var actor in _doc.PickableActors)
             if (actor.IsSelected) { var (a, b) = Picking.ActorBounds(actor, resolver, true); Acc(a, b); }
+        // Selected decals contribute their footprint so a decals-only selection gets the same handle box.
+        foreach (var d in _doc.VisibleDecals)
+            if (d.IsSelected)
+                foreach (var c in d.Corners(0f)) Acc(c, c);
         if (!any) return false;
 
         var (sh, sv, eh, ev) = Project2DAABB(mn, mx, axis);
@@ -1014,6 +1064,107 @@ public sealed class SelectTool : ITool
         if (body   != null) { decal = body;   resize = false; return true; }
         return false;
     }
+
+    // True when the selection is one-or-more decals and NOTHING else — so the transform handles drive the
+    // decals (resize/rotate) instead of a brush/actor.
+    private bool DecalsOnlySelection()
+        => _doc.VisibleDecals.Any(d => d.IsSelected)
+           && !_doc.Solids.Any(s => s.IsSelected)
+           && !_doc.PickableActors.Any(a => a.IsSelected);
+
+    private void SnapshotDecals()
+    {
+        _decalSnap.Clear();
+        foreach (var d in _doc.VisibleDecals)
+            if (d.IsSelected) _decalSnap[d] = (d.SizeU, d.SizeV, d.Rotation, d.Position);
+    }
+
+    // ── Decal handle scale (Scale/Skew mode) ─────────────────────────────
+    private void BeginDecalScale(GLViewport vp, (float loH, float loV, float hiH, float hiV) rect)
+    {
+        _decalHandleScale = true; _dragVp = vp; _undoRecorded = false;
+        var (loH, loV, hiH, hiV) = rect;
+        float mH = (loH + hiH) * 0.5f, mV = (loV + hiV) * 0.5f;
+        _grabOrigH = _grabCol == 0 ? loH : _grabCol == 2 ? hiH : mH;
+        _grabOrigV = _grabRow == 0 ? loV : _grabRow == 2 ? hiV : mV;
+        int aCol = 2 - _grabCol, aRow = 2 - _grabRow;   // anchor = opposite handle (fixed point)
+        _anchorH = aCol == 0 ? loH : aCol == 2 ? hiH : mH;
+        _anchorV = aRow == 0 ? loV : aRow == 2 ? hiV : mV;
+        SnapshotDecals();
+    }
+
+    private void ApplyDecalScale(GLViewport vp, float oh, float ov)
+    {
+        var cam = vp.ActiveCamera2D!;
+        float g = GridSnap.ActiveStep(vp.GridSize, cam.Zoom);
+        bool free = (Control.ModifierKeys & Keys.Alt) != 0;
+        float mouseH = free ? oh : Snap(oh, g), mouseV = free ? ov : Snap(ov, g);
+        float sH = ComputeFactor(_grabCol, mouseH, _anchorH, _grabOrigH, ExtentH());
+        float sV = ComputeFactor(_grabRow, mouseV, _anchorV, _grabOrigV, ExtentV());
+        var (scale, pivot) = ToWorldScale(cam.Axis, sH, sV);
+
+        RecordUndoOnce();
+        foreach (var (d, snap) in _decalSnap)
+        {
+            // Scale position about the anchor in the view plane (a group scales outward from the fixed handle).
+            var rel = snap.pos - pivot;
+            d.Position = pivot + new Vector3(rel.X * scale.X, rel.Y * scale.Y, rel.Z * scale.Z);
+            // For a face-on, unrotated decal, local U aligns with view-H and V with view-V, so the per-axis
+            // factors map straight onto the half-extents (the common case; a rotated decal scales approximately).
+            d.SizeU = MathF.Max(4f, snap.su * MathF.Abs(sH));
+            d.SizeV = MathF.Max(4f, snap.sv * MathF.Abs(sV));
+        }
+        _moved = true; _doc.NotifyChanged(); vp.Invalidate();
+    }
+
+    // ── Decal handle rotate (Rotate mode) ────────────────────────────────
+    private void BeginDecalRotate(GLViewport vp, (float loH, float loV, float hiH, float hiV) rect, float oh, float ov)
+    {
+        _decalHandleRotate = true; _dragVp = vp; _undoRecorded = false;
+        var (loH, loV, hiH, hiV) = rect;
+        _centerH = (loH + hiH) * 0.5f;
+        _centerV = (loV + hiV) * 0.5f;
+        _rotStartAngle = MathF.Atan2(ov - _centerV, oh - _centerH);
+        SnapshotDecals();
+    }
+
+    private void ApplyDecalRotate(GLViewport vp, float oh, float ov)
+    {
+        var cam = vp.ActiveCamera2D!;
+        float theta = MathF.Atan2(ov - _centerV, oh - _centerH) - _rotStartAngle;
+        bool free = (Control.ModifierKeys & Keys.Shift) != 0;   // Shift = free (no 15° snap), Hammer
+        if (!free) { float step = MathF.PI / 12f; theta = MathF.Round(theta / step) * step; }
+        float cos = MathF.Cos(theta), sin = MathF.Sin(theta);
+        var (hDir, vDir, dDir) = Bases(cam.Axis);
+        Vector3 pivot = _centerH * hDir + _centerV * vDir;   // depth 0 — RotateVec preserves each decal's own depth
+        float degDelta = theta * (180f / MathF.PI);
+
+        RecordUndoOnce();
+        foreach (var (d, snap) in _decalSnap)
+        {
+            d.Position = pivot + RotateVec(snap.pos - pivot, hDir, vDir, dDir, cos, sin);
+            d.Rotation = snap.rot + degDelta;   // spin the decal's facing about its normal with the cursor
+        }
+        _doc.NotifyChanged(); vp.Invalidate();
+    }
+
+    // Hammer-style overlay projection: drop the decal onto the brush surface it now sits over. Cast from just
+    // outside the decal along -normal; if a face is within reach, snap the decal onto it and adopt its normal
+    // (so sliding across a corner re-orients the sticker to the new face). No hit (slid into open air) = leave it.
+    private void ProjectDecalToSurface(Decal d)
+    {
+        var n = d.Normal.LengthSquared > 1e-6f ? Vector3.Normalize(d.Normal) : Vector3.UnitY;
+        const float Probe = 128f;
+        var ray = new Ray(d.Position + n * Probe, -n);
+        if (Picking.PickFace(_doc.Scene, ray, out var hit) && hit.Distance <= Probe * 2f)
+        {
+            d.Position = hit.Point;
+            var fn = hit.Face.Plane.Normal;
+            if (fn.LengthSquared > 1e-6f) d.Normal = Vector3.Normalize(fn);
+        }
+    }
+
+    private static Vector3 SnapVec(Vector3 v, float g) => new(Snap(v.X, g), Snap(v.Y, g), Snap(v.Z, g));
 
     private static (float sh, float sv, float eh, float ev) Project2DAABB(
         Vector3 mn, Vector3 mx, ViewAxis axis) => axis switch

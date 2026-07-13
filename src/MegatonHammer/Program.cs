@@ -219,6 +219,13 @@ static class Program
             return;
         }
 
+        // Decal/overlay interactivity: clipboard round-trip + surface-projection geometry. MegatonHammer --decaltest
+        if (args.Length >= 1 && args[0] == "--decaltest")
+        {
+            try { SelfTest.DecalTest.Run(); } catch (Exception ex) { Console.WriteLine($"[decaltest] {ex}"); }
+            return;
+        }
+
         // Diagnostic (#7): actor model-RESOLUTION coverage — who renders as a real model vs a
         // billboard/point. MegatonHammer --modelaudit [oot|mm|both] [romPath]
         if (args.Length >= 1 && args[0] == "--modelaudit")

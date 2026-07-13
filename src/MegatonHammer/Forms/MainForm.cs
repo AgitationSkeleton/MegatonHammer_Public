@@ -1144,6 +1144,7 @@ public sealed class MainForm : Form, IMessageFilter
         _document.RecordUndo();
         foreach (var s in _document.Solids) if (s.IsSelected) s.Translate(delta);
         foreach (var a in _document.AllActors) if (a.IsSelected) a.Position += delta;
+        foreach (var d in _document.AllDecals) if (d.IsSelected) d.Position += delta;
         _document.NotifyChanged();
         RedrawAll();
     }
@@ -1166,6 +1167,12 @@ public sealed class MainForm : Form, IMessageFilter
             a.IsSelected = false;
             var c = a.Clone(); c.Position += offset; c.IsSelected = true;
             _document.AddActor(c);
+        }
+        foreach (var d in _document.AllDecals.Where(d => d.IsSelected).ToList())
+        {
+            d.IsSelected = false;
+            var c = d.Clone(); c.Position += offset; c.IsSelected = true;
+            _document.AddDecal(c);
         }
         _document.NormalizeChestFlags();   // a duplicated chest gets a fresh treasure flag (no shared opened-state)
         _document.NotifyChanged();
@@ -1360,7 +1367,7 @@ public sealed class MainForm : Form, IMessageFilter
     // ── Clipboard / edit operations (Hammer Cut/Copy/Paste) ────────────────
 
     private void RedrawAll() { foreach (var vp in AllViewports()) vp.RequestRedraw(); }
-    private bool HasSelection() => _document.SelectedSolid != null || _document.SelectedActor != null;
+    private bool HasSelection() => _document.SelectedSolid != null || _document.SelectedActor != null || _document.SelectedDecal != null;
 
     private void CopySelection()
     {
@@ -1381,7 +1388,7 @@ public sealed class MainForm : Form, IMessageFilter
         if (!Editor.EditClipboard.HasContent) return;
         _document.RecordUndo();
         _document.ClearSelection();
-        var (solids, actors) = Editor.EditClipboard.Instantiate();
+        var (solids, actors, decals) = Editor.EditClipboard.Instantiate();
         // Hammer's GetBestPastePoint drops the clipboard into the view you're WORKING IN: the centre of the
         // active 2D view (keeping the original depth on the off-plane axis), or the 3D view's centre when
         // that's the active view. Grid-snapped. (Paste Special is what keeps the exact original position.)
@@ -1389,12 +1396,14 @@ public sealed class MainForm : Form, IMessageFilter
         var delta = target - Editor.EditClipboard.Center;
         foreach (var s in solids) { s.Translate(delta); s.IsSelected = true; _document.AddSolid(s); }
         foreach (var a in actors) { a.Position += delta; a.IsSelected = true; _document.AddActor(a); }
+        foreach (var d in decals) { d.Position += delta; d.IsSelected = true; _document.AddDecal(d); }
         // Clones inherit the source's GroupId (Clone copies it — needed for undo snapshots), so a pasted
         // object would otherwise join the ORIGINAL's group: clicking the paste would also grab the sources
         // (and same-actor pastes would appear "linked"). Clear it so every pasted item is INDEPENDENT — the
         // pasted set is NOT auto-grouped; use Ctrl+G to group them if you want the paste to move as one unit.
         foreach (var s in solids) s.GroupId = 0;
         foreach (var a in actors) a.GroupId = 0;
+        foreach (var d in decals) d.GroupId = 0;
         // A pasted chest keeps the source's treasure flag (a collision → shared opened-state); give it a fresh one.
         _document.NormalizeChestFlags();
         // #14: the pasted content is now the selection — make the Select tool active in fresh Scale mode so
@@ -1404,7 +1413,7 @@ public sealed class MainForm : Form, IMessageFilter
         _document.NotifyChanged();
         RedrawAll(); UpdateStatus();
         if (_statusLabel != null)
-            _statusLabel.Text = $"Pasted {solids.Count} brush(es) + {actors.Count} entity(s) at the view centre — now selected; drag or arrow-key to move";
+            _statusLabel.Text = $"Pasted {solids.Count} brush(es) + {actors.Count} entity(s) + {decals.Count} decal(s) at the view centre — now selected; drag or arrow-key to move";
     }
 
     // Where plain Paste drops the clipboard: the centre of the view the user is working in (Hammer's
@@ -1474,7 +1483,7 @@ public sealed class MainForm : Form, IMessageFilter
         {
             // "Start at center of original" places the first copy on the original (factor 0).
             int factor = o.StartAtCenter ? k : k + 1;
-            var (solids, actors) = Editor.EditClipboard.Instantiate();
+            var (solids, actors, decals) = Editor.EditClipboard.Instantiate();
             var offset = new OpenTK.Mathematics.Vector3(o.OffX * factor, o.OffY * factor, o.OffZ * factor);
             var q = OpenTK.Mathematics.Quaternion.FromEulerAngles(
                 OpenTK.Mathematics.MathHelper.DegreesToRadians(o.RotX * factor),
@@ -1505,10 +1514,21 @@ public sealed class MainForm : Form, IMessageFilter
                 a.IsSelected = true;
                 _document.AddActor(a);
             }
+            foreach (var d in decals)
+            {
+                // Orbit the decal's centre + its facing normal about the pivot (rotation is orthogonal), then
+                // offset — so a special-pasted decal array rotates with the rest of the selection.
+                var rel = d.Position - pivot;
+                d.Position = pivot + OpenTK.Mathematics.Vector3.Transform(rel, q) + offset;
+                d.Normal   = OpenTK.Mathematics.Vector3.Transform(d.Normal, q);
+                d.IsSelected = true;
+                _document.AddDecal(d);
+            }
             // Clones inherit the source's GroupId (Clone copies it) — clear it so a special-pasted copy
             // isn't "linked" to the original. Not auto-grouped (Ctrl+G to group), matching plain Paste.
             foreach (var s in solids) s.GroupId = 0;
             foreach (var a in actors) a.GroupId = 0;
+            foreach (var d in decals) d.GroupId = 0;
             _document.NormalizeChestFlags();   // pasted chests get a fresh treasure flag (no shared opened-state)
         }
         _document.NotifyChanged();

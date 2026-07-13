@@ -174,6 +174,8 @@ public sealed class MapDocument
     // ── Selection accessors (first selected of each kind) ──────────────────
     public ZActor? SelectedActor => PickableActors.FirstOrDefault(a => a.IsSelected);
     public Solid?  SelectedSolid => Solids.FirstOrDefault(s => s.IsSelected);
+    public Decal?  SelectedDecal => VisibleDecals.FirstOrDefault(d => d.IsSelected);
+    public IEnumerable<Decal> SelectedDecals => VisibleDecals.Where(d => d.IsSelected);
 
     /// <summary>Faces currently selected in the Face Edit tool (multi-face texture editing).</summary>
     public IEnumerable<SolidFace> SelectedFaces => Solids.SelectMany(s => s.Faces).Where(f => f.FaceSelected);
