@@ -288,6 +288,7 @@ public static class ProjectSerializer
     {
         IsTrigger = s.IsTrigger, ExitEntrance = s.ExitEntrance, IsWater = s.IsWater, WaterRoom = s.WaterRoom,
         NoCollision = s.NoCollision, SurfaceData0 = s.SurfaceData0, SurfaceData1 = s.SurfaceData1,
+        Blend = (int)s.Blend, Opacity = s.Opacity,
         GroupId = s.GroupId, VisGroupId = s.VisGroupId, IsSelected = s.IsSelected,
         Planes = s.Planes.Select(p => new PlaneDto { Nx = p.Normal.X, Ny = p.Normal.Y, Nz = p.Normal.Z, D = p.Distance }).ToList(),
         Faces  = s.Faces.Select(f => new FaceDto
@@ -352,7 +353,7 @@ public static class ProjectSerializer
         var planes = (sd.Planes ?? [])
             .Select(p => new Plane3D(new Vector3(p.Nx, p.Ny, p.Nz), p.D)).ToArray();
 
-        var solid = new Solid { IsTrigger = sd.IsTrigger, ExitEntrance = sd.ExitEntrance, IsWater = sd.IsWater, WaterRoom = sd.WaterRoom == 0 ? 0x3F : sd.WaterRoom, NoCollision = sd.NoCollision, SurfaceData0 = sd.SurfaceData0, SurfaceData1 = sd.SurfaceData1, GroupId = sd.GroupId, VisGroupId = sd.VisGroupId, IsSelected = sd.IsSelected };
+        var solid = new Solid { IsTrigger = sd.IsTrigger, ExitEntrance = sd.ExitEntrance, IsWater = sd.IsWater, WaterRoom = sd.WaterRoom == 0 ? 0x3F : sd.WaterRoom, NoCollision = sd.NoCollision, SurfaceData0 = sd.SurfaceData0, SurfaceData1 = sd.SurfaceData1, Blend = (BrushBlend)sd.Blend, Opacity = sd.Opacity, GroupId = sd.GroupId, VisGroupId = sd.VisGroupId, IsSelected = sd.IsSelected };
         solid.RestorePlanes(planes);     // rebuilds faces (each tagged with PlaneIndex)
 
         if (sd.Faces != null)
@@ -590,6 +591,8 @@ public static class ProjectSerializer
         public bool NoCollision { get; set; }
         public uint SurfaceData0 { get; set; }
         public uint SurfaceData1 { get; set; }
+        public int Blend { get; set; }              // BrushBlend: 0 Opaque, 1 Translucent, 2 Additive
+        public byte Opacity { get; set; } = 255;    // missing (old projects) → opaque; explicit 0 → invisible
         public int GroupId { get; set; }
         public int VisGroupId { get; set; }
         public bool IsSelected { get; set; }   // #30: persist so undo/redo restores selection

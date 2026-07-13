@@ -70,6 +70,10 @@ public static class DisplayListBuilder
         // ── 1. Group triangles by texture bitmap (key "" = untextured) ──
         var order = new List<string>();
         var groups = new Dictionary<string, (Bitmap? bmp, List<(Vtx a, Vtx b, Vtx c)> tris)>();
+        // Translucent/additive brush groups → their blend, so the DL emission routes them into the poly_xlu
+        // list with the right render mode. The group key encodes the blend (b:/bt:/ba:) so an opaque and a
+        // translucent brush that share a texture never merge.
+        var groupBlend = new Dictionary<string, BrushBlend>();
         Vector3 col = room.Color;
         byte cr = (byte)(col.X * 255), cg = (byte)(col.Y * 255), cb = (byte)(col.Z * 255);
 
@@ -95,7 +99,7 @@ public static class DisplayListBuilder
 
         // Emits one face's triangles into group <paramref name="key"/>. Shared by the solid pass and the
         // water pass below.
-        void EmitFace(string key, Bitmap? bmp, SolidFace face, byte sr, byte sg, byte sb, bool selected)
+        void EmitFace(string key, Bitmap? bmp, SolidFace face, byte sr, byte sg, byte sb, bool selected, byte alpha = 0xFF)
         {
             var verts = face.Vertices;
             if (verts.Count < 3) return;
@@ -138,7 +142,7 @@ public static class DisplayListBuilder
             {
                 (byte r, byte g, byte b) GShade(Vector3 c) => selected ? (sr, sg, sb)
                     : ((byte)(Math.Clamp(c.X, 0f, 1f) * 255), (byte)(Math.Clamp(c.Y, 0f, 1f) * 255), (byte)(Math.Clamp(c.Z, 0f, 1f) * 255));
-                Vtx GV(Vector3 p, Vector3 c) { var s = GShade(c); return ToVtx(p, face.UVAt(p) - off, tw, th, s.r, s.g, s.b); }
+                Vtx GV(Vector3 p, Vector3 c) { var s = GShade(c); return ToVtx(p, face.UVAt(p) - off, tw, th, s.r, s.g, s.b, alpha); }
                 int cnu = Math.Min(grid.Nu, shadeCap), cnv = Math.Min(grid.Nv, shadeCap);
                 // Sample the stored (fine) grid's colour at the full-res node nearest this coarse node.
                 Vector3 CoarseColor(int ci, int cj)
@@ -163,9 +167,9 @@ public static class DisplayListBuilder
             {
                 var s0 = Shade(0); var s1 = Shade(i); var s2 = Shade(i + 1);
                 Add(key, bmp,
-                    ToVtx(verts[0],     uvs[0],     tw, th, s0.r, s0.g, s0.b),
-                    ToVtx(verts[i],     uvs[i],     tw, th, s1.r, s1.g, s1.b),
-                    ToVtx(verts[i + 1], uvs[i + 1], tw, th, s2.r, s2.g, s2.b));
+                    ToVtx(verts[0],     uvs[0],     tw, th, s0.r, s0.g, s0.b, alpha),
+                    ToVtx(verts[i],     uvs[i],     tw, th, s1.r, s1.g, s1.b, alpha),
+                    ToVtx(verts[i + 1], uvs[i + 1], tw, th, s2.r, s2.g, s2.b, alpha));
             }
         }
 
@@ -181,6 +185,12 @@ public static class DisplayListBuilder
             // be baked into the compiled/exported DL — doing so tinted the selected brush orange in-game.
             // Always export as unselected (selected: false); sr/sg/sb are unused when not selected.
             byte sr = cr, sg = cg, sb = cb;
+            // Translucent/additive brushes route into the poly_xlu list; opacity becomes vertex alpha (the
+            // xlu render mode blends by A_IN). Blend is baked into the group key so they never merge with
+            // opaque geometry. Tag: "" opaque, "t" translucent, "a" additive.
+            var blend = solid.Blend;
+            byte alpha = blend == BrushBlend.Opaque ? (byte)0xFF : solid.Opacity;
+            string tag = blend == BrushBlend.Translucent ? "t" : blend == BrushBlend.Additive ? "a" : "";
             foreach (var face in solid.Faces)
             {
                 if (face.Vertices.Count < 3) continue;
@@ -188,8 +198,9 @@ public static class DisplayListBuilder
                 if (cullUnseen && FaceCuller.IsObscured(face, solid, room.Geometry)) continue;
                 string? tn = face.TextureName;
                 Bitmap? bmp = tn != null && texResolver != null ? FitResolve(tn) : null;
-                string key = bmp != null ? "b:" + tn : "";
-                EmitFace(key, bmp, face, sr, sg, sb, false);
+                string key = bmp != null ? $"b{tag}:{tn}" : (tag.Length > 0 ? $"x{tag}:" : "");
+                if (blend != BrushBlend.Opaque) groupBlend[key] = blend;
+                EmitFace(key, bmp, face, sr, sg, sb, false, alpha);
             }
         }
 
@@ -284,7 +295,9 @@ public static class DisplayListBuilder
             // Per-texture cutout opt-in: a texture with a meaningful fraction of transparent texels
             // (foliage / fences / tree backdrops) keeps its 1-bit alpha and draws alpha-tested; a solid
             // wall carrying only a few stray-alpha ROM texels stays force-opaque so it doesn't get holes.
-            bool cut = n64Hw && IsCutoutTexture(bmp);
+            // xlu (translucent/additive) brush textures aren't alpha-tested cutouts — they blend by vertex
+            // alpha, so force the texel opaque and skip the cutout path (else it would punch 1-bit holes).
+            bool cut = n64Hw && !groupBlend.ContainsKey(key) && IsCutoutTexture(bmp);
             isCutout[key] = cut;
             if (cut) LastCutoutTextures.Add(key);
             texOffset[key] = texBase + tw2.Position;
@@ -298,6 +311,9 @@ public static class DisplayListBuilder
         // buffer, AND the scroll draw config (OoT SDC_CALM_WATER / MM MAT_ANIM) binds the scroll segment
         // 0x08 in POLY_XLU_DISP — an OPA-list water DL's segment-DL call would run before seg 8 is bound.
         const ulong RM_OPAQUE = 0xE200001C0C1841F8UL, RM_CUTOUT = 0xE200001C0C1871F8UL;
+        // Additive XLU render mode: G_RM_AA_ZB_XLU_SURF with the blender B operand changed from G_BL_1MA (1-α)
+        // to G_BL_1, i.e. out = in·α + mem·1 (light adds to what's behind). Same word on RDP and Fast3D.
+        const ulong RM_ADD = 0xE200001C005A49D8UL;
         const ulong GEOM_MODE = 0xD900000500000005UL;   // SetGeometryMode(ZBUFFER|SHADE), no back-face cull
         const ulong OTHERMODE_H = 0xE300081300082000UL; // 1-CYCLE + persp + bilerp + TT_NONE
         const ulong SP_TEXTURE  = 0xD7000002FFFFFFFFUL; // SPTexture enable, scale 1.0
@@ -340,7 +356,8 @@ public static class DisplayListBuilder
         dw.WriteU64(SP_TEXTURE);
         foreach (var (key, bmp, batches) in dlPlan)
         {
-            if (key == WaterKey) continue;   // water is emitted in the XLU list below
+            if (key == WaterKey) continue;              // water is emitted in the XLU list below
+            if (groupBlend.ContainsKey(key)) continue;  // translucent/additive brushes go in the XLU list below
             ulong wantMode = isCutout.GetValueOrDefault(key) ? RM_CUTOUT : RM_OPAQUE;
             if (wantMode != curMode) { dw.WriteU64(wantMode); curMode = wantMode; }
             if (bmp != null && texOffset.TryGetValue(key, out int tOff))
@@ -358,25 +375,51 @@ public static class DisplayListBuilder
         }
         dw.WriteU64(0xDF00000000000000UL);   // EndDisplayList
 
-        // XLU display list — the water surface (empty when the room has no water).
+        // XLU display list — the water surface AND any translucent/additive brushes (empty when there are
+        // none). All translucent geometry belongs here (drawn after opaque, in POLY_XLU_DISP).
         byte[] xluData = [];
-        var water = dlPlan.FirstOrDefault(p => p.key == WaterKey);
-        if (water.batches != null && water.bmp != null && texOffset.TryGetValue(WaterKey, out int wOff))
+        var xluGroups = dlPlan.Where(p => p.key == WaterKey || groupBlend.ContainsKey(p.key)).ToList();
+        if (xluGroups.Count > 0)
         {
             var xw = new N64BinaryWriter();
             xw.WriteU64(PIPE_SYNC);
             xw.WriteU64(GEOM_MODE);
             xw.WriteU64(OTHERMODE_H);
             xw.WriteU64(SP_TEXTURE);
-            xw.WriteU64(RM_WATER_XLU);
-            xw.WriteU64(COMBINE_WATER);                     // G_CC_MODULATEI_PRIM (TEXEL0 × PRIM, alpha = PRIM)
-            xw.WriteU64(PRIM_WATER);                        // prim = white, alpha 128 (translucent)
-            EmitTextureLoad(xw, seg, wOff, water.bmp.Width, water.bmp.Height);
-            // Scroll: invoke the per-frame tile-scroll DL the scene's draw config binds on segment 0x08
-            // (OoT SDC_CALM_WATER / MM MAT_ANIM). Gated so a target without that draw config never calls an
-            // unbound segment.
-            if (waterScroll) { xw.WriteU32(0xDE000000u); xw.WriteU32(0x08000000u); }
-            EmitBatches(xw, water.batches);
+            ulong curX = 0;
+            foreach (var (key, bmp, batches) in xluGroups)
+            {
+                if (key == WaterKey)
+                {
+                    if (bmp == null || !texOffset.TryGetValue(WaterKey, out int wOff)) continue;
+                    if (curX != RM_WATER_XLU) { xw.WriteU64(RM_WATER_XLU); curX = RM_WATER_XLU; }
+                    xw.WriteU64(COMBINE_WATER);                 // G_CC_MODULATEI_PRIM (TEXEL0 × PRIM, alpha = PRIM)
+                    xw.WriteU64(PRIM_WATER);                    // prim = white, alpha 128
+                    EmitTextureLoad(xw, seg, wOff, bmp.Width, bmp.Height);
+                    // Scroll: run the per-frame tile-scroll DL the scene draw config binds on segment 0x08.
+                    if (waterScroll) { xw.WriteU32(0xDE000000u); xw.WriteU32(0x08000000u); }
+                    EmitBatches(xw, batches);
+                }
+                else
+                {
+                    // Translucent = alpha-blend; Additive = light-add. Opacity is already in the vertex alpha,
+                    // which the xlu render mode reads via A_IN — so a plain MODULATE/SHADE combiner suffices.
+                    ulong rm = groupBlend[key] == BrushBlend.Additive ? RM_ADD : RM_WATER_XLU;
+                    if (curX != rm) { xw.WriteU64(rm); curX = rm; }
+                    if (bmp != null && texOffset.TryGetValue(key, out int tOff))
+                    {
+                        xw.WriteU64(0xFC121824FF33FFFFUL);      // MODULATERGBA TEXEL0×SHADE (alpha from vertex)
+                        EmitTextureLoad(xw, seg, tOff, bmp.Width, bmp.Height);
+                        // A scrolling xlu brush (e.g. Chamber of Sages water): bind its animated tile on seg 8+i.
+                        int si = scrolls == null || key.Length == 0 || key[0] != 'b' ? -1
+                               : IndexOfScroll(scrolls, key[(key.IndexOf(':') + 1)..]);
+                        if (si >= 0) { xw.WriteU32(0xDE000000u); xw.WriteU32((uint)(0x08 + si) << 24); }
+                    }
+                    else
+                        xw.WriteU64(0xFC00000000041104UL);      // SHADE, SHADE (alpha from vertex)
+                    EmitBatches(xw, batches);
+                }
+            }
             xw.WriteU64(0xDF00000000000000UL);   // EndDisplayList
             xluData = xw.ToArray();
         }
@@ -427,12 +470,12 @@ public static class DisplayListBuilder
 
     private static int Pow2Floor(int v) { int p = 1; while (p * 2 <= v) p <<= 1; return p; }
 
-    private static Vtx ToVtx(Vector3 p, Vector2 uv, int tw, int th, byte r, byte g, byte b)
+    private static Vtx ToVtx(Vector3 p, Vector2 uv, int tw, int th, byte r, byte g, byte b, byte a = 0xFF)
     {
         // S10.5 texel coords; clamp so heavy tiling doesn't overflow s16.
         int s = (int)MathF.Round(uv.X * tw * 32f), t = (int)MathF.Round(uv.Y * th * 32f);
         return new Vtx((short)MathF.Round(p.X), (short)MathF.Round(p.Y), (short)MathF.Round(p.Z),
-                       (short)Math.Clamp(s, -32768, 32767), (short)Math.Clamp(t, -32768, 32767), r, g, b);
+                       (short)Math.Clamp(s, -32768, 32767), (short)Math.Clamp(t, -32768, 32767), r, g, b, a);
     }
 
     private static int AddVert(List<Vtx> batch, Vtx v)

@@ -2,6 +2,17 @@ using OpenTK.Mathematics;
 
 namespace MegatonHammer.Editor;
 
+/// <summary>How a brush's visible geometry is blended, mapped to a vanilla N64/Fast3D render mode.</summary>
+public enum BrushBlend
+{
+    /// <summary>Normal solid geometry (poly_opa).</summary>
+    Opaque = 0,
+    /// <summary>Alpha-blended (poly_xlu, G_RM_AA_ZB_XLU_SURF) — glass, water, ghosts, coloured haze.</summary>
+    Translucent = 1,
+    /// <summary>Additive (poly_xlu, blender B = G_BL_1) — light shafts/god rays, glow, fire, energy.</summary>
+    Additive = 2,
+}
+
 public sealed class Solid
 {
     public List<Plane3D>   Planes     { get; } = [];
@@ -27,6 +38,19 @@ public sealed class Solid
 
     /// <summary>The room a water box belongs to (0x3F = all rooms). Stored in the WaterBox properties.</summary>
     public int WaterRoom { get; set; } = 0x3F;
+
+    /// <summary>Vanilla render technique for this brush's visible geometry. Opaque = the normal poly_opa path.
+    /// Translucent/Additive route the brush's faces into the room's poly_XLU display list with the matching
+    /// N64 render mode (alpha-blend for Translucent — glass/water/ghosts; additive for Additive — light
+    /// shafts/glow/fire), so it commits to OoT/MM on N64 AND SoH/2Ship. <see cref="Opacity"/> is baked into
+    /// the vertex alpha. Compatible with texture scroll for effects like the Chamber of Sages water.</summary>
+    public BrushBlend Blend { get; set; } = BrushBlend.Opaque;
+
+    /// <summary>Alpha 0 (invisible) … 255 (opaque) for a Translucent/Additive brush; ignored when Opaque.</summary>
+    public byte Opacity { get; set; } = 255;
+
+    /// <summary>True when this brush draws through the translucent (poly_xlu) path rather than poly_opa.</summary>
+    public bool IsXlu => Blend != BrushBlend.Opaque;
 
     /// <summary>Solidity: when true this brush is NON-SOLID — it still renders (visible geometry) but emits
     /// NO collision polygons, so the player/actors pass through it (Hammer's "non-solid" / a fake wall you
@@ -301,7 +325,7 @@ public sealed class Solid
     /// <summary>Deep-copies this solid, preserving per-face texture/colour attributes.</summary>
     public Solid Clone()
     {
-        var s = new Solid { IsSelected = IsSelected, IsTrigger = IsTrigger, ExitEntrance = ExitEntrance, IsWater = IsWater, WaterRoom = WaterRoom, NoCollision = NoCollision, SurfaceData0 = SurfaceData0, SurfaceData1 = SurfaceData1, GroupId = GroupId, VisGroupId = VisGroupId };
+        var s = new Solid { IsSelected = IsSelected, IsTrigger = IsTrigger, ExitEntrance = ExitEntrance, IsWater = IsWater, WaterRoom = WaterRoom, NoCollision = NoCollision, SurfaceData0 = SurfaceData0, SurfaceData1 = SurfaceData1, GroupId = GroupId, VisGroupId = VisGroupId, Blend = Blend, Opacity = Opacity };
         s.Planes.AddRange(Planes);
         s.ComputeFaces();
         foreach (var f in s.Faces)

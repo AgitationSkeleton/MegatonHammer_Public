@@ -251,6 +251,36 @@ public sealed class PropertiesPanel : UserControl
         if (solid.IsWater)
             AddInt("Water room (0x3F = all)", () => solid.WaterRoom, v => { ForEachSolid(solid, s => s.WaterRoom = Clamp(v, 0, 0x3F)); Bubble(); });
 
+        // Vanilla transparency + texture scroll — for light shafts (Temple of Time), the Chamber of Sages
+        // water, glass, glow, etc. Translucent/Additive route the brush into the poly_xlu list on N64 AND
+        // SoH/2Ship; scroll is authored on the brush's texture (it animates every face using that texture).
+        AddHeader("RENDER (TRANSPARENCY / SCROLL)");
+        AddOptionCombo("Blend mode",
+            [(0, "Opaque"), (1, "Translucent (alpha)"), (2, "Additive (light / glow)")],
+            () => (int)solid.Blend,
+            v => { ForEachSolid(solid, s => s.Blend = (Editor.BrushBlend)v); ForceRefresh(); Bubble(); });
+        if (solid.Blend != Editor.BrushBlend.Opaque)
+            AddInt("Opacity (0 = invisible … 255)", () => solid.Opacity,
+                   v => { ForEachSolid(solid, s => s.Opacity = (byte)Clamp(v, 0, 255)); ForceRefresh(); Bubble(); });
+
+        // Texture scroll (speed in tiles/sec; direction = sign of U/V). Authored on the brush's first real
+        // texture, which is the scene-wide TextureScroll for that texture name (every face using it scrolls).
+        string? scrollTex = solid.Faces.Select(f => f.TextureName)
+            .FirstOrDefault(n => !string.IsNullOrEmpty(n) && !Textures.SpecialTextures.IsSpecial(n));
+        if (scrollTex != null)
+        {
+            var scenes = _doc.Scene.Settings;
+            float CurU() => scenes.TextureScrolls.FirstOrDefault(t => t.Name == scrollTex)?.U ?? 0f;
+            float CurV() => scenes.TextureScrolls.FirstOrDefault(t => t.Name == scrollTex)?.V ?? 0f;
+            void SetScroll(float u, float v)
+            {
+                scenes.TextureScrolls.RemoveAll(t => t.Name == scrollTex);
+                if (u != 0f || v != 0f) scenes.TextureScrolls.Add(new Editor.TextureScroll(scrollTex, u, v));
+            }
+            AddFloat($"Scroll U — {scrollTex} (tiles/s)", CurU, u => { SetScroll(u, CurV()); ForceRefresh(); Bubble(); });
+            AddFloat("Scroll V (tiles/s)", CurV, v => { SetScroll(CurU(), v); ForceRefresh(); Bubble(); });
+        }
+
         // Solidity: a non-solid brush still renders but emits no collision (walk-through / fake wall).
         AddHeader("SOLIDITY");
         AddCheck("Non-solid (visual only — no collision)", () => solid.NoCollision,
@@ -515,6 +545,17 @@ public sealed class PropertiesPanel : UserControl
         {
             if (_loading) return;
             if (int.TryParse(box.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int v)) set(v);
+        };
+        AddRow(label, box);
+    }
+
+    private void AddFloat(string label, Func<float> get, Action<float> set)
+    {
+        var box = MakeBox(get().ToString("0.###", CultureInfo.InvariantCulture));
+        box.TextChanged += (_, _) =>
+        {
+            if (_loading) return;
+            if (float.TryParse(box.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out float v)) set(v);
         };
         AddRow(label, box);
     }

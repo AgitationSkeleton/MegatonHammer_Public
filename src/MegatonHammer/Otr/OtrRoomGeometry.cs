@@ -49,6 +49,9 @@ public static class OtrRoomGeometry
         // ── 1. Group faces by texture (key "" = untextured); fan-triangulate with per-vertex UVs ──
         var order = new List<string>();
         var groups = new Dictionary<string, (Bitmap? bmp, List<(Vtx a, Vtx b, Vtx c)> tris)>();
+        // Translucent/additive brush groups → their blend, so the DL emission routes them into the poly_xlu
+        // list with the matching Fast3D render mode (mirrors the N64 DisplayListBuilder).
+        var groupBlend = new Dictionary<string, Editor.BrushBlend>();
 
         // Optional compile-time face culling: skip render faces fully buried against a neighbouring brush
         // (Options ▸ "Cull unseen faces"). Render-only — collision keeps every face. Mirrors the N64
@@ -70,6 +73,7 @@ public static class OtrRoomGeometry
 
                 string key;
                 Bitmap? bmp;
+                byte alpha = 0xFF;
                 if (water)
                 {
                     // Water brushes render ONLY their up-facing surface, as the real water texture (the
@@ -84,7 +88,19 @@ public static class OtrRoomGeometry
                     if (cullUnseen && Export.FaceCuller.IsObscured(face, solid, room.Geometry)) continue;
                     string? tn = face.TextureName;
                     bmp = tn != null && texResolver != null ? texResolver(tn) : null;
-                    key = bmp != null ? tn! : "";
+                    // Opaque keeps the raw texture name as its key (scroll matching + texture dedup rely on it);
+                    // translucent/additive get a blend-tagged key so they don't merge with opaque geometry, and
+                    // bake opacity into the vertex alpha (the xlu render mode blends by A_IN).
+                    var blend = solid.Blend;
+                    if (blend == Editor.BrushBlend.Opaque)
+                        key = bmp != null ? tn! : "";
+                    else
+                    {
+                        alpha = solid.Opacity;
+                        string tag = blend == Editor.BrushBlend.Translucent ? "t" : "a";
+                        key = bmp != null ? $"b{tag}:{tn}" : $"x{tag}:";
+                        groupBlend[key] = blend;
+                    }
                 }
                 if (!groups.TryGetValue(key, out var grp)) { groups[key] = grp = (bmp, []); order.Add(key); }
 
@@ -113,7 +129,7 @@ public static class OtrRoomGeometry
                 var grid = face.ShadePaint;
                 if (!water && grid != null && verts.Count == 4 && grid.Colors.Length == (grid.Nu + 1) * (grid.Nv + 1))
                 {
-                    Vtx GV(Vector3 p, Vector3 c) => ToVtx(p, c, face.UVAt(p) - off, tw, th);
+                    Vtx GV(Vector3 p, Vector3 c) => ToVtx(p, c, face.UVAt(p) - off, tw, th, alpha);
                     for (int j = 0; j < grid.Nv; j++)
                         for (int i = 0; i < grid.Nu; i++)
                         {
@@ -128,9 +144,9 @@ public static class OtrRoomGeometry
                 }
                 for (int i = 1; i < verts.Count - 1; i++)
                     grp.tris.Add((
-                        ToVtx(verts[0],     face.ColorAt(0,     fallback), uvs[0],     tw, th),
-                        ToVtx(verts[i],     face.ColorAt(i,     fallback), uvs[i],     tw, th),
-                        ToVtx(verts[i + 1], face.ColorAt(i + 1, fallback), uvs[i + 1], tw, th)));
+                        ToVtx(verts[0],     face.ColorAt(0,     fallback), uvs[0],     tw, th, alpha),
+                        ToVtx(verts[i],     face.ColorAt(i,     fallback), uvs[i],     tw, th, alpha),
+                        ToVtx(verts[i + 1], face.ColorAt(i + 1, fallback), uvs[i + 1], tw, th, alpha)));
             }
         }
 
@@ -196,7 +212,8 @@ public static class OtrRoomGeometry
         int texIdx = 0;
         foreach (var key in order)
         {
-            if (key == WaterKey) continue;   // water is emitted into the SEPARATE XLU list below
+            if (key == WaterKey) continue;              // water is emitted into the SEPARATE XLU list below
+            if (groupBlend.ContainsKey(key)) continue;  // translucent/additive brushes go in the XLU list below
             var (bmp, tris) = groups[key];
             if (tris.Count == 0) continue;
 
@@ -236,7 +253,9 @@ public static class OtrRoomGeometry
         // scroll segment 0x08 in POLY_XLU_DISP. Same F3DEX2 words as the N64 path (G_RM_AA_ZB_XLU_SURF|SURF2,
         // G_CC_MODULATEI_PRIM, prim white alpha 128); vertices append to the shared OVTX.
         byte[] xluDl = [];
-        if (groups.TryGetValue(WaterKey, out var wg) && wg.tris.Count > 0 && wg.bmp != null)
+        var xluKeys = order.Where(k => k == WaterKey || groupBlend.ContainsKey(k))
+                           .Where(k => groups[k].tris.Count > 0).ToList();
+        if (xluKeys.Count > 0)
         {
             var xw = new OtrResourceWriter(OtrResType.DisplayList);
             xw.U8(UCODE_F3DEX2);
@@ -245,18 +264,49 @@ public static class OtrRoomGeometry
             WriteGfx(xw, 0xD9000005u, 0x00000005u);   // gsSPSetGeometryMode(ZBUFFER|SHADE) — double-sided
             WriteGfx(xw, 0xE3000813u, 0x00082000u);   // gsDPSetOtherMode_H: 1-CYCLE + persp + bilerp + TT_NONE
             WriteGfx(xw, 0xD7000002u, 0xFFFFFFFFu);   // gsSPTexture enable, scale 1.0
-            WriteGfx(xw, 0xE200001Cu, 0x005049D8u);   // gsDPSetRenderMode XLU surface (no z-write, alpha-blend)
-            WriteGfx(xw, 0xFC11FE23u, 0xFFFFF7FBu);   // gsDPSetCombineMode G_CC_MODULATEI_PRIM (TEXEL0×PRIM)
-            WriteGfx(xw, 0xFA000000u, 0xFFFFFF80u);   // gsDPSetPrimColor white, alpha 128
-            string wTexPath = $"{texBasePath}_water";
-            textures.Add(new TexRes(wTexPath, BuildTextureResource(wg.bmp)));
-            EmitTextureLoad(xw, wTexPath, wg.bmp.Width, wg.bmp.Height);
-            // Scroll: run the per-frame tile-scroll DL the scene draw config binds on segment 0x08. Fast3D
-            // treats w1 as segmented only when bit 0 is set. GATED on waterScroll so it's emitted only when
-            // the fork sets a scrolling draw config (CALM_WATER / MAT_ANIM) — else it would deref an unbound
-            // segment and crash.
-            if (waterScroll) WriteGfx(xw, (uint)G_DL << 24, (uint)(0x08000000 | 1));
-            EmitTris(xw, wg.tris, allVerts, vtxHash);
+            uint curX = 0;
+            foreach (var key in xluKeys)
+            {
+                var (bmp, tris) = groups[key];
+                if (key == WaterKey)
+                {
+                    if (bmp == null) continue;
+                    if (curX != 0x005049D8u) { WriteGfx(xw, 0xE200001Cu, 0x005049D8u); curX = 0x005049D8u; }  // XLU alpha-blend
+                    WriteGfx(xw, 0xFC11FE23u, 0xFFFFF7FBu);   // G_CC_MODULATEI_PRIM (TEXEL0×PRIM)
+                    WriteGfx(xw, 0xFA000000u, 0xFFFFFF80u);   // prim white, alpha 128
+                    string wTexPath = $"{texBasePath}_water";
+                    textures.Add(new TexRes(wTexPath, BuildTextureResource(bmp)));
+                    EmitTextureLoad(xw, wTexPath, bmp.Width, bmp.Height);
+                    // Scroll: run the per-frame tile-scroll DL the scene draw config binds on seg 0x08.
+                    if (waterScroll) WriteGfx(xw, (uint)G_DL << 24, (uint)(0x08000000 | 1));
+                }
+                else
+                {
+                    // Translucent = alpha-blend (0x005049D8); Additive = light-add (0x005A49D8). Opacity is in
+                    // the vertex alpha, which the render mode reads via A_IN, so a plain MODULATE/SHADE combiner
+                    // (alpha from vertex) suffices — no per-group prim needed.
+                    uint rm = groupBlend[key] == Editor.BrushBlend.Additive ? 0x005A49D8u : 0x005049D8u;
+                    if (curX != rm) { WriteGfx(xw, 0xE200001Cu, rm); curX = rm; }
+                    if (bmp != null)
+                    {
+                        string texPath = $"{texBasePath}_tex{texIdx++}";
+                        textures.Add(new TexRes(texPath, BuildTextureResource(bmp)));
+                        WriteGfx(xw, 0xFC121824u, 0xFF33FFFFu);   // G_CC_MODULATERGBA (TEXEL0×SHADE, alpha from vertex)
+                        EmitTextureLoad(xw, texPath, bmp.Width, bmp.Height);
+                        // A scrolling xlu brush (Chamber-of-Sages-style water): bind its animated tile on seg 8+i.
+                        int si = -1;
+                        if (scrollNames != null)
+                        {
+                            string tn = key[(key.IndexOf(':') + 1)..];
+                            for (int sj = 0; sj < scrollNames.Count; sj++) if (scrollNames[sj] == tn) { si = sj; break; }
+                        }
+                        if (si >= 0) WriteGfx(xw, (uint)G_DL << 24, (uint)(((0x08 + si) << 24) | 1));
+                    }
+                    else
+                        WriteGfx(xw, 0xFC000000u, 0x00041104u);   // G_CC_SHADE (colour + alpha from vertex)
+                }
+                EmitTris(xw, tris, allVerts, vtxHash);
+            }
             WriteGfx(xw, (uint)G_ENDDL << 24, 0x00000000u);
             xluDl = xw.ToArray();
         }
@@ -391,12 +441,12 @@ public static class OtrRoomGeometry
     // ── helpers ─────────────────────────────────────────────────────────────
     private static void WriteGfx(OtrResourceWriter w, uint w0, uint w1) { w.U32(w0); w.U32(w1); }
 
-    private static Vtx ToVtx(Vector3 p, Vector3 col, Vector2 uv, int texW, int texH)
+    private static Vtx ToVtx(Vector3 p, Vector3 col, Vector2 uv, int texW, int texH, byte a = 0xFF)
         => new((short)MathF.Round(p.X), (short)MathF.Round(p.Y), (short)MathF.Round(p.Z),
                (short)Math.Clamp(uv.X * texW * 32f, -32768f, 32767f),
                (short)Math.Clamp(uv.Y * texH * 32f, -32768f, 32767f),
                (byte)(Math.Clamp(col.X, 0f, 1f) * 255), (byte)(Math.Clamp(col.Y, 0f, 1f) * 255),
-               (byte)(Math.Clamp(col.Z, 0f, 1f) * 255));
+               (byte)(Math.Clamp(col.Z, 0f, 1f) * 255), a);
 
     private static int AddVert(List<Vtx> batch, Vtx v)
     {

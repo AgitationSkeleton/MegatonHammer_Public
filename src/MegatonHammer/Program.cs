@@ -226,6 +226,13 @@ static class Program
             return;
         }
 
+        // Brush opacity/blend: translucent+additive route into poly_xlu on N64 + OTR. MegatonHammer --blendtest
+        if (args.Length >= 1 && args[0] == "--blendtest")
+        {
+            try { SelfTest.BlendTest.Run(); } catch (Exception ex) { Console.WriteLine($"[blendtest] {ex}"); }
+            return;
+        }
+
         // Diagnostic (#7): actor model-RESOLUTION coverage — who renders as a real model vs a
         // billboard/point. MegatonHammer --modelaudit [oot|mm|both] [romPath]
         if (args.Length >= 1 && args[0] == "--modelaudit")
