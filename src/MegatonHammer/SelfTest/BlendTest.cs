@@ -88,7 +88,25 @@ public static class BlendTest
         Console.WriteLine(texOk ? "  PASS — textured scrolling additive brush → xlu MODULATEI_PRIM + prim + seg-8 scroll."
                                 : "  FAIL — textured xlu/scroll path wrong.");
 
-        Console.WriteLine(n64Ok && otrOk && noXluWhenOpaque && texOk
+        // ── OoT (SoH) scroll: an additive scrolling brush binds seg 0x08 in the xlu DL and ships NO cmd-0x1A
+        //    (SoH has no AnimatedMaterial factory); it rides the scene's vanilla SDC_CALM_WATER seg-0x08 scroll.
+        var docO = new MapDocument();
+        var beam = Solid.CreateBox(new Vector3(-16, -16, -16), new Vector3(16, 16, 16));
+        beam.Blend = BrushBlend.Additive; beam.Opacity = 120;
+        foreach (var f in beam.Faces) f.TextureName = "beam2";
+        docO.AddSolid(beam);
+        docO.Scene.Settings.TextureScrolls.Add(new TextureScroll("beam2", 0f, 1f));
+        Func<string, Bitmap?> resO = n => n == "beam2" ? new Bitmap(32, 32) : null;
+        var lvl = OtrSceneWriter.BuildLevel(docO.Scene, "scenes/oot", mm: false, resO);
+        var xluRes = lvl.FirstOrDefault(r => r.Path.EndsWith("_xludl"));
+        bool ootScrollBind = xluRes != null && Contains(xluRes.Data, [0x00, 0x00, 0x00, 0xDE, 0x01, 0x00, 0x00, 0x08]);
+        bool noCmd1A = !lvl.Any(r => r.Path.Contains("matanim"));
+        Console.WriteLine($"  OoT (SoH) scroll: xluSeg08Bind={ootScrollBind} noCmd0x1A={noCmd1A}");
+        bool ootOk = ootScrollBind && noCmd1A;
+        Console.WriteLine(ootOk ? "  PASS — OoT scrolling additive brush binds seg 0x08 (rides vanilla CALM_WATER), no cmd-0x1A."
+                                : "  FAIL — OoT scroll wiring wrong.");
+
+        Console.WriteLine(n64Ok && otrOk && noXluWhenOpaque && texOk && ootOk
             ? "RESULT: PASS — brush opacity/blend commits to N64 + SoH/2Ship poly_xlu."
             : "RESULT: FAIL — see above.");
     }

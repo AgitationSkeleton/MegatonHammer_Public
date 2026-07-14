@@ -103,12 +103,17 @@ public static class OtrSceneWriter
         var res = new List<OtrResource>();
         var s = scene.Settings;
 
-        // MM brush-authored animated textures (tile scroll). Faces whose texture is in this ordered list
-        // bind a scrolling tile on segment 8+i; the scene ships an AnimatedMaterial list (cmd 0x1A) that
-        // the engine's MAT_ANIM draw config animates each frame. OoT has no equivalent here.
-        var scrolls = mm && s.TextureScrolls.Count > 0 ? s.TextureScrolls : null;
-        var scrollNames = scrolls?.Select(sc => sc.Name).ToList();
-        string? matAnimPath = scrolls != null ? $"{basePath}_matanim" : null;
+        // Brush-authored animated textures (tile scroll). Faces whose texture is in this ordered list bind a
+        // scrolling tile on segment 8+i. MM ships an AnimatedMaterial list (cmd 0x1A) that its MAT_ANIM draw
+        // config animates per-frame at the AUTHORED U/V — full scroll. OoT has no such data-driven system, so
+        // there we bind the FIRST scrolling texture on seg 0x08 and let the scene's vanilla SDC_CALM_WATER draw
+        // config (set by the fork on the waterScroll flag) scroll it — a fixed vanilla rate, no game-code change.
+        var scrolls = s.TextureScrolls.Count > 0 ? s.TextureScrolls : null;
+        // MM binds a segment per scroll (8+i). OoT only has seg 0x08 scrolling (via CALM_WATER), so it can
+        // animate just ONE texture — take the first; a 2nd would bind an unbound seg 0x09 and crash.
+        var scrollNames = mm ? scrolls?.Select(sc => sc.Name).ToList()
+                             : scrolls?.Take(1).Select(sc => sc.Name).ToList();
+        string? matAnimPath = mm && scrolls != null ? $"{basePath}_matanim" : null;
 
         // ── Geometry + collision resources ──────────────────────────────────
         // Warp triggers: assign each distinct destination a 1-based exit index shared between the
@@ -131,7 +136,10 @@ public static class OtrSceneWriter
             // that segment. MM (2Ship) stays false for now (its MAT_ANIM scroll needs a cmd-0x1A water entry),
             // so its water DL never calls the unbound segment.
             bool waterScroll = !mm && Export.DisplayListBuilder.SceneHasWater(scene);
-            var geom = OtrRoomGeometry.Build(scene.Rooms[i], vtxPath, roomPath, texResolver, scene.Settings.BakedShade, scrollNames, waterScroll);
+            // OoT scroll is XLU-only (SDC_CALM_WATER binds seg 0x08 in POLY_XLU); MM (AnimatedMaterial) binds
+            // both, so it may scroll opaque geometry too.
+            var geom = OtrRoomGeometry.Build(scene.Rooms[i], vtxPath, roomPath, texResolver, scene.Settings.BakedShade,
+                                             scrollNames, waterScroll, scrollXluOnly: !mm);
             bool hasGeom = !geom.Empty;
             bool hasWater = geom.XluDl.Length > 0;
             if (hasGeom)
@@ -145,9 +153,9 @@ public static class OtrSceneWriter
             res.Add(new OtrResource(roomPath, BuildRoom(scene.Rooms[i], hasGeom ? dlPath : null, hasWater ? xluDlPath : null, mm, s.Dungeon)));
         }
 
-        // ── Animated-material resource (TSH_TexAnim) referenced by the scene's cmd 0x1A ──────
-        if (scrolls != null)
-            res.Add(new OtrResource(matAnimPath!, BuildTexAnim(scrolls, texResolver)));
+        // ── Animated-material resource (TSH_TexAnim) referenced by the scene's cmd 0x1A ── (MM only) ──
+        if (matAnimPath != null && scrolls != null)
+            res.Add(new OtrResource(matAnimPath, BuildTexAnim(scrolls, texResolver)));
 
         // ── Scene resource ──────────────────────────────────────────────────
         res.Add(new OtrResource(basePath, BuildScene(scene, roomPaths, collisionPath, exitEntrances, mm, matAnimPath)));

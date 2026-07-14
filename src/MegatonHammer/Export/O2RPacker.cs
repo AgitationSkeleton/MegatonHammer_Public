@@ -191,8 +191,10 @@ public static class O2RPacker
                 $"\"rooms\":{scene.Rooms.Count}," +
                 $"\"adult\":{(cfg.Adult ? "true" : "false")}," +
                 $"\"append\":{(cfg.Append ? "true" : "false")}," +
-                // OoT only: the fork sets the scene draw config to SDC_CALM_WATER so the water surface scrolls.
-                $"\"waterScroll\":{(!mm && Export.DisplayListBuilder.SceneHasWater(scene) ? "true" : "false")}," +
+                // OoT only: the fork sets the scene draw config to SDC_CALM_WATER, whose vanilla routine scrolls
+                // segment 0x08. Fire it when the scene has water OR any authored texture scroll (OoT has no
+                // data-driven scroll of its own, so a scrolling brush rides this same vanilla seg-0x08 scroll).
+                $"\"waterScroll\":{(!mm && (Export.DisplayListBuilder.SceneHasWater(scene) || scene.Settings.TextureScrolls.Count > 0) ? "true" : "false")}," +
                 $"\"inventory\":\"{cfg.Inventory}\"," +
                 $"\"items\":[{items}]," +
                 $"\"inv\":{cfg.InventoryPayload ?? "null"}" +

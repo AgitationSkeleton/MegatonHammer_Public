@@ -44,7 +44,8 @@ public static class OtrRoomGeometry
     /// <param name="texResolver">Resolves a brush texture name → its decoded bitmap, or null (untextured).</param>
     public static Result Build(ZRoom room, string vtxResourcePath, string texBasePath,
                                Func<string, Bitmap?>? texResolver, Func<Vector3, Vector3>? bakeShade = null,
-                               IReadOnlyList<string>? scrollNames = null, bool waterScroll = false)
+                               IReadOnlyList<string>? scrollNames = null, bool waterScroll = false,
+                               bool scrollXluOnly = false)
     {
         // ── 1. Group faces by texture (key "" = untextured); fan-triangulate with per-vertex UVs ──
         var order = new List<string>();
@@ -226,11 +227,11 @@ public static class OtrRoomGeometry
                 WriteGfx(dw, 0xFC121824u, 0xFF33FFFFu);   // gsDPSetCombineMode(G_CC_MODULATERGBA, …) TEXEL0×SHADE
                 EmitTextureLoad(dw, texPath, bmp.Width, bmp.Height);
 
-                // MM animated texture: if this group's texture is a scrolling material, jump into the tile
-                // bound on segment 8+i by the MAT_ANIM draw config (gsSPDisplayList(0x0(8+i)000000)). That
-                // DL re-sets the tile size with the per-frame scroll offset before these tris draw.
+                // Animated texture: jump into the scroll tile bound on segment 8+i. scrollXluOnly (OoT) skips
+                // this in the OPAQUE list — OoT's SDC_CALM_WATER binds seg 0x08 only in POLY_XLU, so an opaque
+                // brush calling it would hit an unbound segment; OoT scroll is XLU-only (see the xlu list below).
                 int si = -1;
-                if (scrollNames != null)
+                if (scrollNames != null && !scrollXluOnly)
                     for (int sj = 0; sj < scrollNames.Count; sj++) if (scrollNames[sj] == key) { si = sj; break; }
                 if (si >= 0)
                     // gsSPDisplayList into the scroll tile bound on segment 8+i. NOTE: Fast3D's SegAddr
