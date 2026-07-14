@@ -1,5 +1,5 @@
 diff --git a/src/fast/interpreter.cpp b/src/fast/interpreter.cpp
-index 967cf10..95c4dd1 100644
+index 967cf108..8c7038d9 100644
 --- a/src/fast/interpreter.cpp
 +++ b/src/fast/interpreter.cpp
 @@ -11,6 +11,8 @@
@@ -29,7 +29,105 @@ index 967cf10..95c4dd1 100644
  static UcodeHandlers ucode_handler_index = ucode_f3dex2;
  
  const static uint32_t f3dex2AttrHandler[] = {
-@@ -3908,7 +3921,11 @@ bool gfx_set_timg_otr_hash_handler_custom(F3DGfx** cmd0) {
+@@ -578,10 +591,17 @@ void Interpreter::ImportTextureRgba16(int tile, bool importReplacement) {
+         renderedPixels > 0 && loadedPixels > renderedPixels && loadedPixels * 8 < renderedPixels * 13; // < 1.625x
+     bool clampS = (mRdp->texture_tile[tile].cms & G_TX_CLAMP) != 0;
+     bool clampT = (mRdp->texture_tile[tile].cmt & G_TX_CLAMP) != 0;
+-    if ((pyramidLike || clampS) && tile_w > 0 && tile_w < width) {
++    // FD (2026-07-13) SCROLL FIX: only clamp CLAMP-mode tiles to the rendered window. The `pyramidLike` ratio
++    // (loaded 1.0-1.625x the window) also caught WRAP/MIRROR *tiling* tiles -- i.e. scrolling textures on any
++    // given frame -- and cut their off-window pixels, so the animation repeated the window instead of scrolling
++    // over the full texture. Vanilla uploads the full loaded texture and lets the shader wrap; do the same for
++    // tiling tiles. (This is why the static texture audit "passed" while in-game scrolls like Water Temple water
++    // broke.) pyramidLike left computed to keep the diff minimal.
++    (void)pyramidLike;
++    if (clampS && tile_w > 0 && tile_w < width) {
+         width = tile_w;
+     }
+-    if ((pyramidLike || clampT) && tile_h > 0 && tile_h < height) {
++    if (clampT && tile_h > 0 && tile_h < height) {
+         height = tile_h;
+     }
+ 
+@@ -645,10 +665,17 @@ void Interpreter::ImportTextureRgba32(int tile, bool importReplacement) {
+     bool pyramidLike = renderedPixels > 0 && loadedPixels > renderedPixels && loadedPixels * 8 < renderedPixels * 13;
+     bool clampS = (mRdp->texture_tile[tile].cms & G_TX_CLAMP) != 0;
+     bool clampT = (mRdp->texture_tile[tile].cmt & G_TX_CLAMP) != 0;
+-    if ((pyramidLike || clampS) && tile_w > 0 && tile_w < width) {
++    // FD (2026-07-13) SCROLL FIX: only clamp CLAMP-mode tiles to the rendered window. The `pyramidLike` ratio
++    // (loaded 1.0-1.625x the window) also caught WRAP/MIRROR *tiling* tiles -- i.e. scrolling textures on any
++    // given frame -- and cut their off-window pixels, so the animation repeated the window instead of scrolling
++    // over the full texture. Vanilla uploads the full loaded texture and lets the shader wrap; do the same for
++    // tiling tiles. (This is why the static texture audit "passed" while in-game scrolls like Water Temple water
++    // broke.) pyramidLike left computed to keep the diff minimal.
++    (void)pyramidLike;
++    if (clampS && tile_w > 0 && tile_w < width) {
+         width = tile_w;
+     }
+-    if ((pyramidLike || clampT) && tile_h > 0 && tile_h < height) {
++    if (clampT && tile_h > 0 && tile_h < height) {
+         height = tile_h;
+     }
+ 
+@@ -949,10 +976,17 @@ void Interpreter::ImportTextureCi4(int tile, bool importReplacement) {
+     bool pyramidLike = renderedPixels > 0 && loadedPixels > renderedPixels && loadedPixels * 8 < renderedPixels * 13;
+     bool clampS = (mRdp->texture_tile[tile].cms & G_TX_CLAMP) != 0;
+     bool clampT = (mRdp->texture_tile[tile].cmt & G_TX_CLAMP) != 0;
+-    if ((pyramidLike || clampS) && tile_w > 0 && tile_w < width) {
++    // FD (2026-07-13) SCROLL FIX: only clamp CLAMP-mode tiles to the rendered window. The `pyramidLike` ratio
++    // (loaded 1.0-1.625x the window) also caught WRAP/MIRROR *tiling* tiles -- i.e. scrolling textures on any
++    // given frame -- and cut their off-window pixels, so the animation repeated the window instead of scrolling
++    // over the full texture. Vanilla uploads the full loaded texture and lets the shader wrap; do the same for
++    // tiling tiles. (This is why the static texture audit "passed" while in-game scrolls like Water Temple water
++    // broke.) pyramidLike left computed to keep the diff minimal.
++    (void)pyramidLike;
++    if (clampS && tile_w > 0 && tile_w < width) {
+         width = tile_w;
+     }
+-    if ((pyramidLike || clampT) && tile_h > 0 && tile_h < height) {
++    if (clampT && tile_h > 0 && tile_h < height) {
+         height = tile_h;
+     }
+ 
+@@ -1041,10 +1075,17 @@ void Interpreter::ImportTextureCi8(int tile, bool importReplacement) {
+     bool pyramidLike = renderedPixels > 0 && loadedPixels > renderedPixels && loadedPixels * 8 < renderedPixels * 13;
+     bool clampS = (mRdp->texture_tile[tile].cms & G_TX_CLAMP) != 0;
+     bool clampT = (mRdp->texture_tile[tile].cmt & G_TX_CLAMP) != 0;
+-    if ((pyramidLike || clampS) && tile_w > 0 && tile_w < width) {
++    // FD (2026-07-13) SCROLL FIX: only clamp CLAMP-mode tiles to the rendered window. The `pyramidLike` ratio
++    // (loaded 1.0-1.625x the window) also caught WRAP/MIRROR *tiling* tiles -- i.e. scrolling textures on any
++    // given frame -- and cut their off-window pixels, so the animation repeated the window instead of scrolling
++    // over the full texture. Vanilla uploads the full loaded texture and lets the shader wrap; do the same for
++    // tiling tiles. (This is why the static texture audit "passed" while in-game scrolls like Water Temple water
++    // broke.) pyramidLike left computed to keep the diff minimal.
++    (void)pyramidLike;
++    if (clampS && tile_w > 0 && tile_w < width) {
+         width = tile_w;
+     }
+-    if ((pyramidLike || clampT) && tile_h > 0 && tile_h < height) {
++    if (clampT && tile_h > 0 && tile_h < height) {
+         height = tile_h;
+     }
+ 
+@@ -1916,11 +1957,15 @@ void Interpreter::GfxSpTri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx
+             // are close to rendered pixels (mipmap), not when much bigger (window scroll).
+             uint32_t loadedPx = tex_width[i] * tex_height[i];
+             uint32_t renderedPx = tex_width2[i] * tex_height2[i];
++            // FD (2026-07-13) SCROLL FIX (UV path): as in ImportTexture, clamp the UV extent to the rendered
++            // window only for CLAMP-mode tiles. Clamping WRAP/MIRROR (tiling/scroll) tiles rescaled their UVs to
++            // the window, so scrolls wrapped over the window instead of the full texture.
+             bool pyrLike = renderedPx > 0 && loadedPx > renderedPx && loadedPx * 8 < renderedPx * 13;
+-            if ((pyrLike || (cms & G_TX_CLAMP)) && tex_width2[i] > 0 && tex_width2[i] < tex_width[i]) {
++            (void)pyrLike;
++            if ((cms & G_TX_CLAMP) && tex_width2[i] > 0 && tex_width2[i] < tex_width[i]) {
+                 tex_width[i] = tex_width2[i];
+             }
+-            if ((pyrLike || (cmt & G_TX_CLAMP)) && tex_height2[i] > 0 && tex_height2[i] < tex_height[i]) {
++            if ((cmt & G_TX_CLAMP) && tex_height2[i] > 0 && tex_height2[i] < tex_height[i]) {
+                 tex_height[i] = tex_height2[i];
+             }
+ 
+@@ -3908,7 +3953,11 @@ bool gfx_set_timg_otr_hash_handler_custom(F3DGfx** cmd0) {
      RawTexMetadata rawTexMetadata = {};
  
      if (fileName == nullptr) {
@@ -42,7 +140,7 @@ index 967cf10..95c4dd1 100644
          return false;
      }
  
-@@ -3953,11 +3970,16 @@ bool gfx_set_timg_otr_hash_handler_custom(F3DGfx** cmd0) {
+@@ -3953,11 +4002,16 @@ bool gfx_set_timg_otr_hash_handler_custom(F3DGfx** cmd0) {
              Interpreter* gfx = mInstance.lock().get();
              gfx->GfxDpSetTextureImage(fmt, size, width, fileName, texFlags, rawTexMetadata, tex);
          }
