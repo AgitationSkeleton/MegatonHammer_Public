@@ -284,12 +284,16 @@ public static class OtrRoomGeometry
                 }
                 else
                 {
-                    // Translucent = alpha-blend (0x005049D8); Additive = light-add (0x005A49D8). Opacity → PRIM
-                    // alpha (per group). Fast3D ignored vertex alpha (rendered these opaque), so use PRIM like
-                    // water: textured = MODULATEI_PRIM (colour texel, alpha PRIM); untextured = SHADE colour +
-                    // PRIM alpha (combiner 0,0,0,SHADE, 0,0,0,PRIMITIVE).
+                    // Opacity → PRIM alpha (per group). Fast3D ignored vertex alpha (rendered these opaque),
+                    // so use PRIM like water: textured = MODULATEI_PRIM (colour texel, alpha PRIM); untextured =
+                    // SHADE colour + PRIM alpha (combiner 0,0,0,SHADE, 0,0,0,PRIMITIVE).
+                    // NB: SoH/2Ship's libultraship Fast3D only implements the standard 1-α blender (it gates
+                    // blending on B==G_BL_1MA — see interpreter.cpp use_alpha). The N64 additive mode (B=G_BL_1,
+                    // 0x005A49D8) isn't recognised → it renders OPAQUE there. So on OTR, Additive falls back to
+                    // the translucent alpha-blend (0x005049D8) — visibly translucent, not opaque. (N64 keeps true
+                    // additive.) True additive in SoH would need a libultraship blend-state change.
                     var (blend, op) = groupBlend[key];
-                    uint rm = blend == Editor.BrushBlend.Additive ? 0x005A49D8u : 0x005049D8u;
+                    uint rm = 0x005049D8u;   // translucent (1-α); Additive falls back here on OTR
                     if (curX != rm) { WriteGfx(xw, 0xE200001Cu, rm); curX = rm; }
                     WriteGfx(xw, 0xFA000000u, 0xFFFFFF00u | op);   // prim white, alpha = opacity
                     if (bmp != null)

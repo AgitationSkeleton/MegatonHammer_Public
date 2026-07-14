@@ -51,14 +51,16 @@ public static class BlendTest
         var res = OtrRoomGeometry.Build(room, "scenes/x_vtx", "scenes/x_tex", texResolver: null);
         bool otrXlu = res.XluDl.Length > 0;
         bool otrTrans = Contains(res.XluDl, RM_XLU_OTR);
-        bool otrAdd   = Contains(res.XluDl, RM_ADD_OTR);
+        // SoH/2Ship libultraship can't do the N64 additive blend, so additive FALLS BACK to translucent (1-α)
+        // on OTR — the additive render mode must be ABSENT and everything rides the translucent mode.
+        bool otrAddFallback = !Contains(res.XluDl, RM_ADD_OTR);
         // PRIM alpha (LE): prim cmd 0xFA000000 / 0xFFFFFF80 (op128) and /0xFFFFFFC8 (op200); flat combiner LE.
         bool otrPrim = Contains(res.XluDl, [0x00, 0x00, 0x00, 0xFA, 0x80, 0xFF, 0xFF, 0xFF])
                     && Contains(res.XluDl, [0x00, 0x00, 0x00, 0xFA, 0xC8, 0xFF, 0xFF, 0xFF]);
         bool otrFlatCc = Contains(res.XluDl, [0xFF, 0xFF, 0xFF, 0xFC, 0x3B, 0x77, 0xFE, 0xFF]);
-        Console.WriteLine($"  OTR: xlu list={res.XluDl.Length}b translucentRM={otrTrans} additiveRM={otrAdd} primAlpha={otrPrim} flatCombiner={otrFlatCc}");
-        bool otrOk = otrXlu && otrTrans && otrAdd && otrPrim && otrFlatCc && res.Dl.Length > 0;
-        Console.WriteLine(otrOk ? "  PASS — OTR routes translucent+additive into poly_xlu with the right render modes."
+        Console.WriteLine($"  OTR: xlu list={res.XluDl.Length}b translucentRM={otrTrans} additiveFellBackToTranslucent={otrAddFallback} primAlpha={otrPrim} flatCombiner={otrFlatCc}");
+        bool otrOk = otrXlu && otrTrans && otrAddFallback && otrPrim && otrFlatCc && res.Dl.Length > 0;
+        Console.WriteLine(otrOk ? "  PASS — OTR routes translucent+additive into poly_xlu (additive→translucent fallback)."
                                 : "  FAIL — OTR xlu routing wrong.");
 
         // ── An all-opaque room must produce NO xlu list (no regression for normal maps) ──
@@ -79,7 +81,7 @@ public static class BlendTest
         Func<string, Bitmap?> res3 = n => n == "beamtex" ? new Bitmap(32, 32) : null;
         var scrollNames = doc3.Scene.Settings.TextureScrolls.Select(t => t.Name).ToList();
         var rt = OtrRoomGeometry.Build(doc3.Scene.ActiveRoom!, "x_vtx", "x_tex", res3, null, scrollNames, false);
-        bool texAdd    = Contains(rt.XluDl, RM_ADD_OTR);
+        bool texAdd    = Contains(rt.XluDl, RM_XLU_OTR) && !Contains(rt.XluDl, RM_ADD_OTR); // additive→translucent on OTR
         bool texModI   = Contains(rt.XluDl, [0x23, 0xFE, 0x11, 0xFC]);           // MODULATEI_PRIM w0 (LE)
         bool texPrim   = Contains(rt.XluDl, [0x00, 0x00, 0x00, 0xFA, 0x64, 0xFF, 0xFF, 0xFF]); // prim alpha 100 = 0x64
         bool texScroll = Contains(rt.XluDl, [0x00, 0x00, 0x00, 0xDE, 0x01, 0x00, 0x00, 0x08]); // gsSPDisplayList seg 0x08|1
