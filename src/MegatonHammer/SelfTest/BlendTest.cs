@@ -98,13 +98,16 @@ public static class BlendTest
         foreach (var f in beam.Faces) f.TextureName = "beam2";
         docO.AddSolid(beam);
         docO.Scene.Settings.TextureScrolls.Add(new TextureScroll("beam2", 0f, 1f));
-        Func<string, Bitmap?> resO = n => n == "beam2" ? new Bitmap(32, 32) : null;
+        Func<string, Bitmap?> resO = n => n == "beam2" ? new Bitmap(64, 64) : null;   // NON-32×32 on purpose
         var lvl = OtrSceneWriter.BuildLevel(docO.Scene, "scenes/oot", mm: false, resO);
         var xluRes = lvl.FirstOrDefault(r => r.Path.EndsWith("_xludl"));
         bool ootScrollBind = xluRes != null && Contains(xluRes.Data, [0x00, 0x00, 0x00, 0xDE, 0x01, 0x00, 0x00, 0x08]);
         bool noCmd1A = !lvl.Any(r => r.Path.Contains("matanim"));
-        Console.WriteLine($"  OoT (SoH) scroll: xluSeg08Bind={ootScrollBind} noCmd0x1A={noCmd1A}");
-        bool ootOk = ootScrollBind && noCmd1A;
+        // The scroll texture must be resized to 32×32 (CALM_WATER's tile) so N64==SoH and vanilla pyramidLike
+        // can't diverge. A 32×32 RGBA16 OTEX is ~2 KB; the un-resized 64×64 would be ~8 KB.
+        bool ootTexResized = lvl.Any(r => r.Path.Contains("_tex") && r.Data.Length < 4096);
+        Console.WriteLine($"  OoT (SoH) scroll: xluSeg08Bind={ootScrollBind} noCmd0x1A={noCmd1A} scrollTexSizedTo32={ootTexResized}");
+        bool ootOk = ootScrollBind && noCmd1A && ootTexResized;
         Console.WriteLine(ootOk ? "  PASS — OoT scrolling additive brush binds seg 0x08 (rides vanilla CALM_WATER), no cmd-0x1A."
                                 : "  FAIL — OoT scroll wiring wrong.");
 

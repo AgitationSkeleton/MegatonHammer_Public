@@ -285,7 +285,15 @@ public static class DisplayListBuilder
                 bt.Add((ia, ib, ic));
             }
             Flush();
-            dlPlan.Add((key, bmp, batches));
+            // OoT scroll rides SDC_CALM_WATER (32×32 tile). Size the OoT scroll xlu texture to 32×32 so N64
+            // renders it identically to SoH/2Ship (which do the same in OtrRoomGeometry) — same tile, same
+            // content — instead of a 32×32 window of a larger texture.
+            var planBmp = bmp;
+            if (scrollXluOnly && bmp != null && groupBlend.ContainsKey(key) && scrolls != null
+                && IndexOfScroll(scrolls, key[(key.IndexOf(':') + 1)..]) >= 0
+                && (bmp.Width != 32 || bmp.Height != 32))
+                planBmp = Otr.OtrRoomGeometry.Fit32(bmp);
+            dlPlan.Add((key, planBmp, batches));
         }
         byte[] vtxData = vw.ToArray();
 

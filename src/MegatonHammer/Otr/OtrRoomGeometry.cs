@@ -298,17 +298,22 @@ public static class OtrRoomGeometry
                     WriteGfx(xw, 0xFA000000u, 0xFFFFFF00u | op);   // prim white, alpha = opacity
                     if (bmp != null)
                     {
-                        string texPath = $"{texBasePath}_tex{texIdx++}";
-                        textures.Add(new TexRes(texPath, BuildTextureResource(bmp)));
-                        WriteGfx(xw, 0xFC11FE23u, 0xFFFFF7FBu);   // G_CC_MODULATEI_PRIM (TEXEL0×PRIM, alpha PRIM)
-                        EmitTextureLoad(xw, texPath, bmp.Width, bmp.Height);
-                        // A scrolling xlu brush (Chamber-of-Sages-style water): bind its animated tile on seg 8+i.
+                        // Is this the scroll-bound group?
                         int si = -1;
                         if (scrollNames != null)
                         {
                             string tn = key[(key.IndexOf(':') + 1)..];
                             for (int sj = 0; sj < scrollNames.Count; sj++) if (scrollNames[sj] == tn) { si = sj; break; }
                         }
+                        // OoT scroll rides SDC_CALM_WATER, which forces a 32×32 tile. Size the OoT scroll texture
+                        // to 32×32 so it renders correctly (not a 32×32 window of a larger texture) AND so vanilla
+                        // libultraship's pyramidLike clamp can't diverge from our fork (loaded == rendered). MM
+                        // sizes its own animmat tile to the texture, so it stays unresized.
+                        var tbmp = scrollXluOnly && si >= 0 && (bmp.Width != 32 || bmp.Height != 32) ? Fit32(bmp) : bmp;
+                        string texPath = $"{texBasePath}_tex{texIdx++}";
+                        textures.Add(new TexRes(texPath, BuildTextureResource(tbmp)));
+                        WriteGfx(xw, 0xFC11FE23u, 0xFFFFF7FBu);   // G_CC_MODULATEI_PRIM (TEXEL0×PRIM, alpha PRIM)
+                        EmitTextureLoad(xw, texPath, tbmp.Width, tbmp.Height);
                         if (si >= 0) WriteGfx(xw, (uint)G_DL << 24, (uint)(((0x08 + si) << 24) | 1));
                     }
                     else
@@ -473,5 +478,16 @@ public static class OtrRoomGeometry
     }
 
     private static int Log2(int n) { int l = 0; while ((1 << l) < n) l++; return l; }
+
+    // Resize a bitmap to 32×32 — the tile size OoT's SDC_CALM_WATER scroll draw config uses. Shared by the
+    // N64 path (DisplayListBuilder.Fit32 calls this) so both exporters size an OoT scroll texture identically.
+    internal static Bitmap Fit32(Bitmap src)
+    {
+        var dst = new Bitmap(32, 32, PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(dst);
+        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+        g.DrawImage(src, 0, 0, 32, 32);
+        return dst;
+    }
     private static int CalcDxt(int w) { int words = Math.Max(1, w * 2 / 8); return (2048 + words - 1) / words; }
 }
