@@ -227,7 +227,9 @@ public static class Project64Playtest
             // crashes the debug ROM's DmaMgr_Init) and never auto-booted. The layout check is authoritative.
             bool isDebug = baseRom.InternalName.ToUpperInvariant().Contains("DEBUG")
                            || Rom.OotDebugAutoBoot.IsRecognized(baseRom.Data);
-            bool waterScroll = Export.DisplayListBuilder.SceneHasWater(scene);   // OoT: drawConfig SDC_CALM_WATER
+            // OoT: set drawConfig SDC_CALM_WATER (scrolls seg 0x08) when the scene has water OR any authored
+            // texture scroll — a scrolling brush rides that same vanilla seg-0x08 scroll (no game-code change).
+            bool waterScroll = Export.DisplayListBuilder.SceneHasWater(scene) || scene.Settings.TextureScrolls.Count > 0;
 
             // Cross-game music (OoT target): a MM track chosen in the editor is extracted from the MM ROM and
             // injected into OoT's audioseq; RomInjector points this scene's 0x15 (SetSoundSettings) at the host

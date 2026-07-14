@@ -57,24 +57,30 @@ public static class SceneExporter
             return (BuildSceneWithSetups(scene), rooms);
         }
 
-        // Water scroll: OoT scrolls segment 0x08 via drawConfig SDC_CALM_WATER; MM scrolls it via a MAT_ANIM
-        // animated material (cmd 0x1A) — see the scrolls list below. Either way the water XLU DL calls seg 0x08.
+        // Water/texture scroll. OoT scrolls segment 0x08 via drawConfig SDC_CALM_WATER; MM scrolls it via a
+        // MAT_ANIM animated material (cmd 0x1A). Either way the room DL calls seg 0x08.
         bool waterScroll = hasWater;
 
-        // MM animated-material list (cmd 0x1A): the WATER surface is entry 0 (segment 0x08, which the water
-        // XLU DL references), matching OoT's ~1px/frame scroll; brush-authored scrolls follow. OoT uses
-        // CALM_WATER instead, so it has no animmat list.
-        List<TextureScroll>? scrolls = null;
+        // Two lists: animMat = MM cmd-0x1A entries (BuildScene). bindScrolls = which textures bind a scrolling
+        // tile on seg 8+i in the room DL. MM: water (seg 8) + all authored scrolls. OoT: no data-driven scroll,
+        // so bind only the FIRST authored scroll on seg 0x08 (rides CALM_WATER, set by the injector) — XLU-only.
+        List<TextureScroll>? animMat = null, bindScrolls;
         if (mm)
         {
             var list = new List<TextureScroll>();
             if (hasWater) list.Add(new TextureScroll(DisplayListBuilder.WaterKey, 0.6f, 0.6f));
             list.AddRange(scene.Settings.TextureScrolls);
-            if (list.Count > 0) scrolls = list;
+            animMat = bindScrolls = list.Count > 0 ? list : null;
+        }
+        else
+        {
+            bindScrolls = scene.Settings.TextureScrolls.Count > 0
+                ? scene.Settings.TextureScrolls.Take(1).ToList() : null;
+            if (bindScrolls != null) waterScroll = true;   // ensure the seg-0x08 call has a bound (CALM_WATER) segment
         }
         var rooms0 = scene.Rooms.Select(r => RoomExporter.Build(r, texResolver, objResolver, n64Hw,
-                                                                n64Hw ? scene.Settings : null, mm, scrolls, waterScroll)).ToList();
-        var sceneData = BuildScene(scene, scrolls, texResolver);
+                                                                n64Hw ? scene.Settings : null, mm, bindScrolls, waterScroll, scrollXluOnly: !mm)).ToList();
+        var sceneData = BuildScene(scene, animMat, texResolver);
         return (sceneData, rooms0);
     }
 

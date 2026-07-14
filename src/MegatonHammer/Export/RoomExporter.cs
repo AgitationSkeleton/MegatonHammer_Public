@@ -13,7 +13,8 @@ public static class RoomExporter
     public static byte[] Build(ZRoom room, Func<string, System.Drawing.Bitmap?>? texResolver = null,
                                Func<ushort, ushort?>? objResolver = null, bool n64Hw = true,
                                SceneSettings? lighting = null, bool mm = false,
-                               IReadOnlyList<TextureScroll>? scrolls = null, bool waterScroll = false)
+                               IReadOnlyList<TextureScroll>? scrolls = null, bool waterScroll = false,
+                               bool scrollXluOnly = false)
     {
         var rs = room.Settings;
         // Transition actors → scene 0x0E list; editor-only props (dummy Link) are never compiled.
@@ -43,7 +44,7 @@ public static class RoomExporter
 
         // Build DL first (needs vtxDataOff for internal seg pointers). Texture data lands between the
         // vertex block and the DL, so the DL starts after both.
-        var dl        = DisplayListBuilder.Build(room, SEG, vtxDataOff, texResolver, n64Hw, lighting, scrolls, waterScroll);
+        var dl        = DisplayListBuilder.Build(room, SEG, vtxDataOff, texResolver, n64Hw, lighting, scrolls, waterScroll, scrollXluOnly);
         bool hasGeom  = dl.VertexData.Length > 0;
         bool hasWater = dl.XluDlCommands.Length > 0;
         int  texOff   = hasGeom ? AlignUp(vtxDataOff + dl.VertexData.Length, 8) : 0;

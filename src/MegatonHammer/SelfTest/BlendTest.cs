@@ -106,7 +106,33 @@ public static class BlendTest
         Console.WriteLine(ootOk ? "  PASS — OoT scrolling additive brush binds seg 0x08 (rides vanilla CALM_WATER), no cmd-0x1A."
                                 : "  FAIL — OoT scroll wiring wrong.");
 
-        Console.WriteLine(n64Ok && otrOk && noXluWhenOpaque && texOk && ootOk
+        // ── N64 OoT (PJ64) scroll: an additive scrolling brush binds seg 0x08 in the room DL; an OPAQUE
+        //    scrolling brush does NOT (scrollXluOnly — CALM_WATER binds seg 0x08 only in POLY_XLU). ──
+        byte[] seg08 = [0xDE, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00];   // gsSPDisplayList(seg 0x08), N64 big-endian
+        var objRes = Export.ActorObjectResolver.Build(mm: false);
+        var docNx = new MapDocument();
+        var beamNx = Solid.CreateBox(new Vector3(-16, -16, -16), new Vector3(16, 16, 16));
+        beamNx.Blend = BrushBlend.Additive; beamNx.Opacity = 120;
+        foreach (var f in beamNx.Faces) f.TextureName = "beamN";
+        docNx.AddSolid(beamNx);
+        docNx.Scene.Settings.TextureScrolls.Add(new TextureScroll("beamN", 0f, 1f));
+        Func<string, Bitmap?> resN = n => n == "beamN" ? new Bitmap(32, 32) : null;
+        var (_, roomsX) = Export.SceneExporter.BuildBinaries(docNx.Scene, resN, objRes, n64Hw: true, mm: false);
+        bool n64OotXlu = roomsX.Any(rb => Contains(rb, seg08));
+
+        var docNo = new MapDocument();
+        var opBrush = Solid.CreateBox(new Vector3(-16, -16, -16), new Vector3(16, 16, 16));   // opaque (default blend)
+        foreach (var f in opBrush.Faces) f.TextureName = "beamN";
+        docNo.AddSolid(opBrush);
+        docNo.Scene.Settings.TextureScrolls.Add(new TextureScroll("beamN", 0f, 1f));
+        var (_, roomsO) = Export.SceneExporter.BuildBinaries(docNo.Scene, resN, objRes, n64Hw: true, mm: false);
+        bool n64OotOpaqueSkipped = !roomsO.Any(rb => Contains(rb, seg08));
+        Console.WriteLine($"  N64 OoT scroll: xluSeg08Bind={n64OotXlu} opaqueSkipped={n64OotOpaqueSkipped}");
+        bool n64OotOk = n64OotXlu && n64OotOpaqueSkipped;
+        Console.WriteLine(n64OotOk ? "  PASS — N64 OoT: additive scroll binds seg 0x08 (rides CALM_WATER); opaque scroll skipped."
+                                   : "  FAIL — N64 OoT scroll wiring wrong.");
+
+        Console.WriteLine(n64Ok && otrOk && noXluWhenOpaque && texOk && ootOk && n64OotOk
             ? "RESULT: PASS — brush opacity/blend commits to N64 + SoH/2Ship poly_xlu."
             : "RESULT: FAIL — see above.");
     }

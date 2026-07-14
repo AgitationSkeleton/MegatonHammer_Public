@@ -61,7 +61,8 @@ public static class DisplayListBuilder
     /// alpha so genuine cutout textures (foliage/trees) keep their transparency.</param>
     public static DlResult Build(ZRoom room, byte seg, int vtxSegOffset, Func<string, Bitmap?>? texResolver = null,
                                  bool n64Hw = true, SceneSettings? lighting = null,
-                                 IReadOnlyList<TextureScroll>? scrolls = null, bool waterScroll = false)
+                                 IReadOnlyList<TextureScroll>? scrolls = null, bool waterScroll = false,
+                                 bool scrollXluOnly = false)
     {
         // `lighting` (the scene's SceneSettings) IS used below: a textured face bakes per-normal env shade
         // via lighting.BakedShade under LightingMethod >= 2 (parity with the OTR OtrRoomGeometry path, which
@@ -372,8 +373,9 @@ public static class DisplayListBuilder
             {
                 dw.WriteU64(0xFC121824FF33FFFFUL);          // MODULATE TEXEL0×SHADE
                 EmitTextureLoad(dw, seg, tOff, bmp.Width, bmp.Height);
-                // Brush-authored MM scroll: run the AnimatedMaterial tile-scroll DL bound on segment 8+i.
-                int si = scrolls == null || !key.StartsWith("b:", StringComparison.Ordinal) ? -1
+                // Brush-authored scroll: run the tile-scroll DL bound on segment 8+i. scrollXluOnly (OoT) skips
+                // this in the OPAQUE list — OoT's SDC_CALM_WATER binds seg 0x08 only in POLY_XLU (see xlu below).
+                int si = scrolls == null || scrollXluOnly || !key.StartsWith("b:", StringComparison.Ordinal) ? -1
                        : IndexOfScroll(scrolls, key[2..]);
                 if (si >= 0) { dw.WriteU32(0xDE000000u); dw.WriteU32((uint)(0x08 + si) << 24); }
             }
