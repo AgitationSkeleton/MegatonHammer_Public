@@ -1209,6 +1209,7 @@ public sealed class MainForm : Form, IMessageFilter
         bool any = false;
         foreach (var s in _document.Solids) if (s.IsSelected) { var (a, b) = s.GetAABB(); mn = OpenTK.Mathematics.Vector3.ComponentMin(mn, a); mx = OpenTK.Mathematics.Vector3.ComponentMax(mx, b); any = true; }
         foreach (var ac in _document.AllActors) if (ac.IsSelected) { mn = OpenTK.Mathematics.Vector3.ComponentMin(mn, ac.Position); mx = OpenTK.Mathematics.Vector3.ComponentMax(mx, ac.Position); any = true; }
+        foreach (var d in _document.AllDecals) if (d.IsSelected) { mn = OpenTK.Mathematics.Vector3.ComponentMin(mn, d.Position); mx = OpenTK.Mathematics.Vector3.ComponentMax(mx, d.Position); any = true; }
         if (!any) return;
         float center = axis == 0 ? (mn.X + mx.X) * 0.5f : axis == 1 ? (mn.Y + mx.Y) * 0.5f : (mn.Z + mx.Z) * 0.5f;
 
@@ -1222,6 +1223,17 @@ public sealed class MainForm : Form, IMessageFilter
             // Mirror facing for horizontal flips (yaw is a binary angle about the vertical Y axis).
             if (axis == 0) ac.YRot = (short)(-ac.YRot);
             else if (axis == 2) ac.YRot = (short)(0x8000 - ac.YRot);
+        }
+        // Decals reflect their position + surface normal across the plane (a decal on a wall facing the flip
+        // axis also mirrors its texture, since its U/V axes derive from the normal); Rotation sense flips.
+        foreach (var d in _document.AllDecals) if (d.IsSelected)
+        {
+            var p = d.Position; var n = d.Normal;
+            if (axis == 0)      { p.X = 2 * center - p.X; n.X = -n.X; }
+            else if (axis == 1) { p.Y = 2 * center - p.Y; n.Y = -n.Y; }
+            else                { p.Z = 2 * center - p.Z; n.Z = -n.Z; }
+            d.Position = p; d.Normal = n;
+            d.Rotation = -d.Rotation;
         }
         _document.NotifyChanged();
         RedrawAll();

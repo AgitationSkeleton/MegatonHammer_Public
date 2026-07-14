@@ -61,6 +61,7 @@ public sealed class SelectTool : ITool
     // Restore this baseline before each Translate so the lock offset is applied exactly once from the origin.
     private readonly Dictionary<Solid, Dictionary<int, (float s, float t)>> _moveTexSnap = [];
     private readonly Dictionary<ZActor, Vector3>  _moveActors = [];   // actor → position at grab time
+    private readonly Dictionary<Decal, Vector3>   _moveDecals = [];   // decal → position at grab time (multi-move)
     private bool    _moving3D;          // dragging actor(s) on the ground plane in the 3D view
     private Vector3 _move3DAnchor;      // world point under the cursor at grab (on the drag plane)
     private float   _move3DY;           // height of the drag plane
@@ -75,13 +76,6 @@ public sealed class SelectTool : ITool
     private bool  _marquee;                                   // dragging an empty-space selection box
     private float _marqStartH, _marqStartV, _marqCurH, _marqCurV;
     private bool  _marqAdditive;                              // Ctrl/Shift: add to the existing selection
-
-    // ── Active decal move/resize (2D) ─────────────────────────────────────
-    private Decal?  _dragDecal;        // decal being moved (body) or resized (corner) in a 2D view
-    private bool    _decalResize;      // grabbed a corner → resize its U/V extents; else move the body
-    private ViewAxis _decalAxis;
-    private float   _decalStartH, _decalStartV;   // ortho grab point (move delta)
-    private Vector3 _decalStartPos;               // decal position at grab
 
     // ── Active decal transform via the Hammer selection handles (2D, decals-only selection) ──
     private bool _decalHandleScale, _decalHandleRotate;   // dragging a handle to scale / rotate selected decals
@@ -183,20 +177,20 @@ public sealed class SelectTool : ITool
             return;
         }
 
-        // ── Decal pick (2D): decals sit on top of the geometry — grab a corner to resize its U/V extents,
-        // grab the body to move it. Works in whichever view the decal is face-on to. ──
-        if (TryPickDecal2D(cam, oh, ov, out var pd, out bool pdResize))
+        // ── Decal pick (2D): select like a brush — plain click selects (clear others), Ctrl/Shift toggles it
+        // in/out of the selection for multi-select. Resize/rotate a selected decal is via the handle box (below),
+        // NOT an ad-hoc corner grab (that was resizing decals to nothing on a stray click). A drag moves the
+        // WHOLE selection (brushes + actors + decals) together. ──
+        if (TryPickDecal2D(cam, oh, ov, out var pd, out _))
         {
             bool addD = (Control.ModifierKeys & (Keys.Control | Keys.Shift)) != 0;
             bool wasSelected = pd.IsSelected;
-            if (addD) pd.IsSelected = !pd.IsSelected;
+            if (addD) pd.IsSelected = !pd.IsSelected;                               // toggle in/out of the selection
             else if (!pd.IsSelected) { _doc.ClearSelection(); pd.IsSelected = true; _mode = SelectMode.Scale; }
             if (pd.IsSelected)
             {
-                _dragDecal = pd; _decalResize = pdResize; _decalAxis = cam.Axis; _dragVp = vp;
-                _decalStartH = oh; _decalStartV = ov; _decalStartPos = pd.Position; _undoRecorded = false;
-                // Clicking (no drag) the body of an already-selected decal cycles the handle mode, like a brush.
-                _pendingCycle = !pdResize && wasSelected && !addD;
+                BeginMove(vp, oh, ov);   // group-move the whole selection; a click (no drag) cycles the mode
+                _pendingCycle = wasSelected && !addD;
             }
             _doc.NotifyChanged();
             return;
@@ -337,38 +331,9 @@ public sealed class SelectTool : ITool
         }
         var cam = vp.ActiveCamera2D!;
         var (oh, ov) = ScreenToOrtho(e.X, e.Y, vp.Width, vp.Height, cam);
-        bool freeSnap = (Control.ModifierKeys & Keys.Alt) != 0;   // Alt = ignore the grid (Hammer)
-        float grid = GridSnap.ActiveStep(vp.GridSize, cam.Zoom);
-
         // Decal handle transforms (Hammer selection handles on a decals-only selection).
         if (_decalHandleScale)  { ApplyDecalScale(vp, oh, ov); return; }
         if (_decalHandleRotate) { ApplyDecalRotate(vp, oh, ov); return; }
-
-        // Decal drag: resize its U/V extents (corner grab) or move its position (body grab). Both snap to the
-        // grid like a brush (Alt frees them); a move also re-projects onto the surface it's over.
-        if (_dragDecal != null)
-        {
-            RecordUndoOnce();
-            if (_decalResize)
-            {
-                var world = OrthoToWorld(oh, ov, _decalAxis, _dragDecal.Position);
-                var (u, v) = _dragDecal.Axes();
-                float su = MathF.Abs(Vector3.Dot(world - _dragDecal.Position, u));
-                float sv = MathF.Abs(Vector3.Dot(world - _dragDecal.Position, v));
-                if (!freeSnap) { su = Snap(su, grid); sv = Snap(sv, grid); }
-                _dragDecal.SizeU = MathF.Max(4f, su);
-                _dragDecal.SizeV = MathF.Max(4f, sv);
-            }
-            else
-            {
-                var pos = _decalStartPos + OrthoToWorldDelta(oh - _decalStartH, ov - _decalStartV, _decalAxis);
-                if (!freeSnap) pos = SnapVec(pos, grid);
-                _dragDecal.Position = pos;
-                ProjectDecalToSurface(_dragDecal);   // stick to the brush surface beneath (Hammer overlay projection)
-            }
-            _moved = true; _doc.NotifyChanged(); vp.Invalidate();
-            return;
-        }
 
         if (_marquee)
         {
@@ -429,6 +394,11 @@ public sealed class SelectTool : ITool
             }
             foreach (var (actor, start) in _moveActors)
                 actor.Position = start + delta;
+            foreach (var (d, start) in _moveDecals)
+            {
+                d.Position = start + delta;
+                ProjectDecalToSurface(d);   // conform to the brush surface it now sits over
+            }
             _doc.NotifyChanged();
             vp.Invalidate();
         }
@@ -440,15 +410,6 @@ public sealed class SelectTool : ITool
         {
             _decalHandleScale = _decalHandleRotate = false; _dragVp = null; _moved = false;
             _undoRecorded = false; _decalSnap.Clear();
-            _doc.NotifyChanged(); vp.Invalidate();
-            return;
-        }
-        if (_dragDecal != null)
-        {
-            // A click (no drag) on the already-selected decal body cycles Scale ↔ Rotate (decals don't skew).
-            if (_pendingCycle && !_moved)
-                _mode = _mode == SelectMode.Scale ? SelectMode.Rotate : SelectMode.Scale;
-            _dragDecal = null; _dragVp = null; _moved = false; _pendingCycle = false;
             _doc.NotifyChanged(); vp.Invalidate();
             return;
         }
@@ -467,14 +428,17 @@ public sealed class SelectTool : ITool
         }
         if (!_resizing && !_moving && !_rotating && !_skewing && !_moving3D) return;
 
-        // A click (no drag) on the already-selected brush cycles Scale → Rotate → Skew.
+        // A click (no drag) on the already-selected object cycles the handle mode. Brushes/actors go
+        // Scale → Rotate → Skew; a decals-only selection has no Skew, so it toggles Scale ↔ Rotate.
         if (_pendingCycle && !_moved)
-            _mode = _mode switch
-            {
-                SelectMode.Scale  => SelectMode.Rotate,
-                SelectMode.Rotate => SelectMode.Skew,
-                _                 => SelectMode.Scale,
-            };
+            _mode = DecalsOnlySelection()
+                ? (_mode == SelectMode.Scale ? SelectMode.Rotate : SelectMode.Scale)
+                : _mode switch
+                {
+                    SelectMode.Scale  => SelectMode.Rotate,
+                    SelectMode.Rotate => SelectMode.Skew,
+                    _                 => SelectMode.Scale,
+                };
 
         // If the Player Start was dragged/rotated, write its new placement back to the scene spawn settings.
         if (_doc.SpawnMarkerDragging) { _doc.SyncSpawnFromMarker(); _doc.SpawnMarkerDragging = false; }
@@ -491,6 +455,7 @@ public sealed class SelectTool : ITool
         _snapshots.Clear();
         _moveSnap.Clear();
         _moveActors.Clear();
+        _moveDecals.Clear();
         _rotActors.Clear();
         _doc.NotifyChanged();
         vp.Invalidate();
@@ -529,6 +494,17 @@ public sealed class SelectTool : ITool
             var (mn, mx) = Picking.ActorBounds(a, res, true);
             var (sh, sv, eh, ev) = Project2DAABB(mn, mx, cam.Axis);
             if (eh >= loH && sh <= hiH && ev >= loV && sv <= hiV) a.IsSelected = true;
+        }
+        // Decals join the marquee too (Hammer touch-select), so a box can grab decals with brushes/actors.
+        foreach (var d in _doc.VisibleDecals)
+        {
+            float sh = float.MaxValue, sv = float.MaxValue, eh = float.MinValue, ev = float.MinValue;
+            foreach (var c in d.Corners(0f))
+            {
+                var (ch, cv) = OrthoPos(c, cam.Axis);
+                sh = MathF.Min(sh, ch); eh = MathF.Max(eh, ch); sv = MathF.Min(sv, cv); ev = MathF.Max(ev, cv);
+            }
+            if (eh >= loH && sh <= hiH && ev >= loV && sv <= hiV) d.IsSelected = true;
         }
     }
 
@@ -603,6 +579,9 @@ public sealed class SelectTool : ITool
         _moveActors.Clear();
         foreach (var a in _doc.PickableActors)
             if (a.IsSelected) _moveActors[a] = a.Position;
+        _moveDecals.Clear();
+        foreach (var d in _doc.VisibleDecals)
+            if (d.IsSelected) _moveDecals[d] = d.Position;
         _doc.SpawnMarkerDragging = _moveActors.Keys.Any(a => a.IsSpawn);
     }
 
@@ -623,6 +602,9 @@ public sealed class SelectTool : ITool
         foreach (var s in _doc.Solids)
             if (s.IsSelected) _moveSnap[s] = s.SnapshotPlanes();
         SnapshotMoveTex();
+        _moveDecals.Clear();
+        foreach (var d in _doc.VisibleDecals)
+            if (d.IsSelected) _moveDecals[d] = d.Position;
         _doc.SpawnMarkerDragging = _moveActors.Keys.Any(a => a.IsSpawn);
     }
 
@@ -650,6 +632,11 @@ public sealed class SelectTool : ITool
         }
         foreach (var (actor, start) in _moveActors)
             actor.Position = start + delta;
+        foreach (var (d, start) in _moveDecals)
+        {
+            d.Position = start + delta;
+            ProjectDecalToSurface(d);   // conform to the brush surface it now sits over
+        }
         _doc.NotifyChanged();
         vp.Invalidate();
     }
