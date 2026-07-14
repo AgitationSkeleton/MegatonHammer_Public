@@ -1,3 +1,4 @@
+using System.Drawing;
 using MegatonHammer.Editor;
 using MegatonHammer.Export;
 using MegatonHammer.Otr;
@@ -68,7 +69,26 @@ public static class BlendTest
         Console.WriteLine(noXluWhenOpaque ? "  PASS — an all-opaque room emits no xlu list."
                                           : "  FAIL — opaque room wrongly emitted an xlu list.");
 
-        Console.WriteLine(n64Ok && otrOk && noXluWhenOpaque
+        // ── Textured + scrolling additive brush (the real Temple-of-Time light-shaft case) ──
+        var doc3 = new MapDocument();
+        var texBrush = Solid.CreateBox(new Vector3(-32, -32, -32), new Vector3(32, 32, 32));
+        texBrush.Blend = BrushBlend.Additive; texBrush.Opacity = 100;
+        foreach (var f in texBrush.Faces) f.TextureName = "beamtex";
+        doc3.AddSolid(texBrush);
+        doc3.Scene.Settings.TextureScrolls.Add(new TextureScroll("beamtex", 0f, 1f));
+        Func<string, Bitmap?> res3 = n => n == "beamtex" ? new Bitmap(32, 32) : null;
+        var scrollNames = doc3.Scene.Settings.TextureScrolls.Select(t => t.Name).ToList();
+        var rt = OtrRoomGeometry.Build(doc3.Scene.ActiveRoom!, "x_vtx", "x_tex", res3, null, scrollNames, false);
+        bool texAdd    = Contains(rt.XluDl, RM_ADD_OTR);
+        bool texModI   = Contains(rt.XluDl, [0x23, 0xFE, 0x11, 0xFC]);           // MODULATEI_PRIM w0 (LE)
+        bool texPrim   = Contains(rt.XluDl, [0x00, 0x00, 0x00, 0xFA, 0x64, 0xFF, 0xFF, 0xFF]); // prim alpha 100 = 0x64
+        bool texScroll = Contains(rt.XluDl, [0x00, 0x00, 0x00, 0xDE, 0x01, 0x00, 0x00, 0x08]); // gsSPDisplayList seg 0x08|1
+        Console.WriteLine($"  OTR textured+scroll: additiveRM={texAdd} modulateI_prim={texModI} primAlpha100={texPrim} scrollSegBind={texScroll}");
+        bool texOk = texAdd && texModI && texPrim && texScroll;
+        Console.WriteLine(texOk ? "  PASS — textured scrolling additive brush → xlu MODULATEI_PRIM + prim + seg-8 scroll."
+                                : "  FAIL — textured xlu/scroll path wrong.");
+
+        Console.WriteLine(n64Ok && otrOk && noXluWhenOpaque && texOk
             ? "RESULT: PASS — brush opacity/blend commits to N64 + SoH/2Ship poly_xlu."
             : "RESULT: FAIL — see above.");
     }
