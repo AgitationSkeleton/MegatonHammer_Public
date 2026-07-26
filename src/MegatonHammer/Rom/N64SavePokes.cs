@@ -35,7 +35,7 @@ public static class N64SavePokes
         // hookshot/longshot share slot 9 → handled as a tier below (item 10 = Hookshot, 11 = Longshot).
         ("ice_arrow",10,12,0), ("farores_wind",11,13,0), ("boomerang",12,14,0), ("lens",13,15,0),
         ("bean",14,16,10), ("hammer",15,17,0), ("light_arrow",16,18,0), ("nayrus_love",17,19,0),
-        ("bottle",18,20,0),
+        ("bottle1",18,20,0), ("bottle2",19,20,0), ("bottle3",20,20,0), ("bottle4",21,20,0),
     ];
 
     // quest-item key → bit index in inventory.questItems.
@@ -197,7 +197,9 @@ public static class N64SavePokes
     [
         ("ocarina",0x00,0x00,0), ("bow",0x01,0x01,30), ("bomb",0x06,0x06,20), ("bombchu",0x07,0x07,20),
         ("bean",0x0A,0x0A,0), ("powder_keg",0x0C,0x0C,0), ("pictograph",0x0D,0x0D,0), ("lens",0x0E,0x0E,0),
-        ("hookshot",0x0F,0x0F,0), ("great_fairy_sword",0x10,0x10,0), ("bottle",0x12,0x12,0),
+        ("hookshot",0x0F,0x0F,0), ("great_fairy_sword",0x10,0x10,0), ("stick",0x08,0x08,10),
+        ("bottle1",0x12,0x12,0), ("bottle2",0x13,0x12,0), ("bottle3",0x14,0x12,0),
+        ("bottle4",0x15,0x12,0), ("bottle5",0x16,0x12,0), ("bottle6",0x17,0x12,0),
     ];
     // MM mask key → (items[] slot, item id). Slots 0x18..0x2F (SLOT_MASK_*), ids ITEM_MASK_*. Keys MUST carry
     // the "mask_" prefix to match the editor payload toggles (PlaytestInventory/InventoryIcons) and the 2Ship

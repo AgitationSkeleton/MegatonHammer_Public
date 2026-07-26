@@ -130,7 +130,11 @@ public static class SceneExporter
             spawnOff[i] = AlignUp(cur, 2); cur = spawnOff[i] + 16;
             envOff[i]   = AlignUp(cur, 4); cur = envOff[i] + 22;
         }
-        int altListOff = AlignUp(cur, 4); cur = altListOff + n * 4;
+        // The 0x18 alt-header list is indexed by (sceneSetupIndex - 1): entry[0] = setup 1 (child night),
+        // entry[1] = setup 2 (adult day), entry[2] = setup 3 (adult night). Setup 0 (child day) is the PRIMARY
+        // header and is NOT in the list — so the list has (n-1) entries, not n. (A leading NULL here shifted
+        // every layer by one, so child-night fell back to child-day and adult layers showed the wrong setup.)
+        int altListOff = AlignUp(cur, 4); cur = altListOff + (n - 1) * 4;
         int lightOff = hasLights ? AlignUp(cur, 4) : 0;
         if (hasLights) cur = lightOff + scene.PointLights.Count * 14;
 
@@ -169,10 +173,11 @@ public static class SceneExporter
             w.AlignTo(4);
             WriteEnv(w, ss);
         }
-        // 0x18 alt-header list: layer 0 → primary (NULL), layer i → alt header i.
+        // 0x18 alt-header list, indexed by (sceneSetupIndex - 1): entry k → setup (k+1)'s header. Setup 0 is
+        // the primary header (not listed). Alt headers sit right after the primary at primaryHdr + k*altHdr.
         w.AlignTo(4);
-        for (int i = 0; i < n; i++)
-            w.WriteU32(i == 0 ? 0u : (uint)((SEG_SCENE << 24) | (primaryHdr + (i - 1) * altHdr)));
+        for (int i = 1; i < n; i++)
+            w.WriteU32((uint)((SEG_SCENE << 24) | (primaryHdr + (i - 1) * altHdr)));
 
         // Shared point-light list (0x0C), appended at the end.
         if (hasLights) { w.AlignTo(4); foreach (var L in scene.PointLights) WriteLight(w, L); }

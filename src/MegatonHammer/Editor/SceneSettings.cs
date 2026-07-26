@@ -83,6 +83,12 @@ public sealed class SceneSettings
     //    the identical time. Default noon = brightest/flattest light, best for inspecting geometry. ──
     public ushort PlaytestTimeOfDay { get; set; } = 0x8000;
 
+    // ── Playtest DAY (MM only). The value written to gSaveContext.save.day at boot; CURRENT_DAY = day % 5.
+    //    1/2/3 = the three-day cycle, 4 = "the dawn of a new day" (cycle end), 0 = before the cycle. Applied
+    //    identically by the 2Ship boot hook and the vanilla-MM PJ64 hook (save.day @ kMM_SaveContext+0x18), so
+    //    both engines boot into the same day; save.isNight is derived from the time by the game on load. ──
+    public byte PlaytestDay { get; set; } = 1;
+
     // ── Wind (scene cmd 0x05): direction + speed driving grass/particle drift ─
     public sbyte WindX     { get; set; }
     public sbyte WindY     { get; set; }

@@ -21,7 +21,7 @@ public sealed class ActorModelResolver
     // them to the billboard-sprite path instead. (Bg_Ikana_Bombwall/Shutter are real floor/door scenery.)
     private static readonly HashSet<ushort> MmForceSprite = new()
     {
-        0x0062, // Mir_Ray  — reflectable light ray (OoT, broken)
+        0x0062, // Mir_Ray  — reflectable light ray (MM id; OoT's Mir_Ray is 0x00B7, see OotForceSprite)
         0x01D0, // Mir_Ray2 — reflectable light ray (ICHAIN scale 0; beam len = reflectIntensity)
         0x0230, // Mir_Ray3 — mirror-shield reflection + glow
         0x0256, // Bg_Ikana_Ray — large light ray (Stone Tower)
@@ -32,6 +32,8 @@ public sealed class ActorModelResolver
     // object renders a spurious crumpled mesh. Force them to the billboard-sprite path (ActorSpriteMap).
     private static readonly HashSet<ushort> OotForceSprite = new()
     {
+        0x00B7, // Mir_Ray — reflectable light beam. Draw only renders the shield-reflection glow (no static
+                //          model), so auto-detecting object_mir_ray yields a spurious mesh. Show the beam icon.
         0x004F, // En_OE2 — "Blue Navi Lock-on Target Spot": empty Draw, uses object_oE2 but never draws it
                 //          (the REAL Nabooru NPC is En_Nb 0x00C3, handled separately).
         0x0066, // Arms_Hook — the fired hookshot hook/chain. InitVars object is OBJECT_LINK_BOY (it's part of

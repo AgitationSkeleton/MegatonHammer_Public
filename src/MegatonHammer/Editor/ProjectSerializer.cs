@@ -249,6 +249,7 @@ public static class ProjectSerializer
         GroupId = a.GroupId, VisGroupId = a.VisGroupId, IsSelected = a.IsSelected,
         Schedule = a.Schedule,
         ScheduleVm = a.ScheduleVm, SchedulePoses = a.SchedulePoses,
+        MhCustomItem = a.MhCustomItem,
     };
 
     private static ZActor FromDto(ActorDto ad) => new()
@@ -264,6 +265,7 @@ public static class ProjectSerializer
         GroupId = ad.GroupId, VisGroupId = ad.VisGroupId, IsSelected = ad.IsSelected,
         Schedule = ad.Schedule,
         ScheduleVm = ad.ScheduleVm, SchedulePoses = ad.SchedulePoses,
+        MhCustomItem = ad.MhCustomItem,
     };
 
     private static SetupDto ToDto(ZSetup su) => new()
@@ -644,6 +646,7 @@ public static class ProjectSerializer
         public List<ScheduleRule>? Schedule { get; set; }
         public ScheduleProgram? ScheduleVm { get; set; }   // MM schedule bytecode VM program
         public List<SchedulePose>? SchedulePoses { get; set; }
+        public string? MhCustomItem { get; set; }          // optional SoH-exclusive item this chest/item awards
         public string? Name { get; set; }
         // Transition-actor (scene 0x0E door) data; 0xFF side = scene exit (not a room).
         public bool IsTransition { get; set; }

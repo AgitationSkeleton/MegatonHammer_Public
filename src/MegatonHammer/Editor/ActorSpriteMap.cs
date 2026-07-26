@@ -28,6 +28,7 @@ public static class ActorSpriteMap
         [0x010A] = FireArrow,    // Arrow_Fire
         [0x010B] = IceArrow,     // Arrow_Ice
         [0x010C] = LightArrow,   // Arrow_Light
+        [0x00B7] = LightArrow,   // Mir_Ray       — Mirror-Shield reflectable light beam (OoT id)
         [0x0127] = Bomb,         // Obj_Bombiwa   — bombable rock
         [0x0159] = Bombchu,      // Bg_Jya_Bombchuiwa — bombchu wall
         // Projectiles / magic / collectables with no static model → the matching inventory icon,

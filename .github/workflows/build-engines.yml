@@ -1,0 +1,209 @@
+name: Build playtest engines
+
+# Builds the THREE playtest engines with Megaton Hammer's patches applied and publishes each as a zip
+# release asset (soh-win-x64.zip / 2ship-win-x64.zip / pj64-win-x64.zip). The editor's first-run wizard
+# downloads these from `releases/latest/download/<asset>`, so they attach to the SAME release as the editor
+# exe (same version tag) — one `v*` tag ⇒ one release carrying the exe and all three engines.
+#
+# The SoH/2Ship jobs mirror the engines' OWN upstream Windows CI (choco ninja + msvc-dev-cmd + a bootstrapped
+# vcpkg + CMake/Ninja + cpack), differing only in that they clone upstream at our pinned commit and run
+# forks/apply-mh-patches.cmd (mh_playtest + buildfix + libultraship). NO game ROM is used: only the ROM-free
+# engine assets (soh.o2r / 2ship.o2r) are generated; the user's ROM makes the game assets at runtime.
+#
+# ⚠ First run will be slow (cold vcpkg build, ~30-45 min) and may need a `workflow_dispatch` shakedown; the
+# recipe below matches upstream's working CI, so the likeliest tweaks are cache keys and the o2r output path
+# (flagged NOTE:). PJ64 is a lighter MSBuild overlay and is the least-validated job.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Build just one group for faster iteration (all = everything)"
+        type: choice
+        default: all
+        options: [all, harkinian, pj64]
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Ship of Harkinian (OoT) & 2Ship (MM): CMake + Ninja + MSVC + vcpkg, packaged with cpack ──
+  harkinian:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == 'all' || inputs.only == 'harkinian' }}
+    runs-on: windows-2022   # pinned: windows-latest drifted to a VS18 preview MSVC that breaks old 3rd-party code
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: SoH
+            upstream: https://github.com/HarbourMasters/Shipwright
+            ref: 948b84d8
+            exe: soh.exe
+            otr_target: GenerateSohOtr
+            o2r: soh.o2r
+            o2r_dest: soh          # cpack expects the o2r under build-windows/<o2r_dest>
+            asset: soh-win-x64.zip
+          - name: 2Ship
+            upstream: https://github.com/HarbourMasters/2ship2harkinian
+            ref: 3545e62e
+            exe: 2ship.exe
+            otr_target: Generate2ShipOtr
+            o2r: 2ship.o2r
+            o2r_dest: mm
+            asset: 2ship-win-x64.zip
+    steps:
+      - name: Checkout Megaton Hammer (patches + apply script)
+        uses: actions/checkout@v4
+
+      - name: Install ninja
+        run: choco install ninja -y
+
+      - name: Clone upstream ${{ matrix.name }} at pinned commit
+        shell: pwsh
+        run: |
+          git clone ${{ matrix.upstream }} ${{ matrix.name }}
+          cd ${{ matrix.name }}
+          git checkout ${{ matrix.ref }}
+          git submodule update --init --recursive
+
+      - name: Apply Megaton Hammer patches
+        shell: cmd
+        run: forks\apply-mh-patches.cmd
+
+      - name: Configure Developer Command Prompt (MSVC)
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Cache vcpkg
+        uses: actions/cache@v4
+        with:
+          path: vcpkg
+          key: ${{ runner.os }}-vcpkg-${{ matrix.name }}-${{ matrix.ref }}
+          restore-keys: ${{ runner.os }}-vcpkg-${{ matrix.name }}-
+
+      - name: Configure (CMake + Ninja, Release)
+        shell: pwsh
+        working-directory: ${{ matrix.name }}
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}/vcpkg   # SoH/2Ship CMake bootstraps vcpkg here on a cold cache
+        run: >
+          cmake -S . -B build-windows -G Ninja -DCMAKE_MAKE_PROGRAM=ninja
+          -DCMAKE_BUILD_TYPE:STRING=Release
+
+      - name: Build engine exe
+        shell: pwsh
+        working-directory: ${{ matrix.name }}
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+        run: cmake --build build-windows --config Release --parallel
+
+      - name: Generate ROM-free engine assets (${{ matrix.o2r }})
+        shell: pwsh
+        working-directory: ${{ matrix.name }}
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+        run: |
+          cmake --build build-windows --target ${{ matrix.otr_target }}
+          # cpack pulls the o2r from build-windows/<o2r_dest>/ (upstream CI stages it there). Locate the
+          # generated file and place it, in case the target wrote it elsewhere. NOTE: confirm on first run.
+          $o2r = Get-ChildItem -Recurse -Filter ${{ matrix.o2r }} | Select-Object -First 1
+          if (-not $o2r) { throw "${{ matrix.otr_target }} did not produce ${{ matrix.o2r }}" }
+          New-Item -ItemType Directory -Force -Path "build-windows/${{ matrix.o2r_dest }}" | Out-Null
+          Copy-Item $o2r.FullName "build-windows/${{ matrix.o2r_dest }}/" -Force
+
+      - name: Package (cpack)
+        shell: pwsh
+        working-directory: ${{ matrix.name }}
+        run: |
+          Push-Location build-windows; cpack; Pop-Location
+          $zip = Get-ChildItem -Recurse -Filter *.zip _packages | Select-Object -First 1
+          if (-not $zip) { throw "cpack produced no zip" }
+          Copy-Item $zip.FullName "$env:GITHUB_WORKSPACE/${{ matrix.asset }}" -Force
+          # Attribution: bundle the engine's own license next to the binaries (SoH permissive / 2Ship CC0 /
+          # libultraship MIT — no source obligation, but shipping their LICENSE is good hygiene).
+          $lic = Get-ChildItem -Filter LICENSE* | Select-Object -First 1
+          if ($lic) { Compress-Archive -Update -Path $lic.FullName -DestinationPath "$env:GITHUB_WORKSPACE/${{ matrix.asset }}" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error
+
+      - name: Attach to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset }}
+
+  # ── Project64 (vanilla N64): our delta overlaid onto an upstream develop checkout, MSBuild ──
+  #    Lighter than the Harkinian builds but the least-validated job — see forks/pj64/README.md for the exact
+  #    vcxproj <ClCompile> add + N64System.cpp call-site edits the overlay still needs scripted here.
+  pj64:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == 'all' || inputs.only == 'pj64' }}
+    runs-on: windows-2022   # pinned: windows-latest drifted to a VS18 preview MSVC that breaks old 3rd-party code
+    steps:
+      - name: Clone Megaton Hammer's Project64 fork
+        shell: pwsh
+        run: |
+          # AgitationSkeleton/pj64_megaton = our public GPLv2 fork of project64/project64 with the MH per-frame
+          # playtest hook committed on its default branch (develop). Building straight from it keeps CI
+          # reproducible and satisfies GPL — the complete modified source is public there. No overlay needed.
+          # No submodule fetch: we build specific projects (core/exe/plugins) that compile the vendored
+          # sources, not the standalone SDL/GLideN64 projects, so the incomplete submodules are irrelevant.
+          git clone --depth 1 https://github.com/AgitationSkeleton/pj64_megaton pj64
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build core + exe + plugins (specific projects, not the whole solution)
+        shell: pwsh
+        working-directory: pj64
+        run: |
+          # The full Project64.sln pulls in standalone SDL/GLideN64 projects whose vendored SDL3 is mismatched
+          # with their .vcxproj (SDL2 file list) and won't compile from a clean checkout. The editor only needs
+          # the emulator + Project64's own plugins, so build those projects directly — this mirrors the repo's
+          # working pj64_build.bat recipe and never touches SDL/GLideN64-standalone. Core builds before the exe.
+          $projects = @(
+            'Source/UpdateVersion/UpdateVersion.vcxproj',   # tool: stamps Version.h in other projects' pre-build; must exist first
+            'Source/Project64-core/Project64-core.vcxproj',
+            'Source/Project64/Project64.vcxproj',
+            'Source/Project64-video/Project64-video.vcxproj',
+            'Source/Project64-rsp/Project64-rsp.vcxproj',
+            'Source/Project64-audio/Project64-audio.vcxproj',
+            'Source/nragev20/NRage_Input_V2.vcxproj'        # SDL-free input plugin (PJ64_NRage.dll); Project64-input pulls in the broken external/sdl
+          )
+          foreach ($p in $projects) {
+            Write-Host "== building $p =="
+            msbuild $p /p:Configuration=Release /p:Platform=x64 /v:m
+            if ($LASTEXITCODE -ne 0) { throw "build failed: $p" }
+          }
+
+      - name: Package (exe + Project64's plugins + runtime data)
+        shell: pwsh
+        working-directory: pj64
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter Project64.exe | Where-Object { $_.FullName -match 'Release' } | Select-Object -First 1
+          if (-not $exe) { throw 'built Project64.exe not found' }
+          $stage = "$env:GITHUB_WORKSPACE/pj64-stage"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item $exe.FullName $stage/
+          # Plugins build into Plugin\x64\{GFX,RSP,Audio,Input}; ship them + the emulator's runtime data.
+          foreach ($d in 'Plugin','Config','Lang','Languages') { if (Test-Path $d) { Copy-Item -Recurse -Force $d $stage/ } }
+          # GPLv2: license + complete-source pointer next to the binary (source = the public fork).
+          if (Test-Path license.md) { Copy-Item license.md $stage/ }
+          "Project64 is licensed under the GPL v2. Complete corresponding source for this build:`r`nhttps://github.com/AgitationSkeleton/pj64_megaton" | Out-File "$stage/SOURCE.txt" -Encoding utf8
+          Compress-Archive -Path "$stage/*" -DestinationPath "$env:GITHUB_WORKSPACE/pj64-win-x64.zip" -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pj64-win-x64.zip
+          path: pj64-win-x64.zip
+          if-no-files-found: error
+
+      - name: Attach to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: pj64-win-x64.zip

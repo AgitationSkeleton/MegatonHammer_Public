@@ -122,6 +122,9 @@ public sealed class PropertiesPanel : UserControl
         // (chest Contents, beamos Sight range, …) are always visible; the editor auto-manages the hidden logic.
         bool simplified = Editor.EditorSettings.SimplifiedActorProperties;
         bool showAdv = !simplified || Editor.EditorSettings.ShowAdvancedActorOptions;
+        // Position-anchored (immovable) actors — Mir_Ray light beams, position-forcing bosses. Their position is
+        // hardcoded in the engine; the editor pins them and shows a one-time explanatory popup (below).
+        bool anchored = Editor.AnchoredActors.IsAnchoredId(_nativeIsOoT, a.Number);
 
         var nameLabel = AddReadonly("Name", ResolveName(a.Number));
         if (showAdv)
@@ -134,14 +137,31 @@ public sealed class PropertiesPanel : UserControl
         if (simplified) AddAdvancedToggle();
 
         AddHeader("POSITION");
-        AddInt("X", () => (int)MathF.Round(a.XPos), v => { a.XPos = v; Bubble(); });
-        AddInt("Y", () => (int)MathF.Round(a.YPos), v => { a.YPos = v; Bubble(); });
-        AddInt("Z", () => (int)MathF.Round(a.ZPos), v => { a.ZPos = v; Bubble(); });
+        if (anchored)
+        {
+            // Immovable: show the engine-fixed coordinates read-only (they follow the dropdown, not typing).
+            AddReadonly("X", ((int)MathF.Round(a.XPos)).ToString(CultureInfo.InvariantCulture));
+            AddReadonly("Y", ((int)MathF.Round(a.YPos)).ToString(CultureInfo.InvariantCulture));
+            AddReadonly("Z", ((int)MathF.Round(a.ZPos)).ToString(CultureInfo.InvariantCulture));
+            AddNote("Fixed by the OoT/MM engine — set the location with the dropdown above; it can't be moved by hand.");
+        }
+        else
+        {
+            AddInt("X", () => (int)MathF.Round(a.XPos), v => { a.XPos = v; Bubble(); });
+            AddInt("Y", () => (int)MathF.Round(a.YPos), v => { a.YPos = v; Bubble(); });
+            AddInt("Z", () => (int)MathF.Round(a.ZPos), v => { a.ZPos = v; Bubble(); });
+        }
 
         AddHeader("ROTATION (binary angle)");
         AddInt("Rot X", () => a.XRot, v => { a.XRot = (short)v; Bubble(); });
         AddInt("Rot Y", () => a.YRot, v => { a.YRot = (short)v; Bubble(); });
         AddInt("Rot Z", () => a.ZRot, v => { a.ZRot = (short)v; Bubble(); });
+
+        // One-time popup explaining where this anchored entity works, what it needs, and why it's immovable.
+        // Deferred so it appears after the panel finishes laying out (not mid-rebuild).
+        if (anchored && IsHandleCreated)
+            BeginInvoke(new System.Action(() =>
+                AnchoredWarningDialog.MaybeShow(FindForm(), a.Number, Editor.AnchoredActors.Constraint(_nativeIsOoT, a.Number))));
     }
 
     // The "Show/Hide Advanced Options" expander in the actor panel (simplified mode only). Persists its state.
@@ -170,8 +190,10 @@ public sealed class PropertiesPanel : UserControl
         if (def == null) return;
         // Basic mode hides the technical (advanced) fields; the editor auto-manages the logic behind them.
         var fields = def.Fields.Where(f => showAdv || !f.IsAdvanced).ToList();
-        if (fields.Count == 0) return;
+        bool hasNote = !string.IsNullOrEmpty(def.Note);
+        if (fields.Count == 0 && !hasNote) return;   // nothing to show (e.g. all-advanced fields, basic mode)
         AddHeader("SETTINGS");
+        if (hasNote) AddNote(def.Note!);
         foreach (var f in fields)
         {
             int Cur() => f.Get(f.FromRotZ ? (ushort)a.ZRot : a.Variable);
@@ -179,6 +201,10 @@ public sealed class PropertiesPanel : UserControl
             {
                 if (f.FromRotZ) a.ZRot = (short)f.Set((ushort)a.ZRot, v);
                 else a.Variable = f.Set(a.Variable, v);
+                // Anchored actors (e.g. Mir_Ray's fixed beam per sMirRayData[params]) force their own position;
+                // keep the placed marker on the resolved position when a params change moves it.
+                if (Editor.AnchoredActors.PositionFor(_nativeIsOoT, a.Number, a.Variable) is { } anchor)
+                    a.Position = anchor;
                 Bubble();
             }
             if (f.Kind == Editor.ActorParamSchema.FieldKind.Enum && f.Options is { Count: > 0 })
@@ -190,12 +216,32 @@ public sealed class PropertiesPanel : UserControl
                     Margin = new Padding(2), MaxDropDownItems = 24, Tag = f.Desc,
                 };
                 foreach (var opt in f.Options) combo.Items.Add(opt);
+                // Unified chest picker: the En_Box "Contents" list is extended with the enabled SoH-exclusive
+                // items (Roc's Feather, Fierce Deity's Mask) so ANY item can be chosen from one dropdown. Vanilla
+                // items ride the 7-bit Contents field (native chest give, works on cartridge); SoH-exclusive ones
+                // can't, so they're stored in ZActor.MhCustomItem and granted by the SoH fork's chest hook on open.
+                bool isChestContents = _nativeIsOoT && a.Number == 0x000A && f.Name == "Contents";
+                var sohOpts = isChestContents
+                    ? Editor.OptionalItems.Enabled(Editor.OptionalItemEngine.Soh).ToList()
+                    : new System.Collections.Generic.List<Editor.OptionalItem>();
+                foreach (var oi in sohOpts) combo.Items.Add(oi.DisplayName + " (SoH-only)");
                 int cur = Cur();
-                int idx = cur >= 0 && cur < f.Options.Count ? cur : -1;
+                int idx;
+                if (isChestContents && !string.IsNullOrEmpty(a.MhCustomItem)
+                    && sohOpts.FindIndex(o => o.Key == a.MhCustomItem) is int oiSel && oiSel >= 0)
+                    idx = f.Options.Count + oiSel;                              // a SoH-exclusive item is selected
+                else idx = cur >= 0 && cur < f.Options.Count ? cur : -1;
                 if (idx < 0) { combo.Items.Add($"Custom ({cur})"); idx = combo.Items.Count - 1; }
                 combo.SelectedIndex = idx;
                 combo.SelectedIndexChanged += (_, _) =>
-                { if (_loading) return; int i = combo.SelectedIndex; if (i >= 0 && i < f.Options.Count) Put(i); };
+                {
+                    if (_loading) return;
+                    int i = combo.SelectedIndex;
+                    if (isChestContents && i >= f.Options.Count && i < f.Options.Count + sohOpts.Count)
+                    { a.MhCustomItem = sohOpts[i - f.Options.Count].Key; Put(0); }   // SoH item: fork grants it; native = None
+                    else if (i >= 0 && i < f.Options.Count)
+                    { if (isChestContents) a.MhCustomItem = null; Put(i); }          // vanilla item: native chest give
+                };
                 // NB: no ComboTip here — the shared ToolTip retains references to disposed combos, and the
                 // actor panel rebuilds a fresh combo per selection, so tooltipping every schema field over a
                 // long session accumulates handle pressure (the "Error creating window handle" crash). The
@@ -205,6 +251,35 @@ public sealed class PropertiesPanel : UserControl
             else
             {
                 AddInt(f.Name, Cur, Put);   // Int / Flag / Message → a number field
+            }
+        }
+
+        // Optional SoH-exclusive item a freestanding item (En_Item00) awards, when enabled. (For En_Box chests
+        // this is folded into the unified "Contents" dropdown above.) Stored in ZActor.MhCustomItem, emitted to
+        // mh/chests, granted by the SoH fork on pickup. SoH-only (OoT project).
+        if (_nativeIsOoT && a.Number == 0x0015)
+        {
+            var opts = Editor.OptionalItems.Enabled(Editor.OptionalItemEngine.Soh).ToList();
+            if (opts.Count > 0)
+            {
+                var combo = new ComboBox
+                {
+                    Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = BgInput,
+                    ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, Font = UiFonts.Get("Segoe UI", 8f), Margin = new Padding(2),
+                };
+                combo.Items.Add("None (normal contents)");
+                foreach (var oi in opts) combo.Items.Add(oi.DisplayName + " (SoH)");
+                int sel = 0;
+                for (int i = 0; i < opts.Count; i++) if (opts[i].Key == a.MhCustomItem) sel = i + 1;
+                combo.SelectedIndex = sel;
+                combo.SelectedIndexChanged += (_, _) =>
+                {
+                    if (_loading) return;
+                    int i = combo.SelectedIndex;
+                    a.MhCustomItem = i <= 0 ? null : opts[i - 1].Key;
+                    Bubble();
+                };
+                AddRow("SoH item", combo);
             }
         }
     }
@@ -436,10 +511,9 @@ public sealed class PropertiesPanel : UserControl
             AddRow("Start week-events", weBox);
         }
 
-        // Playtest time-of-day (normalized gamestate): one u16 over a 24h day from midnight —
-        // 0x4000=6:00, 0x8000=noon, 0xC000=18:00. Applied identically by SoH (dayTime), 2Ship
-        // (save.time) and PJ64 (gSaveContext dayTime), so every engine starts at the same time.
-        AddHex("Playtest time (8000=noon)", 4, () => s.PlaytestTimeOfDay, v => { s.PlaytestTimeOfDay = (ushort)v; Bubble(); });
+        // NOTE: the playtest STATE to warp into — Link's age (OoT), time of day, and MM day — is chosen in the
+        // Playtest dialog (a direct warp for immediate results), not here. Scene properties is for authoring what
+        // each variant contains (the Setups above). The chosen values persist in PlaytestTimeOfDay / PlaytestDay.
 
         AddHeader("SPAWN");
         AddInt("Spawn X", () => (int)MathF.Round(s.SpawnPos.X), v => { s.SpawnPos = new Vector3(v, s.SpawnPos.Y, s.SpawnPos.Z); Bubble(); });
@@ -512,6 +586,24 @@ public sealed class PropertiesPanel : UserControl
             Text = text, Dock = DockStyle.Fill, Height = 22, Margin = new Padding(0, 8, 0, 2),
             BackColor = HdrBg, ForeColor = HdrFg, TextAlign = ContentAlignment.MiddleLeft,
             Font = UiFonts.Get("Segoe UI", 7.5f, FontStyle.Bold), Padding = new Padding(4, 0, 0, 0),
+        };
+        int row = _table.RowCount;
+        _table.Controls.Add(lbl, 0, row);
+        _table.SetColumnSpan(lbl, 2);
+        _table.RowCount = row + 1;
+    }
+
+    // A full-width, word-wrapped grey caption spanning both columns — used for a schema Def's Note (usage tips,
+    // and "this actor ignores placement / forces its position" for anchored actors). Previously Notes were
+    // stored but never shown.
+    private void AddNote(string text)
+    {
+        int maxW = _table.ClientSize.Width > 40 ? _table.ClientSize.Width - 10 : 220;
+        var lbl = new Label
+        {
+            Text = text, ForeColor = Color.FromArgb(150, 150, 150), TextAlign = ContentAlignment.TopLeft,
+            Font = UiFonts.Get("Segoe UI", 7.5f, FontStyle.Italic), AutoSize = true,
+            MaximumSize = new Size(maxW, 0), Margin = new Padding(4, 2, 4, 4),
         };
         int row = _table.RowCount;
         _table.Controls.Add(lbl, 0, row);
@@ -787,6 +879,25 @@ public sealed class PropertiesPanel : UserControl
         del.Click += (_, _) => { if (scene.Setups.Count > 0) _doc.RemoveSetup(scene.ActiveSetup); };
         bar.Controls.AddRange([add, ren, del]);
         AddRow("Variants", bar);
+
+        // OoT preset: one click creates the 4 standard age×time variants that the game auto-selects by Link's
+        // age and the time of day (scene layers 0–3). (MM doesn't select scene headers by day — its day content
+        // is per-actor spawn timing + week-event flags — so this preset is OoT-only.)
+        if (_nativeIsOoT)
+        {
+            var preset = Btn("Create Child/Adult × Day/Night");
+            preset.Click += (_, _) =>
+            {
+                if (MessageBox.Show(FindForm(),
+                    "Create the four standard OoT scene variants — Child (Day), Child (Night), Adult (Day), " +
+                    "Adult (Night)?\n\nThe game auto-selects one by Link's age and the time of day. The current " +
+                    "scene becomes the Child (Day) base; the other three start as copies you can then edit " +
+                    "(e.g. swap night actors, change lighting).",
+                    "OoT scene-setup preset", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.OK)
+                { _doc.ApplyOotSetupPreset(); ForceRefresh(); }
+            };
+            AddRow("Preset", preset);
+        }
     }
 
     private string? Prompt(string title, string initial)

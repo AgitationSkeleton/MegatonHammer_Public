@@ -39,3 +39,7 @@ Thumbs.db
 
 # Fork full-snapshot backups (not the minimal delta; bake in machine paths)
 forks/patches/*resetpoint*.patch
+
+# Fierce Deity Mask icon is ripped from the MM ROM (Nintendo texture) — never ship it;
+# the public editor falls back to its drawn glyph. Generate it locally from your own ROM.
+src/MegatonHammer/Assets/item_fd_mask.png

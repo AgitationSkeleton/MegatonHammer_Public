@@ -8,13 +8,18 @@ public sealed class ActorDatabase
 
     private readonly Dictionary<ushort, ActorInfo> _actors = [];
 
-    /// <summary>Megaton Hammer's own placeable custom actor: the portable "dialogue point" (En_MhTalk).
-    /// Register the matching overlay at this id in your base (see portable/README.md).</summary>
-    public const ushort MhTalkId = 0x0230;
+    /// <summary>Megaton Hammer's own placeable custom actor: the "dialogue point" (En_MhTalk), now built into the
+    /// SoH/2Ship playtest forks via actor_table.h. Game-specific ids: SoH assigns it the id right after the last
+    /// vanilla OoT actor (Obj_Warp2block 0x01D6 → 0x01D7); 2Ship the id after the last vanilla MM actor
+    /// (En_Rsn 0x2B1 → 0x2B2). (The old 0x0230 was a placeholder before the overlay existed.)</summary>
+    public const ushort MhTalkIdOot = 0x01D7;
+    public const ushort MhTalkIdMm  = 0x02B2;
+    public static ushort MhTalkId(bool isOoT) => isOoT ? MhTalkIdOot : MhTalkIdMm;
 
-    private void RegisterCustom()
+    private void RegisterCustom(bool isOoT)
     {
-        _actors[MhTalkId] = new ActorInfo(MhTalkId, "Dialogue Point (En_MhTalk)", "En_MhTalk",
+        ushort id = MhTalkId(isOoT);
+        _actors[id] = new ActorInfo(id, "Dialogue Point (En_MhTalk)", "En_MhTalk",
             new Dictionary<ushort, string>());
     }
 
@@ -31,7 +36,7 @@ public sealed class ActorDatabase
     public static ActorDatabase Load(bool isOoT)
     {
         var db   = new ActorDatabase();
-        db.RegisterCustom();   // always available, even on a public build with no XML DB
+        db.RegisterCustom(isOoT);   // always available, even on a public build with no XML DB
         string game = isOoT ? "OOT" : "MM";
         string? path = AppPaths.SourceFile("SharpOcarina-main", "XML", game, "ActorNames.xml");
         if (path == null) return db;   // no reference sources (e.g. public build) -> DB has just the custom actors

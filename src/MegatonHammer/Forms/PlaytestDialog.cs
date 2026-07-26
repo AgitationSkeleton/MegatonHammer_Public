@@ -25,6 +25,8 @@ public sealed class PlaytestDialog : Form
     private readonly List<int> _sceneIds = []; // scene id per combo row
     private readonly RadioButton _replaceMode, _appendMode;
     private readonly RadioButton _child, _adult;
+    private readonly RadioButton _timeDay, _timeNight;   // playtest time-of-day — the state to warp into
+    private readonly ComboBox? _dayCombo;                // MM: which day (1/2/3/final) to warp into
     private readonly RadioButton _invEmpty, _invCustom, _invDebug;
     private readonly Button _editInv;
     private readonly Label _invSummary;
@@ -111,6 +113,31 @@ public sealed class PlaytestDialog : Form
             Controls.Add(Header("LINK'S AGE", y)); y += 24;
             var agePanel = GroupPanel(y, 26);
             agePanel.Controls.Add(_child); agePanel.Controls.Add(_adult); y += 30;
+        }
+
+        // Time of day — the state to warp directly into. OoT: with the age above, this picks which scene setup
+        // loads (Child/Adult × Day/Night). Both games: sets the boot clock (Day = noon, Night = midnight).
+        bool nightDefault = !(scene.Settings.PlaytestTimeOfDay >= 0x4555 && scene.Settings.PlaytestTimeOfDay <= 0xC000);
+        _timeDay   = Radio("Day", 24, 2, !nightDefault);
+        _timeNight = Radio("Night", 130, 2, nightDefault);
+        Controls.Add(Header("TIME OF DAY", y)); y += 24;
+        var timePanel = GroupPanel(y, 26);
+        timePanel.Controls.Add(_timeDay); timePanel.Controls.Add(_timeNight); y += 30;
+
+        // MM: which day (1/2/3, or the "new day" cycle-end) to warp into — day-gated actor spawns follow it.
+        if (mm)
+        {
+            Controls.Add(Header("DAY (Majora's Mask)", y)); y += 24;
+            var dayPanel = GroupPanel(y, 26);
+            _dayCombo = new ComboBox
+            {
+                Left = 24, Top = 2, Width = 220, DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = System.Drawing.Color.FromArgb(30, 30, 30), ForeColor = System.Drawing.Color.FromArgb(210, 210, 210),
+                FlatStyle = FlatStyle.Flat,
+            };
+            _dayCombo.Items.AddRange(new object[] { "Day 1", "Day 2", "Day 3", "Final day (new day)" });
+            _dayCombo.SelectedIndex = System.Math.Clamp(scene.Settings.PlaytestDay - 1, 0, 3);
+            dayPanel.Controls.Add(_dayCombo); y += 30;
         }
 
         // Inventory — persisted per game, edited via the full inventory editor.
@@ -255,6 +282,11 @@ public sealed class PlaytestDialog : Form
             EditorSettings.SetInventoryJson(_mm, _inv.ToJson());   // persist the loadout used
         }
         if (!_mm) EditorSettings.PlaytestAdult = _adult.Checked;   // remember the age for next launch (OoT only)
+        // Apply the chosen playtest time-of-day + day (MM) into the scene state the O2R packer / N64 injector
+        // read, so the boot warps directly into that state. Persisted so the last pick is remembered.
+        _scene.Settings.PlaytestTimeOfDay = _timeDay.Checked ? (ushort)0x8000 : (ushort)0x0000;
+        if (_mm && _dayCombo != null && _dayCombo.SelectedIndex >= 0)
+            _scene.Settings.PlaytestDay = (byte)(_dayCombo.SelectedIndex + 1);
         DiagnosticLog.Step($"age={(cfg.Adult ? "adult" : "child")} inventory={cfg.Inventory} hearts={_inv.Hearts} toggles={_inv.Toggles.Count} rooms={_scene.Rooms.Count}");
 
         // N64/PJ64: hand the config (append/replace + inventory) to the Project64 launcher and close. The
@@ -304,6 +336,18 @@ public sealed class PlaytestDialog : Form
                 {
                     DiagnosticLog.Step("launching engine to generate archive");
                     EditorSettings.SetEngineExe(_mm, exe);
+                    // Stage the user's (MD5-verified) ROM next to the engine so SoH/2Ship auto-imports it on
+                    // launch — one-click asset generation for a fresh download instead of a manual ROM prompt.
+                    try
+                    {
+                        var rom = _mm ? EditorSettings.MmRomPath : EditorSettings.OotRomPath;
+                        if (!string.IsNullOrWhiteSpace(rom) && File.Exists(rom))
+                        {
+                            var dest = Path.Combine(exeDir, Path.GetFileName(rom));
+                            if (!File.Exists(dest)) { File.Copy(rom, dest); DiagnosticLog.Step($"staged ROM for extraction: {dest}"); }
+                        }
+                    }
+                    catch (Exception rex) { DiagnosticLog.Step("ROM staging skipped: " + rex.Message); }
                     Process.Start(new ProcessStartInfo { FileName = exe, WorkingDirectory = exeDir, UseShellExecute = true });
                     DiagnosticLog.Ok("engine launched (archive-generation pass)");
                     DialogResult = DialogResult.OK;
@@ -355,6 +399,19 @@ public sealed class PlaytestDialog : Form
             DiagnosticLog.Ok($"packed mod O2R ({size} bytes)");
 
             EditorSettings.SetEngineExe(_mm, exe);          // remember this build for next time
+            // Fierce Deity (SoH): the fork generates fd.o2r once from a Majora's Mask ROM (like SoH makes
+            // oot.o2r from an OoT ROM). Hand it the editor's auto-detected MM ROM path via a sidecar file so it
+            // generates non-interactively. Harmless if the fork has no FD support / already has fd.o2r.
+            if (!_mm)
+            {
+                try
+                {
+                    string mmRom = EditorSettings.MmRomPath;
+                    if (!string.IsNullOrEmpty(mmRom) && File.Exists(mmRom))
+                        File.WriteAllText(Path.Combine(exeDir, "fd_rom_path.txt"), mmRom);
+                }
+                catch (Exception fex) { DiagnosticLog.Error("fd_rom_path write failed", fex); }
+            }
             DiagnosticLog.Step("starting engine process");
             var proc = Process.Start(new ProcessStartInfo { FileName = exe, WorkingDirectory = exeDir, UseShellExecute = true });
             DiagnosticLog.Ok("engine launched");
@@ -387,9 +444,13 @@ public sealed class PlaytestDialog : Form
         var configured = EditorSettings.EngineExe(mm);
         if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured)) return configured!;
         // Fall back to a fork built in the dev tree (resolved without a hardcoded path); else empty -> user picks.
-        var forkDir = Editor.AppPaths.Probe(mm ? "2Ship" : "SoH");
-        if (forkDir != null)
+        // For OoT, prefer the FD-integrated fork tree (SoH_fdport = soh_fd's Fierce Deity base + Megaton's
+        // playtest delta) when it's been built; otherwise the plain SoH fork.
+        var forkNames = mm ? new[] { "2Ship" } : new[] { "SoH_fdport", "SoH" };
+        foreach (var name in forkNames)
         {
+            var forkDir = Editor.AppPaths.Probe(name);
+            if (forkDir == null) continue;
             var p = Path.Combine(forkDir, "x64", "Release", mm ? "2ship.exe" : "soh.exe");
             if (File.Exists(p)) return p;
         }

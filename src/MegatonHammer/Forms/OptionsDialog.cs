@@ -43,6 +43,7 @@ public sealed class OptionsDialog : Form
     private readonly TextBox _sohBox, _twoShipBox, _pj64Box;
     private readonly Label _sohStatus, _twoShipStatus;
     private readonly CheckBox _n64Debug;
+    private readonly CheckBox _sohExclusive, _rocsFeather, _fdMask;
     // Cross-game (paths for both games)
     private readonly TextBox _ootRom, _ootO2r, _mmRom, _mmO2r;
     private readonly CheckBox _music, _textures;
@@ -233,6 +234,30 @@ public sealed class OptionsDialog : Form
         detectNow.Click += (_, _) => DetectAndReport();
         pt.Controls.Add(detectNow);
         detectNow.BringToFront();   // ensure it draws in front of any sibling control sharing its row
+        y += 30;
+
+        // Re-open the first-run wizard to (re)download the playtest engines and set the ROMs.
+        var setupWiz = new Button { Text = "Set up playtest engines…", Location = new Point(16, y), Width = 200, Height = 26,
+            BackColor = Color.FromArgb(60, 60, 65), ForeColor = FgNormal, FlatStyle = FlatStyle.Flat };
+        setupWiz.Click += (_, _) => { using var w = new FirstRunWizard(); w.ShowDialog(this); UpdateEngineStatus(); };
+        pt.Controls.Add(setupWiz); y += 34;
+
+        // SoH-exclusive optional items (Roc's Feather, later the FD Mask). Master toggle + per-item toggles
+        // (greyed unless the master is on). These are non-vanilla SoH-only items — they only appear in the
+        // playtest inventory and chest picker when enabled AND the launch engine is SoH.
+        pt.Controls.Add(Header("SoH-EXCLUSIVE ITEMS", y)); y += 24;
+        pt.Controls.Add(Note("Optional non-vanilla items that only work in Ship of Harkinian (not N64/PJ64 or " +
+                             "2Ship). When enabled they can be added to the playtest inventory and placed in chests.", y)); y += 40;
+        _sohExclusive = Check("Enable SoH-exclusive items", 16, y, EditorSettings.EnableSohExclusiveItems);
+        pt.Controls.Add(_sohExclusive); y += 26;
+        _rocsFeather = Check("Enable Roc's Feather", 36, y, EditorSettings.EnableRocsFeather);
+        pt.Controls.Add(_rocsFeather); y += 26;
+        _fdMask = Check("Enable Fierce Deity's Mask", 36, y, EditorSettings.EnableFierceDeityMask);
+        pt.Controls.Add(_fdMask); y += 30;
+        // The per-item boxes are only meaningful while the master is on; grey them out otherwise (default on).
+        void SyncOptionalItems() { _rocsFeather.Enabled = _fdMask.Enabled = _sohExclusive.Checked; }
+        _sohExclusive.CheckedChanged += (_, _) => SyncOptionalItems();
+        SyncOptionalItems();
 
         _sohBox.TextChanged     += (_, _) => UpdateEngineStatus();
         _twoShipBox.TextChanged += (_, _) => UpdateEngineStatus();
@@ -391,6 +416,9 @@ public sealed class OptionsDialog : Form
         EditorSettings.Project64Path  = Blank(_pj64Box.Text);
         EditorSettings.AutoDetectAssetsOnStartup = _autoDetect.Checked;
         EditorSettings.PlaytestN64DebugControls = _n64Debug.Checked;
+        EditorSettings.EnableSohExclusiveItems = _sohExclusive.Checked;
+        EditorSettings.EnableRocsFeather = _rocsFeather.Checked;
+        EditorSettings.EnableFierceDeityMask = _fdMask.Checked;
 
         // Cross-game (both games' sources kept independently). Detect a change to the source the
         // current project actually borrows from (the opposite game) so we only reload when needed.

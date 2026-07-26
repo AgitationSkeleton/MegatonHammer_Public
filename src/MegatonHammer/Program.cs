@@ -185,6 +185,30 @@ static class Program
             return;
         }
 
+        // Author the MM day+time playtest demo (.mhproj). MegatonHammer --mmdaytimedemo [outDir]
+        if (args.Length >= 1 && args[0] == "--mmdaytimedemo")
+        {
+            try { SelfTest.TestTempleBuilder.BuildMmDayTimeDemo(args.Length >= 2 ? args[1] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out")); }
+            catch (Exception ex) { Console.WriteLine($"[mmdaytimedemo] EXCEPTION: {ex}"); }
+            return;
+        }
+
+        // Author the OoT time+age setup + dialogue-tree demo (.mhproj). MegatonHammer --ootsetupdemo [outDir]
+        if (args.Length >= 1 && args[0] == "--ootsetupdemo")
+        {
+            try { SelfTest.TestTempleBuilder.BuildOotSetupDemo(args.Length >= 2 ? args[1] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out")); }
+            catch (Exception ex) { Console.WriteLine($"[ootsetupdemo] EXCEPTION: {ex}"); }
+            return;
+        }
+
+        // Author the FD-mask-in-a-chest demo (.mhproj). MegatonHammer --fdmaskchestdemo [outDir]
+        if (args.Length >= 1 && args[0] == "--fdmaskchestdemo")
+        {
+            try { SelfTest.TestTempleBuilder.BuildFdMaskChestDemo(args.Length >= 2 ? args[1] : System.IO.Path.Combine(Editor.AppPaths.BaseDir, @"out")); }
+            catch (Exception ex) { Console.WriteLine($"[fdmaskchestdemo] EXCEPTION: {ex}"); }
+            return;
+        }
+
         // Diagnostic: whole-game level fidelity audit. MegatonHammer --auditlevels [oot|mm|both]
         if (args.Length >= 1 && args[0] == "--auditlevels")
         {
@@ -1070,10 +1094,10 @@ static class Program
             Chk(!Export.MhDialogueDataWriter.NeedsEntry(msgAfter), "plain fallback message needs no behaviour row");
 
             // The portable dialogue-point actor is placeable + opens the Dialogue Editor (has a Message field).
-            var mhDef = Editor.ActorParamSchema.For(true, Editor.ActorDatabase.MhTalkId);
+            var mhDef = Editor.ActorParamSchema.For(true, Editor.ActorDatabase.MhTalkId(true));
             Chk(mhDef != null && mhDef.Fields.Any(f => f.Kind == Editor.ActorParamSchema.FieldKind.Message),
-                "En_MhTalk (0x0230) has a Message field -> the Dialogue Editor 'Edit...' button");
-            Chk(Editor.ActorDatabase.Load(true).Get(Editor.ActorDatabase.MhTalkId) != null,
+                "En_MhTalk (0x01D7) has a Message field -> the Dialogue Editor 'Edit...' button");
+            Chk(Editor.ActorDatabase.Load(true).Get(Editor.ActorDatabase.MhTalkId(true)) != null,
                 "En_MhTalk is registered as a placeable editor actor (shows in PLACE ACTOR)");
 
             // Default vs Custom: a Default (vanilla-reference) message is NOT exported; only Custom overrides are.
@@ -1759,6 +1783,35 @@ static class Program
             return;
         }
 
+        // Diagnostic: dump the built-in procedural textures to a montage PNG. MegatonHammer --dumpbuiltintex [out.png]
+        if (args.Length >= 1 && args[0] == "--dumpbuiltintex")
+        {
+            try
+            {
+                var samples = Textures.TextureFactory.Builtins;
+                int cols = 6, cell = 64, pad = 20, cw = cell + pad;
+                int rows = (samples.Count + cols - 1) / cols;
+                using var sheet = new System.Drawing.Bitmap(cols * cw, rows * (cw + 6));
+                using (var g = System.Drawing.Graphics.FromImage(sheet))
+                {
+                    g.Clear(System.Drawing.Color.FromArgb(40, 40, 44));
+                    using var font = new System.Drawing.Font("Segoe UI", 7f);
+                    for (int i = 0; i < samples.Count; i++)
+                    {
+                        int cx = (i % cols) * cw + pad / 2, cy = (i / cols) * (cw + 6) + 2;
+                        using var bmp = samples[i].Make();
+                        g.DrawImage(bmp, cx, cy, cell, cell);
+                        g.DrawString(samples[i].Name, font, System.Drawing.Brushes.White, cx, cy + cell + 1);
+                    }
+                }
+                string outp = args.Length >= 2 ? args[1] : "builtintex.png";
+                sheet.Save(outp, System.Drawing.Imaging.ImageFormat.Png);
+                Console.WriteLine($"[dumpbuiltintex] wrote {outp} ({samples.Count} textures)");
+            }
+            catch (Exception ex) { Console.WriteLine($"[dumpbuiltintex] EXCEPTION: {ex}"); }
+            return;
+        }
+
         // Diagnostic: tile a scene category's textures into a PNG. MegatonHammer --texmontage [rom] [catSub] [out.png]
         if (args.Length >= 1 && args[0] == "--texmontage")
         {
@@ -1864,6 +1917,16 @@ static class Program
                 }
                 catch { /* detection is best-effort; never block startup */ }
             }
+
+            // First run: if the playtest engines (SoH/2Ship/PJ64) or the required ROMs aren't set up yet, offer
+            // to download & install the engines and point the editor at MD5-verified ROMs. Skippable; shown only
+            // until completed or skipped. Runs after auto-detect so already-present assets are recognised first.
+            try
+            {
+                if (Forms.FirstRunWizard.ShouldShowAtStartup())
+                    using (var wiz = new Forms.FirstRunWizard()) wiz.ShowDialog();
+            }
+            catch (Exception fx) { Editor.DiagnosticLog.Step("first-run wizard skipped: " + fx.Message); }
 
             // Identify the process to the shell before any window appears, so the taskbar jump list
             // (right-click ▸ Recent Projects) attaches to our button.

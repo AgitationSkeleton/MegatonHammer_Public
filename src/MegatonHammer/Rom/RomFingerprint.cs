@@ -141,6 +141,12 @@ public static class RomFingerprint
         const int  PrologueOff   = 0xB3B250;            // TitleSetup_InitImpl[0] — see OotDebugAutoBoot
         const uint Prologue      = 0x27BDFFE8;          // addiu $sp,$sp,-0x18
 
+        // An explicitly-configured debug ROM (e.g. from the first-run wizard) wins over a directory scan.
+        var configured = EditorSettings.OotDebugRomPath;
+        if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured) &&
+            (Md5(configured) == OotDebugMd5 || Md5(configured) == OotDebugAltMd5))
+            return configured;
+
         byte[] probe = new byte[4];
         foreach (var dir in RomSearchDirs())
         {

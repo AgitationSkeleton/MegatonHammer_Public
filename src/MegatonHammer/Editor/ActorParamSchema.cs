@@ -132,9 +132,41 @@ public static class ActorParamSchema
     private static readonly string[] LightswitchType =
         ["Sun switch (regular)", "Flip — Stone Tower inversion", "Type 2", "Fake"];
 
+    // Mir_Ray (0x0062) — the Mirror-Shield reflectable light beam. z_mir_ray.c: the beam VOLUME comes from the
+    // compiled sMirRayData[params] table (a FIXED world position — the actor ignores its own placement), so a
+    // custom level can only spawn one of the vanilla beams and build around it. Link stands in the beam with
+    // the Mirror Shield and free-aims the reflection (a player-aimed AT_TYPE_PLAYER quad from the shield) at a
+    // Sun Switch (Obj_Lightswitch), whose AC accepts AT_TYPE_PLAYER. The editor snaps the placed marker onto
+    // the beam and draws its volume as a gizmo, so the author can build a standable floor inside it. Same actor
+    // id + coordinates on OoT and MM. params >= 0xA self-destructs. Shared between the OoT and MM registries.
+    private static Def MirRayDef() => new("Mirror-Shield Light Beam (Mir_Ray)", [
+        new Field("Beam location", 0, 4, FieldKind.Enum,
+                  "Which vanilla sunbeam this is — a FIXED world position (the placed marker snaps to it). Pick a 'downlight' slot to stand in and reflect.",
+                  MirrorBeams.Names),
+    ], "Reflectable sunbeam at a FIXED vanilla location — the beam can't be moved, so build your room around it. "
+     + "Recipe: pick a downlight slot; the viewport gizmo shows the beam volume — put a floor where Link can stand "
+     + "in it with the Mirror Shield; place a Sun Switch (Obj_Lightswitch) where the reflected beam can reach; wire "
+     + "that switch's flag to a door/gate.");
+
+    // En_MhTalk — Megaton Hammer's built-in dialogue-point actor (same schema on both games, different id).
+    private static Def MhTalkDef() => new("Dialogue Point (En_MhTalk)", [
+        new Field("Message", 0, 8, FieldKind.Message, "The conversation shown when talked to (textId 0x1000 + value) — click Edit to author it", TextIdBase: 0x1000),
+    ], "Megaton Hammer's built-in talk actor (a visible, talkable point). Author the whole conversation + outcomes "
+     + "in the Dialogue Editor; the SoH/2Ship playtest interpreter applies give-item / rupee-charge / branch when "
+     + "you talk to it.");
+
     // actor id → schema. Curated set of the most logic-bearing OoT actors; extend freely.
     private static readonly Dictionary<ushort, Def> OoT = new()
     {
+        [0x00B7] = MirRayDef(),   // OoT Mir_Ray (NB: 0x0062 is Bg_Menkuri_Eye on OoT — the MM id)
+
+        // Boss_Sst — Bongo Bongo (0x00E9). The head (params 0) discards its placement and forces itself to a
+        // ROOM_CENTER-based fixed point (z_boss_sst.c:284); the two hands are child-spawned from the head. Note
+        // only (no configurable field): placement is ignored, so the editor snaps the marker to the real spot.
+        [0x00E9] = new Def("Bongo Bongo (Boss_Sst)", [],
+            "Boss — ignores where you place it: the head forces itself to the arena centre (≈0, 0, -650) and "
+          + "spawns its own hands. The editor snaps the marker there so you can see where it actually appears."),
+
         // En_Box (treasure chest) — z_en_box.c: type=[12,4], item=[5,7], treasureFlag=[0,5]; switchFlag is Rot Z.
         // Bg_Ydan_Sp — z_bg_ydan_sp.c: type=[12,4] (WEB_FLOOR/WEB_WALL), burnSwitchFlag=[6,6],
         // isDestroyedSwitchFlag=[0,6]. The editor renders the matching floor/wall web (ActorModelResolver).
@@ -375,13 +407,11 @@ public static class ActorParamSchema
                       Flag: FlagKind.Switch, Role: FlagRole.Both),
         ]),
 
-        // En_MhTalk — Megaton Hammer's own portable "dialogue point" (register the ovl_En_MhTalk overlay at
-        // actor id 0x0230 in your base; see portable/README.md). params (low 8 bits) = a dialogue slot; the
-        // entry textId is 0x1000 + slot. This is the general way to give ANY NPC / sign / point full custom
-        // dialogue + outcomes (existing NPCs like Talon have no message param — their dialogue is hardcoded).
-        [ActorDatabase.MhTalkId] = new Def("Dialogue Point (En_MhTalk)", [
-            new Field("Message", 0, 8, FieldKind.Message, "The conversation shown when talked to (textId 0x1000 + value) — click Edit to author it", TextIdBase: 0x1000),
-        ], "Megaton Hammer's fork-independent talk actor. Place it (beside an NPC, on a sign, or as its own point) and author the whole conversation + outcomes in the Dialogue Editor. Export writes the message bytes + mh_dialogue_data.c."),
+        // En_MhTalk — Megaton Hammer's own "dialogue point", built into the SoH/2Ship playtest forks (id
+        // 0x01D7 on OoT, 0x02B2 on MM). params (low 8 bits) = a dialogue slot; the entry textId is 0x1000 + slot.
+        // The general way to give a visible, talkable point full custom dialogue + outcomes. (MM copy in the MM
+        // dict.) See MhTalkDef().
+        [ActorDatabase.MhTalkIdOot] = MhTalkDef(),
 
         // Elf_Msg (invisible trigger region) — z_elf_msg.c: messageId=[0,8], switchFlag=[8,6] (0x3F = none).
         // Elf_Msg (invisible message/inspect region) — z_elf_msg.c: textId=(params&0xFF)+0x100 when bit
@@ -906,6 +936,9 @@ public static class ActorParamSchema
     // from the 2ship/mm decomp. Covers the most logic-bearing actors incl. MM-specific ones.
     private static readonly Dictionary<ushort, Def> MM = new()
     {
+        // En_MhTalk — MM copy of the built-in dialogue point (id 0x02B2 in 2Ship; see MhTalkDef).
+        [ActorDatabase.MhTalkIdMm] = MhTalkDef(),
+
         // MM Obj_Switch (0x093) — z_obj_switch.c: type=(params&7), subtype=(params>>4&7). Model per type.
         [0x0093] = new Def("Switch (Obj_Switch)", [
             new Field("Switch type", 0, 3, FieldKind.Enum, "Which switch — floor pad, rusty floor, eye, crystal, or large floor",
@@ -1025,6 +1058,31 @@ public static class ActorParamSchema
             new Field("Switch flag", 8, 7, FieldKind.Int, "Switch flag set when lit (0–127)",
                       Flag: FlagKind.Switch, Role: FlagRole.Setter),
         ]),
+
+        // Mir_Ray2 (0x01D0) — MM "Reflectable light ray (static beam)", z_mir_ray2.c. UNLIKE the hardcoded
+        // Mir_Ray (whose beam geometry comes from the sMirRayData table and ignores placement), this one
+        // anchors its point light + AT_TYPE_OTHER trigger collider to its PLACED world.pos, so it can go
+        // anywhere. range = home.rot.x*4 (0 → 100u; the editor places it with rotX 0 for a fixed ~100u reach,
+        // since MM packs half-day spawn bits into rotX's low bits). Enable = switch flag (params>>9 & 0x7F;
+        // 0x7F = always on): while the flag is set it emits the collider (which lights a nearby Sun Switch /
+        // Obj_Lightswitch — that AC accepts AC_TYPE_OTHER) plus a white point light that brightens as Link
+        // nears. params&0xF == 1 → always on (ignores the flag) and draws no ground glow circle.
+        // Mir_Ray (0x0062) — shared reflectable beam (see MirRayDef): fixed-position sunbeam Link reflects.
+        [0x0062] = MirRayDef(),
+
+        // Boss_03 — Gyorg (0x12B). Main boss overwrites world.pos = sGyorgInitialPos in Init (z_boss_03.c:482),
+        // discarding placement. Note only: the editor snaps the marker to that fixed spawn point.
+        [0x012B] = new Def("Gyorg (Boss_03)", [],
+            "Boss — ignores where you place it: it forces itself to its fixed arena spawn (≈1216, 140, -1161). "
+          + "The editor snaps the marker there so you can see where it actually appears."),
+
+        [0x01D0] = new Def("Light Shaft (Mir_Ray2)", [
+            new Field("Enable switch flag", 9, 7, FieldKind.Int,
+                      "Beam is lit while this switch flag is set; 0x7F (127) = always on. Wire a puzzle flag here to make the shaft appear on cue.",
+                      Flag: FlagKind.Switch, Role: FlagRole.Reader),
+            new Field("Always-on (no ground glow)", 0, 1, FieldKind.Flag,
+                      "Ignore the enable flag and stay lit, drawing no ground light circle"),
+        ], "Placeable light shaft: casts a point light and a light-trigger zone (~100u) that activates a nearby Sun Switch (Obj_Lightswitch). Pair it with a Sun Switch and wire that switch's flag to a door/gate. NB it auto-triggers whenever lit — it is not redirected by the Mirror Shield (only the fixed-position vanilla Mir_Ray beams are)."),
 
         // Obj_Tsubo (0x082) — drop=[0,5], type=[7,2], collectibleFlag=[9,7].
         [0x0082] = new Def("Pot", [

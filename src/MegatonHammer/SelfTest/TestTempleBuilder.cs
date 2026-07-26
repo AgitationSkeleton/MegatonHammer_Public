@@ -181,6 +181,243 @@ public static class TestTempleBuilder
 
     private const float DoorSill = 0f;   // doorways sit at the global walk-in level (a normal room's floor)
 
+    // ── MM day + time playtest demo ─────────────────────────────────────────
+    // An outdoor MM scene that makes the day/time boot-state VISIBLE and identical on 2Ship and vanilla-MM
+    // (PJ64): three pots, each gated (half-day spawn bits) to a different day — only the booted day's pot
+    // appears — under an open sky whose lighting follows the booted time. Set the scene's "Playtest day" +
+    // "Playtest time" and playtest: day 1/2/3 shows a different pot; day vs night changes the sky/lighting.
+    public static void BuildMmDayTimeDemo(string outDir)
+    {
+        Directory.CreateDirectory(outDir);
+        var (floorTex, wallTex, _) = ForestTextures(mm: true);
+        var doc = new MapDocument();
+        doc.InitGameDefaults(true);
+        var scene = doc.Scene;
+        scene.Name = "MM Day-Time Demo";
+        var st = scene.Settings;
+        st.AreaName          = "Day-Time Demo";
+        st.Sky               = SkyMode.Day;   // outdoor: sky + ambient lighting follow save.time (day↔night)
+        st.SkyboxId          = 1;
+        st.IndoorLighting    = false;
+        st.MusicSeq          = 0x0A;
+        st.PlaytestDay       = 1;             // boots day 1 by default; change to 2/3 to see a different pot
+        st.PlaytestTimeOfDay = 0x8000;        // noon; set ~0x0000 for a night boot
+
+        var room = scene.Rooms[0];
+        AddBox(room, (-460, -30, -460), (460, 0, 460), floorTex);                 // floor
+        AddBox(room, (-460, 0, -480), (460, 140, -460), wallTex);                 // low border walls (no ceiling → sky visible)
+        AddBox(room, (-460, 0, 460), (460, 140, 480), wallTex);
+        AddBox(room, (-480, 0, -460), (-460, 140, 460), wallTex);
+        AddBox(room, (460, 0, -460), (480, 140, 460), wallTex);
+
+        // Day-gated pots (Obj_Tsubo 0x0082). halfDaysBits = ((rotX&7)<<7)|(rotZ&0x7F); IdFlags 0x6000 marks
+        // rotX+rotZ as a raw mask (not a facing angle) — honoured by both the OTR (2Ship) and N64 (PJ64) export.
+        // DAY1=0xC0 (dawn|night), DAY2=0x30, DAY3=0x0C — see z64actor.h HALFDAYBIT_*.
+        (float X, int Hdb)[] pots = { (-220, 0xC0), (0, 0x30), (220, 0x0C) };
+        foreach (var (x, hdb) in pots)
+            room.Actors.Add(new ZActor
+            {
+                Number = 0x0082, Variable = 0, XPos = x, YPos = 6, ZPos = -140,
+                XRot = (short)((hdb >> 7) & 7), ZRot = (short)(hdb & 0x7F), IdFlags = 0x6000,
+            });
+        // Always-present reference pot (halfDaysBits 0 = every day) so you can confirm the scene loaded.
+        room.Actors.Add(new ZActor { Number = 0x0082, XPos = 0, YPos = 6, ZPos = 160 });
+
+        st.SpawnPos  = new Vector3(0, 8, 300);
+        st.SpawnRoom = 0;
+        st.SpawnYaw  = unchecked((short)0x8000);   // face -Z toward the pots
+
+        string proj = Path.Combine(outDir, "MM_DayTime_Demo.mhproj");
+        ProjectSerializer.Save(doc, proj);
+        Console.WriteLine($"[mmdaytimedemo] wrote {proj}");
+        var (sd, rd) = SceneExporter.BuildBinaries(scene);
+        Console.WriteLine($"[mmdaytimedemo] export OK: scene {sd.Length}B, {rd.Count} room(s). " +
+                          "Playtest with Playtest day 1/2/3 (different pot each) + day/night time (sky changes) on 2Ship AND MM PJ64.");
+    }
+
+    // ── OoT time+age setups + custom dialogue-tree demo ─────────────────────
+    // One OoT level with the four age×time SETUPS (Child/Adult × Day/Night), each showing different objects and
+    // a custom dialogue-tree NPC (En_MhTalk) that demonstrates Yes/No prompts, item-give, and rupee purchases —
+    // with rupees placed nearby to afford them. Grass floor + concrete (Stone) walls. Playtest the four states
+    // from the Playtest dialog: pick Child/Adult + Day/Night and the game loads the matching setup.
+    // One dialogue line for a setup: prompt text, the two choice labels, the GetItem id handed out (-1 = none),
+    // and the rupee cost of that give (0 = free gift → a plain Message; >0 = a Yes/No purchase Prompt).
+    private readonly record struct DemoLine(string Text, string Yes, string No, int Give, int Cost);
+
+    // A themed OoT demo level: floor/wall textures, room half-extent, and the four age×time dialogue trees.
+    private readonly record struct OotDemoVariant(string File, string Name, string Floor, string Wall, int Half,
+        DemoLine ChildDay, DemoLine ChildNight, DemoLine AdultDay, DemoLine AdultNight);
+
+    public static void BuildOotSetupDemo(string outDir)
+    {
+        Directory.CreateDirectory(outDir);
+        // A few themed variants so there's real variation to compare: different textures, room size, objects,
+        // NPC banter, items given, and rupee prices — while each still exercises all four age×time setups plus
+        // the Yes/No + item-give + rupee-purchase dialogue paths.
+        var variants = new[]
+        {
+            new OotDemoVariant("OoT_Demo_Meadow", "Meadow (Time+Age Demo)", "Grass", "Stone", 500,
+                new DemoLine("A young Kokiri grins in the sun.&Want a Deku Nut?", "Sure!", "No thanks", 0x02, 0),
+                new DemoLine("A merchant whispers in the dark.&Deku Stick - 5 Rupees?", "Buy", "Leave", 0x61, 5),
+                new DemoLine("Talon tips his hat.&Piece of Heart for 20 Rupees?", "Buy", "No", 0x3E, 20),
+                new DemoLine("The princess speaks softly.&Take this for your journey.", "", "", 0x0F, 0)),
+
+            new OotDemoVariant("OoT_Demo_Bazaar", "Bazaar (Time+Age Demo)", "Sand", "Brick", 420,
+                new DemoLine("A cheery vendor waves.&Free Recovery Heart - want it?", "Yes!", "Later", 0x48, 0),
+                new DemoLine("A hooded seller leans close.&Bottle of Milk for 10 Rupees?", "Buy", "Pass", 0x14, 10),
+                new DemoLine("The gerudo shopkeep smirks.&Piece of Heart - 30 Rupees.", "Buy", "No", 0x3E, 30),
+                new DemoLine("A quiet trader nods.&Here, take some Deku Nuts.", "", "", 0x02, 0)),
+
+            new OotDemoVariant("OoT_Demo_Quarry", "Quarry (Time+Age Demo)", "Dirt", "Cobble", 560,
+                new DemoLine("A dusty miner grins.&Have an Empty Bottle, kid.", "", "", 0x0F, 0),
+                new DemoLine("A lantern-lit dealer beckons.&Deku Sticks for 15 Rupees?", "Buy", "Leave", 0x61, 15),
+                new DemoLine("The foreman wipes his brow.&Recovery Heart, 5 Rupees?", "Buy", "No", 0x48, 5),
+                new DemoLine("An old woman smiles warmly.&Take these Deku Nuts, dear.", "", "", 0x02, 0)),
+
+            new OotDemoVariant("OoT_Demo_Grove", "Grove (Time+Age Demo)", "Grass", "Plank", 460,
+                new DemoLine("A forest child offers a drink.&Here - Bottle of Milk!", "", "", 0x14, 0),
+                new DemoLine("A shy fairy hovers.&A Piece of Heart, for you.", "", "", 0x3E, 0),
+                new DemoLine("A ranch hand counts coins.&Empty Bottle for 20 Rupees?", "Buy", "No", 0x0F, 20),
+                new DemoLine("A traveler by the fire nods.&Some Deku Sticks for the road.", "", "", 0x61, 0)),
+        };
+
+        foreach (var v in variants)
+        {
+            var doc = new MapDocument();
+            doc.InitGameDefaults(false);   // OoT
+            var scene = doc.Scene;
+            scene.Name = v.Name;
+            var st = scene.Settings;
+            st.AreaName       = v.Name;
+            // Enclosed room with STATIC per-setup lighting (like the working handmade maps). Outdoor lighting
+            // (IndoorLighting=false) drives the time-of-day env system, which needs a populated Environments
+            // list — with none, the game reads garbage and flickers red/black over everything. Indoor + no
+            // skybox is stable; each setup carries its own day/night light values (set below), so Day setups
+            // look bright and Night setups look dark without any of that flicker.
+            st.Sky            = SkyMode.None;
+            st.SkyboxId       = 0;
+            st.IndoorLighting = true;
+
+            // Shared geometry: a fully enclosed room (floor, four walls, ceiling) so there's no open sky to
+            // read as void once the skybox is off.
+            var room = scene.Rooms[0];
+            int H = v.Half;
+            AddBox(room, (-H, -30, -H), (H, 0, H), v.Floor);            // floor
+            AddBox(room, (-H, 0, -H - 20), (H, 220, -H), v.Wall);       // walls
+            AddBox(room, (-H, 0, H), (H, 220, H + 20), v.Wall);
+            AddBox(room, (-H - 20, 0, -H), (-H, 220, H), v.Wall);
+            AddBox(room, (H, 0, -H), (H + 20, 220, H), v.Wall);
+            AddBox(room, (-H, 220, -H), (H, 240, H), v.Wall);           // ceiling
+            st.SpawnPos = new Vector3(0, 8, H - 40); st.SpawnRoom = 0; st.SpawnYaw = unchecked((short)0x8000);
+
+            // Dialogue trees (scene-wide message bank), one per setup NPC — textId 0x1000 + slot. On SoH/2Ship the
+            // generic interpreter honours give/charge/branch; on carts give/charge only apply to native NPCs.
+            static MhMessage Msg(int slot, DemoLine d)
+            {
+                bool prompt = d.Cost > 0;   // a purchase is a Yes/No; a free gift is a plain one-line message
+                var m = new MhMessage { Id = 0x1000 + slot, Kind = prompt ? MhMsgKind.Prompt : MhMsgKind.Message,
+                    Text = d.Text, Choice1 = d.Yes, Choice2 = d.No, IsOverride = true };
+                m.Outcome1 = new MhOutcome { GiveItem = d.Give, ChargeRupees = d.Cost > 0, RupeeCost = d.Cost };
+                return m;
+            }
+            var lines = new[] { v.ChildDay, v.ChildNight, v.AdultDay, v.AdultNight };
+            for (int i = 0; i < 4; i++) scene.Messages.Add(Msg(i, lines[i]));
+
+            // Static day/night lighting per setup: Day bright & warm, Night dark & blue. Written into each setup's
+            // own scene header (SceneExporter emits per-setup env light settings), so switching setup switches look.
+            static void SetLight(SceneSettings s, bool night)
+            {
+                if (night)
+                {
+                    s.Ambient   = RgbColor.From(30, 34, 54);  s.Light1Col = RgbColor.From(70, 82, 120);
+                    s.Light2Col = RgbColor.From(22, 26, 46);  s.FogColor  = RgbColor.From(12, 16, 38);
+                    s.FogNear   = 900; s.FogFar = 9000;
+                }
+                else
+                {
+                    s.Ambient   = RgbColor.From(108, 104, 92); s.Light1Col = RgbColor.From(255, 250, 235);
+                    s.Light2Col = RgbColor.From(120, 122, 140); s.FogColor = RgbColor.From(198, 214, 235);
+                    s.FogNear   = 980; s.FogFar = 12800;
+                }
+            }
+
+            // Per-setup contents. En_MhTalk (id 0x01D7 on SoH) is now a VISIBLE, talkable dialogue point built
+            // into the forks — talking to it runs the authored tree (textId 0x1000+slot) and the interpreter
+            // applies its outcomes (give / charge / branch). Plus two decorative objects (pots on even setups,
+            // chests on odd), and — for any setup whose NPC charges rupees — 3 red rupees (60r) to grab first.
+            var kinds = new[] { (SetupLayer.ChildDay, "Child (Day)"), (SetupLayer.ChildNight, "Child (Night)"),
+                                (SetupLayer.AdultDay, "Adult (Day)"), (SetupLayer.AdultNight, "Adult (Night)") };
+            scene.Setups.Clear();
+            for (int i = 0; i < 4; i++)
+            {
+                bool night = (i % 2) == 1;   // ChildNight / AdultNight
+                var a = new List<ZActor>();
+                a.Add(new ZActor { Number = Editor.ActorDatabase.MhTalkIdOot, Variable = (ushort)i, XPos = 0, YPos = 20, ZPos = 0, YRot = unchecked((short)0x8000) }); // visible dialogue NPC, slot i
+                ushort decor = (i % 2 == 0) ? (ushort)0x0111 : (ushort)0x000A;   // pot / chest
+                a.Add(new ZActor { Number = decor, Variable = (ushort)(decor == 0x000A ? 0x1000 : 0), XPos = -180, YPos = decor == 0x000A ? 0 : 6, ZPos = -200 });
+                a.Add(new ZActor { Number = decor, Variable = (ushort)(decor == 0x000A ? 0x1000 : 0), XPos =  180, YPos = decor == 0x000A ? 0 : 6, ZPos = -200 });
+                if (lines[i].Cost > 0)
+                    for (int r = 0; r < 3; r++) a.Add(new ZActor { Number = 0x0015, Variable = 2, XPos = -120 + r * 120, YPos = 10, ZPos = H - 120 }); // red rupees
+                var ss = st.Clone(); SetLight(ss, night);
+                scene.Setups.Add(new ZSetup { Name = kinds[i].Item2, Layer = kinds[i].Item1, Settings = ss, Environments = [.. scene.Environments], RoomActors = [a] });
+            }
+            scene.ActiveSetup = 0;
+            scene.LoadSetup(0);
+
+            string proj = Path.Combine(outDir, v.File + ".mhproj");
+            ProjectSerializer.Save(doc, proj);
+            var (sd, rd) = SceneExporter.BuildBinaries(scene);
+            Console.WriteLine($"[ootsetupdemo] wrote {proj} — scene {sd.Length}B, {rd.Count} room, {scene.Setups.Count} setups, {scene.Messages.Count} dialogue trees ({v.Floor}/{v.Wall}, half={H}).");
+        }
+        Console.WriteLine($"[ootsetupdemo] {variants.Length} variants written to {outDir}. Playtest each: pick Child/Adult + Day/Night → matching setup; talk to the NPC for Yes/No + give + rupee purchase.");
+    }
+
+    /// <summary>A tiny OoT level with a single chest whose contents are the SoH-exclusive Fierce Deity's Mask
+    /// (via the actor "SoH item" dropdown → mh/chests → the fork's chest-give hook). Open the chest and the mask
+    /// becomes owned, reachable from the pause menu on the first bottle slot like Roc's Feather.</summary>
+    public static void BuildFdMaskChestDemo(string outDir)
+    {
+        Directory.CreateDirectory(outDir);
+        var doc = new MapDocument();
+        doc.InitGameDefaults(false);   // OoT
+        var scene = doc.Scene;
+        scene.Name = "OoT_Demo_FdMaskChest";
+        var st = scene.Settings;
+        st.AreaName = "FD Mask Chest";
+        // Stable enclosed-room lighting (see BuildOotSetupDemo): indoor + no skybox, static daytime light.
+        st.Sky = SkyMode.None; st.SkyboxId = 0; st.IndoorLighting = true;
+        st.Ambient   = RgbColor.From(108, 104, 92);  st.Light1Col = RgbColor.From(255, 250, 235);
+        st.Light2Col = RgbColor.From(120, 122, 140);  st.FogColor  = RgbColor.From(198, 214, 235);
+        st.FogNear = 980; st.FogFar = 12800;
+
+        const int H = 360;
+        var room = scene.Rooms[0];
+        AddBox(room, (-H, -30, -H), (H, 0, H), "Grass");             // floor
+        AddBox(room, (-H, 0, -H - 20), (H, 220, -H), "Stone");       // walls
+        AddBox(room, (-H, 0, H), (H, 220, H + 20), "Stone");
+        AddBox(room, (-H - 20, 0, -H), (-H, 220, H), "Stone");
+        AddBox(room, (H, 0, -H), (H + 20, 220, H), "Stone");
+        AddBox(room, (-H, 220, -H), (H, 240, H), "Stone");           // ceiling
+        st.SpawnPos = new Vector3(0, 8, H - 60); st.SpawnRoom = 0; st.SpawnYaw = unchecked((short)0x8000);
+
+        // The chest: En_Box (0x000A), treasure flag 1 (Variable bits 0-4). The "SoH item" = fd_mask is carried
+        // out-of-band in mh/chests; opening the chest (setting treasure flag 1) makes the fork grant the mask.
+        room.Actors.Add(new ZActor { Number = 0x000A, Variable = 0x0001, MhCustomItem = "fd_mask",
+                                     XPos = 0, YPos = 0, ZPos = -120 });
+        // A talkable sign-post NPC explaining the test (authored one-line message, textId 0x1000).
+        room.Actors.Add(new ZActor { Number = Editor.ActorDatabase.MhTalkIdOot, Variable = 0,
+                                     XPos = 140, YPos = 20, ZPos = -120, YRot = unchecked((short)0x8000) });
+        scene.Messages.Add(new MhMessage { Id = 0x1000, Kind = MhMsgKind.Message, IsOverride = true,
+            Text = "Open the chest for the&Fierce Deity's Mask.&Equip it from the pause menu." });
+        // No alt-setups: actors live directly in the room, exported as the single primary scene header.
+
+        string proj = Path.Combine(outDir, "OoT_Demo_FdMaskChest.mhproj");
+        ProjectSerializer.Save(doc, proj);
+        var (sd, rd) = SceneExporter.BuildBinaries(scene);
+        Console.WriteLine($"[fdmaskchestdemo] wrote {proj} — scene {sd.Length}B, {rd.Count} room. " +
+                          "Enable SoH-exclusive items + FD Mask in Options, playtest on SoH, open the chest.");
+    }
+
     private static void BuildShell(Room r, string floor, string wall, string ceil)
     {
         float cx = r.Cx, cz = r.Cz, fy = r.FloorY;

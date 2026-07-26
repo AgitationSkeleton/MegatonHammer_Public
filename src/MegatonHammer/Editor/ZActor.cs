@@ -95,6 +95,12 @@ public sealed class ZActor
     /// (X,Y,Z,Yaw). Empty = the actor isn't moved (the VM result is still observable in logs).</summary>
     public List<SchedulePose>? SchedulePoses { get; set; }
 
+    /// <summary>Optional SoH-exclusive item this item-giving actor (a chest / En_Item00) awards instead of its
+    /// normal contents — the <see cref="OptionalItem.Key"/> (e.g. "rocs_feather", "fd_mask"), or null for none.
+    /// The 7-bit chest Contents field can't hold a custom item, so this is emitted separately (mh/chests) and
+    /// the SoH fork grants it when the chest's treasure flag is set. SoH-only; ignored on N64/2Ship.</summary>
+    public string? MhCustomItem { get; set; }
+
     /// <summary>Door-type actors that MUST be spawned from the scene's transition-actor list (0x0E),
     /// not the room actor list (0x01): their draw code indexes play->transiActorCtx.list[params>>10]
     /// (z_en_door.c / z_door_shutter.c). As a plain room actor that index is out of range → the engine

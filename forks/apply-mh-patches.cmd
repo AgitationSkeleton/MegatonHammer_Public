@@ -15,16 +15,14 @@ for %%F in ("%FORKS%\..") do set "ROOT=%%~fF"
 
 call :apply "%ROOT%\SoH"   soh   soh-mh_playtest.patch
 call :apply "%ROOT%\2Ship" 2ship 2ship-mh_playtest.patch
-REM SoH build fix: this toolchain's linked STL lib is older than its cl.exe, so SoH's util.cpp emits
-REM char-search intrinsics (__std_find_not_ch_1 / __std_find_last_not_ch_pos_1) the older STL lib does
-REM not export -> LNK2001. A scalar shim in util.cpp resolves the link. (2Ship links a newer STL.)
-call :applysub "%ROOT%\SoH" soh-buildfix.patch
-REM SoH's nested libultraship submodule: a Fast3D gfx-interpreter fix so a failed texture-load in
-REM gfx_set_timg_otr_hash_handler_custom no longer over-advances the command pointer (which corrupted
-REM the DL stream and crashed with a strlen on a misread opcode). Lets editor-exported geometry render.
-call :applysub "%ROOT%\SoH\libultraship"   soh-libultraship.patch
-REM 2Ship also patches its nested libultraship submodule (a GUI-texture null-guard that fixes the
-REM instant boot crash). Applied separately since libultraship is its own submodule.
+REM SoH is now the Fierce Deity fork (soh_fd), which is self-contained and already carries the two fixes
+REM the old HarbourMasters base needed as separate sub-patches:
+REM   - soh-buildfix.patch (util.cpp STL-intrinsic shim) is folded INTO soh-mh_playtest.patch.
+REM   - soh-libultraship.patch (Fast3D gfx-interpreter over-advance fix) is already VENDORED in soh_fd's
+REM     libultraship, so there is no nested SoH\libultraship submodule to patch.
+REM (Both retained in patches\ for reference / the deprecated HarbourMasters base.)
+REM 2Ship still uses the HarbourMasters base + its nested libultraship submodule (a GUI-texture null-guard
+REM that fixes the instant boot crash). Applied separately since libultraship is its own submodule.
 call :applysub "%ROOT%\2Ship\libultraship" 2ship-libultraship.patch
 echo Done.
 endlocal

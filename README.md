@@ -32,9 +32,11 @@ powershell -ExecutionPolicy Bypass -File .\build-megaton.ps1 -EditorOnly # just 
 (editor); Visual Studio 2022 with the *Desktop development with C++* workload + CMake
 (the playtest forks).
 
-The script builds the editor from `src/`, then — for the forks — clones **SoH / 2Ship
-from HarbourMasters upstream** (and Project64 from its upstream) at pinned commits and
-applies Megaton Hammer's patches from `forks/`. It never depends on any private fork.
+The script builds the editor from `src/`, then — for the forks — clones the engines at
+pinned commits and applies Megaton Hammer's patches from `forks/`. **SoH** is the
+self-contained **Fierce Deity Shipwright fork** (which carries the optional FD form/mask);
+**2Ship** is from **HarbourMasters** upstream; Project64 from its upstream. All are public;
+it never depends on any private fork.
 
 ## ROMs
 
@@ -60,8 +62,11 @@ build-megaton.ps1    one-run build (fetches engines from upstream)
 Megaton Hammer's own code is **MIT** (`LICENSE`). The playtest engines it builds
 against keep their own licenses and are fetched from upstream, not redistributed here;
 the Project64 changes in `forks/pj64/` are **GPLv2**. Full attribution to HarbourMasters
-(SoH / 2Ship / libultraship), the Project64 team, and the zeldaret decompilation
-community is in **`THIRD-PARTY-NOTICES.md`**. This is a fan-made tool, not affiliated
+(SoH / 2Ship / libultraship), the Project64 team, the zeldaret decompilation community,
+and — for the optional Fierce Deity transformation — **[Aegiker](https://github.com/Aegiker)**
+(the OoT Fierce Deity romhack / [fierce-deity-opensrc](https://github.com/Aegiker/fierce-deity-opensrc))
+and **[Neirn](https://github.com/Neirn/MM_Jumps)** (MM jump animations) is in
+**`THIRD-PARTY-NOTICES.md`**. This is a fan-made tool, not affiliated
 with or endorsed by Nintendo.
 
 The editor's source was written with substantial **AI coding assistance**. That

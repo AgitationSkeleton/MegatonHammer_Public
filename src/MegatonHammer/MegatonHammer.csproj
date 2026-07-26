@@ -20,6 +20,8 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Baked, portable actor-param schemas (regenerate via the dumpschemas command); shipped so no-decomp builds get named fields. -->
-    <Content Include="Data\*.txt" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Baked actor-schema data: embedded so a single-file exe download is fully self-contained (BakedSchemas
+         reads the embedded copy first, then a Data\ file on disk as a dev-tree override). -->
+    <EmbeddedResource Include="Data\*.txt" />
   </ItemGroup>
 </Project>

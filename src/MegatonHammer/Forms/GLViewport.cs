@@ -289,7 +289,10 @@ public sealed class GLViewport : Panel
                     _solidRenderer!.DrawDecals2D(Document.Scene, _cam2D, Width, Height);
                     if (Editor.ViewOptions.ShowLogicConnections) DrawLogicConnections2D();
                     if (Editor.ViewOptions.ShowEntities2D)
+                    {
+                        DrawMirrorBeams2D();
                         _actorRenderer!.Render2D(Document.ActorsToRender, _cam2D, Width, Height, Resolver, adult: true);
+                    }
 
                     // Scene paths (0x0D waypoint tracks), with the active waypoint highlighted.
                     if (Document.Scene.Paths.Count > 0)
@@ -433,6 +436,7 @@ public sealed class GLViewport : Panel
         // Obsolete/unknown actors → Eyeball Frog "OBSOLETE" billboard.
         _billboards!.RenderObsolete(Document.VisibleActors.Where(a => a.IsObsolete), cam, w, h, ignoreDepth: billboardsThroughWalls);
         _actorRenderer!.Render3D(Document.VisibleActors, cam, w, h, resolver, adult: true);
+        if (Editor.ViewOptions.ShowEntities3D) DrawMirrorBeams3D(cam, w, h);
         if (Editor.ViewOptions.ShowLogicConnections) DrawLogicConnections3D(cam, w, h);
 
         // Scene paths (0x0D waypoint tracks): the connecting polylines, then a billboard waypoint marker at
@@ -553,6 +557,54 @@ public sealed class GLViewport : Panel
         foreach (var l in links)
             segs.Add((l.From.Position, l.To.Position, Rendering.SolidRenderer.ConnectionColor(l.Kind)));
         _solidRenderer!.DrawConnections3D(segs, cam, w, h);
+    }
+
+    // The Mirror-Shield beam volume for each placed Mir_Ray: a source→pool axis line plus a width cross at each
+    // end (sized to the beam's radii). Mir_Ray's beam is at a FIXED world position (Editor.MirrorBeams), so this
+    // shows the author exactly where to build a standable floor and aim a Sun Switch. Shared by the 2D/3D passes.
+    private List<(OpenTK.Mathematics.Vector3 a, OpenTK.Mathematics.Vector3 b, OpenTK.Mathematics.Vector4 col)> MirrorBeamSegments()
+    {
+        var list = new List<(OpenTK.Mathematics.Vector3, OpenTK.Mathematics.Vector3, OpenTK.Mathematics.Vector4)>();
+        if (Document == null) return list;
+        var col = new OpenTK.Mathematics.Vector4(1f, 0.92f, 0.35f, 0.9f);   // sunbeam yellow
+        void Cross(OpenTK.Mathematics.Vector3 c, float r)
+        {
+            list.Add((c + new OpenTK.Mathematics.Vector3(-r, 0, 0), c + new OpenTK.Mathematics.Vector3(r, 0, 0), col));
+            list.Add((c + new OpenTK.Mathematics.Vector3(0, 0, -r), c + new OpenTK.Mathematics.Vector3(0, 0, r), col));
+        }
+        bool isOoT = Editor.ViewOptions.IsOoT;
+        foreach (var actor in Document.AllActors)
+        {
+            if (!Editor.MirrorBeams.Is(actor.Number, isOoT)) continue;
+            if (Editor.MirrorBeams.TryGet(actor.Variable & 0xF) is not { } beam) continue;
+            list.Add((beam.Source, beam.Pool, col));
+            Cross(beam.Source, beam.SourceRad);
+            Cross(beam.Pool, beam.PoolRad);
+        }
+        return list;
+    }
+
+    private void DrawMirrorBeams2D()
+    {
+        if (_cam2D == null || Document == null) return;
+        var beams = MirrorBeamSegments();
+        if (beams.Count == 0) return;
+        (float h, float v) P(OpenTK.Mathematics.Vector3 w) => _cam2D.Axis switch
+        {
+            ViewAxis.Top   => (w.X, -w.Z),
+            ViewAxis.Front => (w.X,  w.Y),
+            ViewAxis.Side  => (w.Z,  w.Y),
+            _              => (w.X,  w.Y),
+        };
+        var segs = new List<(float, float, float, float, OpenTK.Mathematics.Vector4)>(beams.Count);
+        foreach (var (a, b, c) in beams) { var (h1, v1) = P(a); var (h2, v2) = P(b); segs.Add((h1, v1, h2, v2, c)); }
+        _solidRenderer!.DrawConnections2D(segs, _cam2D, Width, Height);
+    }
+
+    private void DrawMirrorBeams3D(Camera3D cam, int w, int h)
+    {
+        var beams = MirrorBeamSegments();
+        if (beams.Count > 0) _solidRenderer!.DrawConnections3D(beams, cam, w, h);
     }
 
     private void DrawToolOverlay2D()

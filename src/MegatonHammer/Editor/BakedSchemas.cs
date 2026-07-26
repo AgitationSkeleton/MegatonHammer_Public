@@ -61,11 +61,11 @@ public static class BakedSchemas
     private static System.Collections.Generic.Dictionary<ushort, ActorParamSchema.Def> Load(bool isOoT)
     {
         var result = new System.Collections.Generic.Dictionary<ushort, ActorParamSchema.Def>();
-        string path = Path.Combine(AppPaths.BaseDir, "Data", FileName(isOoT));
-        if (!File.Exists(path)) return result;
+        var lines = ReadBakedLines(isOoT);
+        if (lines == null) return result;
         try
         {
-            foreach (var line in File.ReadLines(path))
+            foreach (var line in lines)
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 var cols = line.Split('\t');
@@ -90,5 +90,25 @@ public static class BakedSchemas
         }
         catch { /* corrupt/partial baked file → just skip; curated still covers the important actors */ }
         return result;
+    }
+
+    // Baked-schema lines from the copy EMBEDDED in the exe (so a single-file download is self-contained), or,
+    // failing that, a Data\ file on disk beside the exe (dev tree / an override). Null when neither exists.
+    private static string[]? ReadBakedLines(bool isOoT)
+    {
+        try
+        {
+            var asm = typeof(BakedSchemas).Assembly;
+            var name = System.Array.Find(asm.GetManifestResourceNames(),
+                n => n.EndsWith(FileName(isOoT), System.StringComparison.OrdinalIgnoreCase));
+            if (name != null)
+            {
+                using var s = asm.GetManifestResourceStream(name);
+                if (s != null) { using var r = new StreamReader(s); return r.ReadToEnd().Replace("\r\n", "\n").Split('\n'); }
+            }
+        }
+        catch { /* fall through to disk */ }
+        string path = Path.Combine(AppPaths.BaseDir, "Data", FileName(isOoT));
+        return File.Exists(path) ? File.ReadAllLines(path) : null;
     }
 }

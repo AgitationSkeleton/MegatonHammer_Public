@@ -21,7 +21,7 @@ index 8b03130c6..184145e71 100644
  };
  
 diff --git a/mm/2s2h/DeveloperTools/DebugConsole.cpp b/mm/2s2h/DeveloperTools/DebugConsole.cpp
-index 56dd33bdd..1f08b1bdc 100644
+index 56dd33bdd..7fad0accd 100644
 --- a/mm/2s2h/DeveloperTools/DebugConsole.cpp
 +++ b/mm/2s2h/DeveloperTools/DebugConsole.cpp
 @@ -15,8 +15,24 @@ extern "C" {
@@ -102,7 +102,7 @@ index 56dd33bdd..1f08b1bdc 100644
  static bool EntranceHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
                              std::string* output) {
      if (args.size() < 2) {
-@@ -259,7 +321,632 @@ static bool QuitHandler(std::shared_ptr<Ship::Console> Console, const std::vecto
+@@ -259,7 +321,637 @@ static bool QuitHandler(std::shared_ptr<Ship::Console> Console, const std::vecto
      return 0;
  }
  
@@ -223,10 +223,13 @@ index 56dd33bdd..1f08b1bdc 100644
 +        { "ocarina", ITEM_OCARINA_OF_TIME, 0 }, { "bow", ITEM_BOW, 30 }, { "bomb", ITEM_BOMB, 20 }, { "bombchu", ITEM_BOMBCHU, 20 },
 +        { "bean", ITEM_MAGIC_BEANS, 0 }, { "powder_keg", ITEM_POWDER_KEG, 0 }, { "pictograph", ITEM_PICTOGRAPH_BOX, 0 },
 +        { "lens", ITEM_LENS_OF_TRUTH, 0 }, { "hookshot", ITEM_HOOKSHOT, 0 }, { "great_fairy_sword", ITEM_SWORD_GREAT_FAIRY, 0 },
-+        { "bottle", ITEM_BOTTLE, 0 },
 +    };
 +    for (auto& it : kItems)
 +        if (hasToggle(it.key)) { INV_CONTENT(it.item) = (u8)it.item; if (it.ammo) AMMO(it.item) = it.ammo; }
++    // Bottles: MM has six independent bottle slots (SLOT_BOTTLE_1..6), each its own toggle.
++    static const u8 kBottleSlots[] = { SLOT_BOTTLE_1, SLOT_BOTTLE_2, SLOT_BOTTLE_3, SLOT_BOTTLE_4, SLOT_BOTTLE_5, SLOT_BOTTLE_6 };
++    for (int b = 0; b < 6; b++)
++        if (hasToggle(("bottle" + std::to_string(b + 1)).c_str())) gSaveContext.save.saveInfo.inventory.items[kBottleSlots[b]] = ITEM_BOTTLE;
 +
 +    // #13: varying-amount items — count sets ammo[] and auto-grants the requisite capacity upgrade
 +    // (highest of explicit tier vs derived wins). MM has no deku-stick upgrade, so sticks cap at 10.
@@ -477,7 +480,9 @@ index 56dd33bdd..1f08b1bdc 100644
 +    // at the identical time. Default noon if absent.
 +    gSaveContext.save.time = (j.contains("timeOfDay") && j["timeOfDay"].is_number_integer())
 +                                 ? (u16)j["timeOfDay"].get<int>() : 0x8000;
-+    gSaveContext.save.day = 1;
++    // Playtest day (editor SceneSettings.PlaytestDay): gSaveContext.save.day; CURRENT_DAY = day % 5. Same value
++    // the vanilla-MM PJ64 hook pokes, so both engines boot into the same day; isNight is derived from time.
++    gSaveContext.save.day = (j.contains("day") && j["day"].is_number_integer()) ? j["day"].get<int>() : 1;
 +    gSaveContext.save.cutsceneIndex = 0;
 +    gSaveContext.save.playerForm = PLAYER_FORM_HUMAN;
 +    gSaveContext.save.linkAge = 0;
@@ -735,7 +740,7 @@ index 56dd33bdd..1f08b1bdc 100644
      // Console
      CMD_REGISTER("file_select", { FileSelectHandler, "Returns to the file select." });
      CMD_REGISTER("reset", { ResetHandler, "Resets the game." });
-@@ -271,6 +958,12 @@ void DebugConsole_Init(void) {
+@@ -271,6 +963,12 @@ void DebugConsole_Init(void) {
      CMD_REGISTER("entrance", { EntranceHandler,
                                 "Sends player to the entered entrance (hex)",
                                 { { "entrance", Ship::ArgumentType::NUMBER } } });

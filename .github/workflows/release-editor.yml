@@ -1,0 +1,48 @@
+name: Release editor
+
+# Builds the Megaton Hammer editor as a single self-contained Windows exe and, on a version tag,
+# attaches it to the GitHub Release. An end-user only needs this one exe — on first run it downloads
+# the playtest engines (see build-engines.yml) and prompts for ROMs. A manual run just uploads a
+# build artifact for testing.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to create/update the Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish single-file exe
+        shell: pwsh
+        run: >
+          dotnet publish src/MegatonHammer/MegatonHammer.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -o publish
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MegatonHammer-win-x64
+          path: publish/MegatonHammer.exe
+          if-no-files-found: error
+
+      - name: Attach to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/MegatonHammer.exe
+          fail_on_unmatched_files: true

@@ -71,11 +71,23 @@ public sealed class EntityTool : ITool
     private void SeedPlacementDefault(ZActor a)
     {
         bool oot = !_doc.IsMM;
+        // Position-anchored actors (Mir_Ray beam, single-fixed bosses, …) ignore their placed position and force
+        // themselves to a hardcoded/table position in-game — snap the marker there so it lands where the actor
+        // actually appears. (Mir_Ray's params defaults to beam 0.) Game-qualified: ids differ per game.
+        if (Editor.AnchoredActors.PositionFor(oot, a.Number, a.Variable) is { } anchor)
+        { a.Position = anchor; return; }
         ushort chestId = oot ? (ushort)0x000A : (ushort)0x0006;
         // Chest: give a UNIQUE treasure flag (else every chest shares one — opening one marks them all opened).
         if (a.Number == chestId)
             a.Variable = (ushort)((a.Variable & ~0x1F) | (NextFreeChestFlag(chestId) & 0x1F));
-        if (!oot) return;   // the rest are OoT-specific
+        if (!oot)
+        {
+            // MM Mir_Ray2 light shaft — enable = switch flag (params>>9 & 0x7F). At params 0 the flag is 0,
+            // so the beam sits dormant until switch flag 0 happens to be set. Default to 0x7F (0xFE00) =
+            // "always on" so a freshly-placed shaft lights immediately; the user can dial in a real flag.
+            if (a.Number == 0x01D0 && a.Variable == 0) a.Variable = 0xFE00;
+            return;   // the rest are OoT-specific
+        }
         switch (a.Number)
         {
             case 0x008A:   // En_Vm Beamos — sightRange = (params>>8)*40; 0 = permanently blind (z_en_vm.c:148)

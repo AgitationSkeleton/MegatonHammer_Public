@@ -18,7 +18,8 @@ public static class EditorSettings
         // Cross-game asset sources for BOTH games, kept independently so each is remembered
         // regardless of which game the current project targets. The editor borrows from whichever
         // is the OPPOSITE of the project's game.
-        public string? OotRomPath { get; set; }   // Ocarina of Time .z64/.n64
+        public string? OotRomPath { get; set; }   // Ocarina of Time .z64/.n64 (retail USA — SoH + editor)
+        public string? OotDebugRomPath { get; set; }  // OoT MQ gc-eu-mq-dbg debug ROM (vanilla-N64/PJ64 path; optional)
         public string? OotO2RPath { get; set; }   // …or its extracted .o2r
         public string? MmRomPath  { get; set; }   // Majora's Mask .z64/.n64
         public string? MmO2RPath  { get; set; }   // …or its extracted .o2r
@@ -35,6 +36,11 @@ public static class EditorSettings
         public string? Project64Path { get; set; }     // Project64 emulator for vanilla N64 playtests
         public bool EngineSetupPrompted { get; set; }     // we offered to set up the SoH/2Ship fork once
         public bool Project64SetupPrompted { get; set; }  // …and Project64 once
+        // First-run bootstrap wizard: set once the user completes OR skips the engine-download + ROM-setup
+        // wizard, so it isn't shown on every launch. Re-openable from Options ▸ "Set up playtest engines…".
+        public bool FirstRunBootstrapDone { get; set; }
+        // Actor ids whose "this entity is anchored / immovable" warning the user ticked "don't show again".
+        public List<int> SuppressedAnchorWarnings { get; set; } = new();
         // #12b: on launch, scan known locations for the base ROMs + engine/emulator forks and fill any
         // unset paths (ROMs validated by MD5). On by default; configurable in Options.
         public bool AutoDetectAssetsOnStartup { get; set; } = true;
@@ -42,6 +48,13 @@ public static class EditorSettings
         public bool PlaytestN64AutoBoot { get; set; } = true;
         // Playtest age (OoT only): remembered across sessions so it isn't re-set every launch. false = child.
         public bool PlaytestAdult { get; set; }
+        // SoH-exclusive optional items (Roc's Feather, later the FD Mask): a master toggle plus a per-item
+        // toggle (only meaningful while the master is on). Off by default — these are non-vanilla, SoH-only
+        // items that only appear in the playtest inventory / chest picker when enabled AND the engine is SoH.
+        // See Editor/OptionalItems.cs and docs/optional-exclusive-items.md.
+        public bool EnableSohExclusiveItems { get; set; } = false;
+        public bool EnableRocsFeather { get; set; } = true;   // gated by EnableSohExclusiveItems
+        public bool EnableFierceDeityMask { get; set; } = true;   // gated by EnableSohExclusiveItems (soh_fd fork)
         // Playtest scene mode (append-as-new vs replace-existing), remembered across sessions for ALL engines
         // and both games. null = never chosen (use the per-context default: replace on N64, append elsewhere).
         public bool? PlaytestAppend { get; set; }
@@ -166,6 +179,8 @@ public static class EditorSettings
 
     // ── Cross-game sources (per game, both remembered) ──────────────────────
     public static string? OotRomPath { get => _d.OotRomPath; set { _d.OotRomPath = value; Save(); } }
+    /// <summary>The OoT MQ gc-eu-mq-dbg debug ROM used by the vanilla-N64 (PJ64) playtest path. Optional.</summary>
+    public static string? OotDebugRomPath { get => _d.OotDebugRomPath; set { _d.OotDebugRomPath = value; Save(); } }
     public static string? OotO2RPath { get => _d.OotO2RPath; set { _d.OotO2RPath = value; Save(); } }
     public static string? MmRomPath  { get => _d.MmRomPath;  set { _d.MmRomPath  = value; Save(); } }
     public static string? MmO2RPath  { get => _d.MmO2RPath;  set { _d.MmO2RPath  = value; Save(); } }
@@ -178,6 +193,9 @@ public static class EditorSettings
     public static bool EnableCrossGameMusic { get => _d.EnableCrossGameMusic; set { _d.EnableCrossGameMusic = value; Save(); } }
     public static bool ColorCodeRecentByGame { get => _d.ColorCodeRecentByGame; set { _d.ColorCodeRecentByGame = value; Save(); } }
     public static bool EnableCrossGameTextures { get => _d.EnableCrossGameTextures; set { _d.EnableCrossGameTextures = value; Save(); } }
+    public static bool EnableSohExclusiveItems { get => _d.EnableSohExclusiveItems; set { _d.EnableSohExclusiveItems = value; Save(); } }
+    public static bool EnableRocsFeather { get => _d.EnableRocsFeather; set { _d.EnableRocsFeather = value; Save(); } }
+    public static bool EnableFierceDeityMask { get => _d.EnableFierceDeityMask; set { _d.EnableFierceDeityMask = value; Save(); } }
 
     /// <summary>Periodically write a recovery backup of the project (on by default).</summary>
     public static bool AutoSaveEnabled { get => _d.AutoSaveEnabled; set { _d.AutoSaveEnabled = value; Save(); } }
@@ -211,6 +229,12 @@ public static class EditorSettings
     public static bool PlaytestN64DebugControls { get => _d.PlaytestN64DebugControls; set { _d.PlaytestN64DebugControls = value; Save(); } }
     /// <summary>#12b: auto-detect base ROMs + forks at startup (configurable, on by default).</summary>
     public static bool AutoDetectAssetsOnStartup { get => _d.AutoDetectAssetsOnStartup; set { _d.AutoDetectAssetsOnStartup = value; Save(); } }
+    /// <summary>True once the first-run bootstrap wizard has been completed or explicitly skipped.</summary>
+    public static bool FirstRunBootstrapDone { get => _d.FirstRunBootstrapDone; set { _d.FirstRunBootstrapDone = value; Save(); } }
+    /// <summary>Whether the user ticked "don't show again" on the anchored/immovable warning for this actor id.</summary>
+    public static bool IsAnchorWarningSuppressed(int id) => _d.SuppressedAnchorWarnings.Contains(id);
+    /// <summary>Persist "don't show again" for an actor id's anchored/immovable warning.</summary>
+    public static void SuppressAnchorWarning(int id) { if (!_d.SuppressedAnchorWarnings.Contains(id)) { _d.SuppressedAnchorWarnings.Add(id); Save(); } }
 
     /// <summary>The engine fork exe for the given game (MM → 2Ship, OoT → SoH).</summary>
     public static string? EngineExe(bool mm) => mm ? _d.TwoShipExePath : _d.SohExePath;

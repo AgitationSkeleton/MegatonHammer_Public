@@ -292,6 +292,46 @@ public sealed class MapDocument
         Changed?.Invoke();
     }
 
+    /// <summary>OoT preset: create/ensure the four standard age×time setups in canonical order
+    /// (Child Day, Child Night, Adult Day, Adult Night) — which the game selects via gSaveContext.sceneLayer
+    /// 0–3 (z_play.c). The current scene becomes the Child-Day base (setup 0 = main header); the other three
+    /// start as copies you then edit. Export order == sceneLayer index, so keep them in this order.</summary>
+    public void ApplyOotSetupPreset()
+    {
+        var scene = Scene;
+        RecordUndo();
+        // Snapshot the live scene into setup 0 as the Child(Day) base.
+        if (scene.Setups.Count == 0) scene.Setups.Add(new ZSetup());
+        scene.ActiveSetup = 0;
+        scene.CommitActiveSetup();
+        scene.Setups[0].Name = "Child (Day)";
+        scene.Setups[0].Layer = SetupLayer.ChildDay;
+
+        (string Name, SetupLayer Layer)[] rest =
+        [
+            ("Child (Night)", SetupLayer.ChildNight),
+            ("Adult (Day)",   SetupLayer.AdultDay),
+            ("Adult (Night)", SetupLayer.AdultNight),
+        ];
+        var baseSu = scene.Setups[0];
+        for (int i = 0; i < rest.Length; i++)
+        {
+            int idx = i + 1;
+            if (scene.Setups.Count <= idx)
+                scene.Setups.Add(new ZSetup
+                {
+                    Name = rest[i].Name, Layer = rest[i].Layer,
+                    Settings = baseSu.Settings.Clone(),
+                    Environments = [.. baseSu.Environments],
+                    RoomActors = baseSu.RoomActors.Select(l => l.Select(a => a.Clone()).ToList()).ToList(),
+                });
+            else { scene.Setups[idx].Name = rest[i].Name; scene.Setups[idx].Layer = rest[i].Layer; }
+        }
+        scene.LoadSetup(0);
+        ClearSelection();
+        Changed?.Invoke();
+    }
+
     // ── Undo / redo (document snapshots) ───────────────────────────────────
     private const int MaxHistory = 64;
     private readonly List<string> _undo = [];

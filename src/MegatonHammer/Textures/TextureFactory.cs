@@ -28,6 +28,15 @@ public static class TextureFactory
         new("Lava",      "Special", () => Noise(Color.FromArgb(200, 70, 20), 60)),
         new("Ice",       "Special", () => Gradient(Color.FromArgb(170,205,230), Color.FromArgb(210,235,250))),
 
+        // Dev / blockout textures — Valve-style measured grid (checkerboard + fine & bold grid lines), for
+        // greyboxing layouts before real textures. Grid squares read scale at a glance like Hammer's dev/ set.
+        new("Dev Orange", "Dev", () => DevGrid(Color.FromArgb(206,126,52), Color.FromArgb(188,110,42), Color.FromArgb(40,26,14))),
+        new("Dev Gray",   "Dev", () => DevGrid(Color.FromArgb(132,132,138), Color.FromArgb(112,112,118), Color.FromArgb(44,44,50))),
+        new("Dev White",  "Dev", () => DevGrid(Color.FromArgb(226,226,230), Color.FromArgb(204,204,210), Color.FromArgb(90,90,96))),
+        new("Dev Blue",   "Dev", () => DevGrid(Color.FromArgb( 58,112,190), Color.FromArgb( 46, 96,170), Color.FromArgb(16,28,58))),
+        new("Dev Green",  "Dev", () => DevGrid(Color.FromArgb( 72,150, 82), Color.FromArgb( 58,132, 68), Color.FromArgb(18,46,24))),
+        new("Dev Red",    "Dev", () => DevGrid(Color.FromArgb(192, 72, 62), Color.FromArgb(172, 56, 48), Color.FromArgb(54,18,14))),
+
         // Tool textures (see SpecialTextures): visible in the editor, but NoRender variants
         // are skipped on export and the clip variants drive collision flags instead of mesh.
         new(SpecialTextures.NoDraw,          "Tool", () => Label(Color.FromArgb(220,200,40),  Color.Black, "NODRAW")),
@@ -115,6 +124,30 @@ public static class TextureFactory
             bool g = (x % size) < 2 || (y % size) < 2;
             bmp.SetPixel(x, y, g ? grout : Shift(cell, rng.Next(-18, 19)));
         }
+        return bmp;
+    }
+
+    // Valve-style "dev" / measure texture: a checkerboard of two shades of the base colour, overlaid with a
+    // fine 8px subdivision grid and a bold 16px major grid. Tileable (grid lines land on the tile edges).
+    private static Bitmap DevGrid(Color cellA, Color cellB, Color line)
+    {
+        const int major = 16, minor = 8;
+        var bmp = new Bitmap(N, N, PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(bmp);
+        using var brA = new SolidBrush(cellA);
+        using var brB = new SolidBrush(cellB);
+        // checkerboard of major cells
+        for (int cy = 0; cy < N / major; cy++)
+        for (int cx = 0; cx < N / major; cx++)
+            g.FillRectangle(((cx + cy) & 1) == 0 ? brA : brB, cx * major, cy * major, major, major);
+        // fine subdivision lines (translucent so they read as guides)
+        using (var finePen = new Pen(Color.FromArgb(70, line)))
+            for (int i = minor; i < N; i += minor)
+            { g.DrawLine(finePen, i, 0, i, N); g.DrawLine(finePen, 0, i, N, i); }
+        // bold major grid lines
+        using (var majorPen = new Pen(line))
+            for (int i = 0; i < N; i += major)
+            { g.DrawLine(majorPen, i, 0, i, N - 1); g.DrawLine(majorPen, 0, i, N - 1, i); }
         return bmp;
     }
 

@@ -19,6 +19,22 @@ Megaton Hammer's own code (the `src/` editor + scripts + docs) is MIT — see `L
 
 The pinned upstream commits are listed in `forks/README.md`.
 
+## Fierce Deity transformation (optional SoH-fork feature)
+
+The optional, off-by-default **Fierce Deity's Mask / transformation** in the Megaton Hammer SoH fork is
+re-ported from other people's work — enormous thanks to:
+
+| Work | Author / upstream | How we use it |
+|---|---|---|
+| **Fierce Deity / "Transformation Masks" OoT romhack** + [open-source Fierce Deity repo](https://github.com/Aegiker/fierce-deity-opensrc) | **[Aegiker](https://github.com/Aegiker)** | the FD form, its behaviours, and much of the transform flow originate from Aegiker's hack; the mask's bundled transformation sounds are sourced from it (a few clips Aegiker sourced/edited from *Majora's Mask* audio) |
+| [2 Ship 2 Harkinian](https://github.com/HarbourMasters/2ship2harkinian) | HarbourMasters | direct reference for the MM-accurate FD mechanics (per-form item-usability, transform-mask sound behaviour) |
+| [MM_Jumps](https://github.com/Neirn/MM_Jumps) | **Neirn** | the *Majora's Mask* front-flip / somersault jump animations bundled for the FD "MM jump flips" |
+| [Majora's Mask decompilation](https://github.com/zeldaret/mm) | zeldaret | authoritative reference for the MM behaviours ported here (no decompiled source is included) |
+
+*Nintendo* owns *Ocarina of Time* and *Majora's Mask*; no game assets are included — `fd.o2r` is generated
+locally from a *Majora's Mask* ROM you supply. If your work is used here and you are not credited, please open
+an issue — it's an oversight, not intent.
+
 ## Research references (not vendored, not required to build)
 
 The editor's actor/scene/param handling was written by cross-referencing the

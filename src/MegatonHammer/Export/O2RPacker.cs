@@ -183,6 +183,7 @@ public static class O2RPacker
                 $"\"weekEvents\":[{weekEvents}]," +
                 $"\"persistentWeekEvents\":[{persistentWeekEvents}]," +
                 $"\"timeOfDay\":{scene.Settings.PlaytestTimeOfDay}," +
+                $"\"day\":{scene.Settings.PlaytestDay}," +
                 $"\"sceneId\":{cfg.TargetSceneId}," +
                 $"\"masterQuest\":{(masterQuest ? "true" : "false")}," +
                 $"\"version\":\"{version}\"," +
@@ -220,7 +221,31 @@ public static class O2RPacker
             // hook when an actor opens that textId. Applies to both games.
             if (scene.Messages.Any(m => m.IsOverride))   // only CUSTOM overrides; Default (vanilla) messages are left alone
                 AddEntry(zip, "mh/messages", Encoding.UTF8.GetBytes(BuildMessagesJson(scene)));
+
+            // Optional SoH-exclusive items placed in chests (En_Box) / freestanding items: the fork grants the
+            // mapped custom item when the chest's treasure flag is set (OnSceneFlagSet). Keyed by treasure flag.
+            string chests = BuildChestsJson(scene);
+            if (chests != "[]") AddEntry(zip, "mh/chests", Encoding.UTF8.GetBytes(chests));
         }
+    }
+
+    /// <summary>Chests/actors carrying an optional SoH-exclusive item (ZActor.MhCustomItem). Emits
+    /// [{"flag":treasureFlag,"key":"rocs_feather"}] so the fork grants it when that treasure flag is set.
+    /// En_Box treasure flag = params bits [0,5].</summary>
+    private static string BuildChestsJson(ZScene scene)
+    {
+        var sb = new StringBuilder("[");
+        bool first = true;
+        foreach (var room in scene.Rooms)
+            foreach (var a in room.Actors)
+            {
+                if (string.IsNullOrEmpty(a.MhCustomItem)) continue;
+                int flag = a.Number == 0x000A ? (a.Variable & 0x1F) : -1;   // En_Box treasure flag; -1 = non-chest (given at boot)
+                if (!first) sb.Append(',');
+                first = false;
+                sb.Append($"{{\"flag\":{flag},\"key\":\"{JsonEscape(a.MhCustomItem!)}\"}}");
+            }
+        return sb.Append(']').ToString();
     }
 
     // ── Vanilla-SoH level export (a plain .o2r level mod, no playtest boot metadata) ────────────────────
@@ -289,14 +314,29 @@ public static class O2RPacker
     {
         var sb = new StringBuilder("[");
         bool first = true;
+        // One JSON object per authored (override) message. Beyond the text the fork already renders, we now
+        // carry the dialogue TREE: whether it's a two-choice prompt, the choice labels, and each option's
+        // outcome (give item / charge rupees / set flag / branch to another box). The SoH/2Ship playtest
+        // interpreter (debugconsole.cpp) assembles the prompt and applies the outcome; older forks that only
+        // read id/type/pos/text simply ignore the extra keys. See docs/dialogue-npc-rebuild-plan.md.
+        static string Outcome(MhOutcome o) =>
+            $"{{\"give\":{o.GiveItem},\"cost\":{(o.ChargeRupees ? o.RupeeCost : 0)},\"flag\":{o.FireFlag},\"next\":{o.NextMsgId}}}";
         foreach (var m in scene.Messages.Where(m => m.IsOverride))
         {
             if (!first) sb.Append(',');
             first = false;
+            bool prompt = m.Kind == MhMsgKind.Prompt;
             sb.Append('{')
               .Append($"\"id\":{m.Id},\"type\":{m.BoxType},\"pos\":{m.YPos},\"icon\":{m.Icon},")
-              .Append($"\"text\":\"{JsonEscape(m.Text)}\"")
-              .Append('}');
+              .Append($"\"text\":\"{JsonEscape(m.Text)}\",")
+              .Append($"\"prompt\":{(prompt ? "true" : "false")},");
+            if (prompt)
+                sb.Append($"\"choice1\":\"{JsonEscape(m.Choice1)}\",\"choice2\":\"{JsonEscape(m.Choice2)}\",");
+            sb.Append($"\"o1\":{Outcome(m.Outcome1)}");
+            if (prompt) sb.Append($",\"o2\":{Outcome(m.Outcome2)}");
+            if (m.DoneFlag >= 0)  sb.Append($",\"doneFlag\":{m.DoneFlag}");
+            if (m.AfterMsgId >= 0) sb.Append($",\"afterId\":{m.AfterMsgId}");
+            sb.Append('}');
         }
         return sb.Append(']').ToString();
     }

@@ -35,7 +35,21 @@ public sealed record AmmoSpec(string Key, int Slot, byte Item, int[] Caps, int U
 public static class InventoryCatalog
 {
     public static InvTier[] Tiers(bool oot) => oot ? OotTiers : MmTiers;
-    public static InvGroup[] Groups(bool oot) => oot ? OotGroups : MmGroups;
+    public static InvGroup[] Groups(bool oot)
+    {
+        var groups = oot ? OotGroups : MmGroups;
+        // Append enabled SoH-exclusive optional items (Roc's Feather, later the FD Mask) as their own group.
+        // OoT only for now; gated by editor settings. Only honoured when the launch engine is SoH (the N64
+        // packer skips these keys), so the label flags that.
+        if (oot)
+        {
+            var opt = OptionalItems.Enabled(OptionalItemEngine.Soh).ToArray();
+            if (opt.Length > 0)
+                return [.. groups, new InvGroup("SoH-Exclusive Items", 2,
+                    opt.Select(i => (i.Key, i.DisplayName)).ToArray())];
+        }
+        return groups;
+    }
     public static AmmoSpec[] Ammo(bool oot) => oot ? OotAmmo : MmAmmo;
     public static AmmoSpec? AmmoFor(bool oot, string key)
     { foreach (var a in Ammo(oot)) if (a.Key == key) return a; return null; }
@@ -93,11 +107,16 @@ public static class InventoryCatalog
             ("tunic_kokiri","Kokiri Tunic"), ("tunic_goron","Goron Tunic"), ("tunic_zora","Zora Tunic"),
             ("boots_kokiri","Kokiri Boots"), ("boots_iron","Iron Boots"),  ("boots_hover","Hover Boots"),
         ]),
-        // C-item subscreen: 6 columns × 3 rows, in the pause-menu order.
+        // C-item subscreen: 6 columns in the exact pause-menu slot order (0..18). Ocarina (slot 7) and
+        // Hookshot (slot 9) are tiers/dropdowns above, so their grid cells are spacers ("—") — that keeps
+        // every other item in its true in-game column instead of shifting the row left.
         new("Items", 6, [
-            ("stick","Deku Stick"), ("nut","Deku Nut"), ("bomb","Bomb"), ("bow","Fairy Bow"), ("fire_arrow","Fire Arrow"), ("dins_fire","Din's Fire"),
-            ("slingshot","Slingshot"), ("bombchu","Bombchu"), ("ice_arrow","Ice Arrow"), ("farores_wind","Farore's Wind"), ("boomerang","Boomerang"),
-            ("lens","Lens of Truth"), ("bean","Magic Bean"), ("hammer","Megaton Hammer"), ("light_arrow","Light Arrow"), ("nayrus_love","Nayru's Love"), ("bottle","Bottle"),
+            ("stick","Deku Stick"),   ("nut","Deku Nut"),        ("bomb","Bomb"),          ("bow","Fairy Bow"),          ("fire_arrow","Fire Arrow"),   ("dins_fire","Din's Fire"),
+            ("slingshot","Slingshot"),("","—"),                  ("bombchu","Bombchu"),    ("","—"),                     ("ice_arrow","Ice Arrow"),     ("farores_wind","Farore's Wind"),
+            ("boomerang","Boomerang"),("lens","Lens of Truth"),  ("bean","Magic Bean"),    ("hammer","Megaton Hammer"),  ("light_arrow","Light Arrow"), ("nayrus_love","Nayru's Love"),
+            // Row 4: the four bottle slots (SLOT_BOTTLE_1..4, bottle 1 hosts the FD mask), then the two trade-quest
+            // slots (adult/child) which are dropdowns above — shown as spacers so the grid stays 6-wide like in-game.
+            ("bottle1","Bottle 1"),   ("bottle2","Bottle 2"),   ("bottle3","Bottle 3"),   ("bottle4","Bottle 4"),   ("","—"), ("","—"),
         ]),
         new("Songs", 6, [
             ("song_lullaby","Zelda's Lullaby"), ("song_epona","Epona's Song"), ("song_saria","Saria's Song"),
@@ -131,10 +150,13 @@ public static class InventoryCatalog
             ("mask_romani","Romani's Mask"), ("mask_circus","Circus Leader's"), ("mask_kafei","Kafei's Mask"), ("mask_couple","Couple's Mask"), ("mask_truth","Mask of Truth"), ("mask_zora","Zora Mask"),
             ("mask_kamaro","Kamaro's Mask"), ("mask_gibdo","Gibdo Mask"), ("mask_garo","Garo's Mask"), ("mask_captain","Captain's Hat"), ("mask_giant","Giant's Mask"), ("mask_fierce","Fierce Deity"),
         ]),
+        // MM Select-Item subscreen: 6 columns × 4 rows in exact slot order (SLOT_* 0x00..0x17). The three trade
+        // slots (deed/room-key/couple, cols 6 of rows 1-3) are quest items shown as spacers; row 4 is all six bottles.
         new("Items", 6, [
-            ("ocarina","Ocarina of Time"), ("bow","Hero's Bow"), ("fire_arrow","Fire Arrow"), ("ice_arrow","Ice Arrow"), ("light_arrow","Light Arrow"), ("bomb","Bomb"),
-            ("bombchu","Bombchu"), ("nut","Deku Nut"), ("bean","Magic Bean"), ("powder_keg","Powder Keg"), ("pictograph","Pictograph Box"), ("lens","Lens of Truth"),
-            ("hookshot","Hookshot"), ("great_fairy_sword","Great Fairy Sword"), ("bottle","Bottle"), ("powder","Blue Potion"), ("fishing_rod","—"), ("fishing_rod2","—"),
+            ("ocarina","Ocarina of Time"), ("bow","Hero's Bow"),     ("fire_arrow","Fire Arrow"), ("ice_arrow","Ice Arrow"),   ("light_arrow","Light Arrow"),           ("","—"),
+            ("bomb","Bomb"),               ("bombchu","Bombchu"),    ("stick","Deku Stick"),      ("nut","Deku Nut"),         ("bean","Magic Bean"),                   ("","—"),
+            ("powder_keg","Powder Keg"),   ("pictograph","Pictograph Box"), ("lens","Lens of Truth"), ("hookshot","Hookshot"), ("great_fairy_sword","Great Fairy Sword"), ("","—"),
+            ("bottle1","Bottle 1"),        ("bottle2","Bottle 2"),   ("bottle3","Bottle 3"),      ("bottle4","Bottle 4"),     ("bottle5","Bottle 5"),                  ("bottle6","Bottle 6"),
         ]),
         new("Songs", 6, [
             ("song_time","Song of Time"), ("song_healing","Song of Healing"), ("song_epona","Epona's Song"), ("song_soaring","Song of Soaring"), ("song_storms","Song of Storms"), ("song_awakening","Sonata of Awakening"),

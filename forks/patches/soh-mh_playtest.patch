@@ -1,3 +1,16 @@
+diff --git a/soh/include/tables/actor_table.h b/soh/include/tables/actor_table.h
+index d05085f4d..f12c7731d 100644
+--- a/soh/include/tables/actor_table.h
++++ b/soh/include/tables/actor_table.h
+@@ -480,4 +480,5 @@
+ /* 0x01D3 */ DEFINE_ACTOR(En_Zl4, ACTOR_EN_ZL4, ALLOCTYPE_NORMAL)
+ /* 0x01D4 */ DEFINE_ACTOR(En_Mm2, ACTOR_EN_MM2, ALLOCTYPE_NORMAL)
+ /* 0x01D5 */ DEFINE_ACTOR(Bg_Jya_Block, ACTOR_BG_JYA_BLOCK, ALLOCTYPE_NORMAL)
+-/* 0x01D6 */ DEFINE_ACTOR(Obj_Warp2block, ACTOR_OBJ_WARP2BLOCK, ALLOCTYPE_NORMAL)
+\ No newline at end of file
++/* 0x01D6 */ DEFINE_ACTOR(Obj_Warp2block, ACTOR_OBJ_WARP2BLOCK, ALLOCTYPE_NORMAL)
++/* 0x01D7 */ DEFINE_ACTOR(En_MhTalk, ACTOR_EN_MHTALK, ALLOCTYPE_NORMAL)
+\ No newline at end of file
 diff --git a/soh/include/tables/entrance_table.h b/soh/include/tables/entrance_table.h
 index fe62e632b..d6c78a8a0 100644
 --- a/soh/include/tables/entrance_table.h
@@ -36,11 +49,23 @@ index da290bd00..2a98786a7 100644
 +// scenes/shared/mh_append_scene/mh_append_scene (overridden by the playtest mod O2R).
 +/* 0x6E */ DEFINE_SCENE(mh_append_scene, none, SCENE_MH_APPEND, SDC_DEFAULT, 0, 0)
 \ No newline at end of file
+diff --git a/soh/soh/ActorDB.cpp b/soh/soh/ActorDB.cpp
+index 1455b9c50..d18f03ef4 100644
+--- a/soh/soh/ActorDB.cpp
++++ b/soh/soh/ActorDB.cpp
+@@ -462,6 +462,7 @@ static constexpr std::pair<u16, const char*> actorDescriptionData[] = {
+     { ACTOR_EN_MM2, "Running Man (Adult Era)" },
+     { ACTOR_BG_JYA_BLOCK, "Silver Block (Child Era)" },
+     { ACTOR_OBJ_WARP2BLOCK, "Navi Infospot (Green, Time Block)" },
++    { ACTOR_EN_MHTALK, "MH Dialogue Point" },
+ };
+ static std::unordered_map<u16, const char*> actorDescriptions =
+     std::unordered_map<u16, const char*>(std::begin(actorDescriptionData), std::end(actorDescriptionData));
 diff --git a/soh/soh/Enhancements/debugconsole.cpp b/soh/soh/Enhancements/debugconsole.cpp
-index b7ae40d55..c10745cea 100644
+index b7ae40d55..9ba75f6db 100644
 --- a/soh/soh/Enhancements/debugconsole.cpp
 +++ b/soh/soh/Enhancements/debugconsole.cpp
-@@ -9,6 +9,7 @@
+@@ -9,10 +9,12 @@
  #include "soh/cvar_prefixes.h"
  #include <soh/Enhancements/item-tables/ItemTableManager.h>
  #include "soh/Enhancements/game-interactor/GameInteractor.h"
@@ -48,7 +73,12 @@ index b7ae40d55..c10745cea 100644
  #include "soh/Enhancements/cosmetics/CosmeticsEditor.h"
  #include "soh/Enhancements/audio/AudioEditor.h"
  #include "soh/Enhancements/randomizer/logic.h"
-@@ -36,6 +37,15 @@ extern PlayState* gPlayState;
+ #include "soh/Enhancements/randomizer/randomizer.h"
++#include "soh/ShipInit.hpp"
+ 
+ #define Path _Path
+ #define PATH_HACK
+@@ -36,6 +38,15 @@ extern PlayState* gPlayState;
  #include <libultraship/bridge.h>
  #include <libultraship/libultraship.h>
  
@@ -64,7 +94,7 @@ index b7ae40d55..c10745cea 100644
  #define CMD_REGISTER Ship::Context::GetRawInstance()->GetConsole()->AddCommand
  // TODO: Commands should be using the output passed in.
  #define ERROR_MESSAGE                                                                    \
-@@ -427,6 +437,55 @@ static bool EntranceHandler(std::shared_ptr<Ship::Console> Console, const std::v
+@@ -427,6 +438,55 @@ static bool EntranceHandler(std::shared_ptr<Ship::Console> Console, const std::v
      return 0;
  }
  
@@ -120,7 +150,7 @@ index b7ae40d55..c10745cea 100644
  static bool VoidHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
                          std::string* output) {
      if (gPlayState != nullptr) {
-@@ -1510,7 +1569,483 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
+@@ -1510,7 +1570,726 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
      return 0;
  }
  
@@ -279,7 +309,16 @@ index b7ae40d55..c10745cea 100644
 +    };
 +    for (auto& it : kItems)
 +        if (hasToggle(it.key)) { INV_CONTENT(it.item) = it.item; if (it.ammo) AMMO(it.item) = it.ammo; }
-+    if (hasToggle("bottle")) INV_CONTENT(ITEM_BOTTLE) = ITEM_BOTTLE;
++    // Nayru's Love: also set the "obtained" randomizer-inf flag. The Nayru <-> Roc's Feather kaleido cycle
++    // (RocsFeatherCycle.c) needs RAND_INF_OBTAINED_NAYRUS_LOVE to cycle BACK from Roc's to Nayru's — without
++    // it, Roc's permanently supersedes Nayru's once selected. (Roc's sets its own flag in the block below.)
++    if (hasToggle("nayrus_love")) Flags_SetRandomizerInf(RAND_INF_OBTAINED_NAYRUS_LOVE);
++    // Bottles: OoT has four independent bottle slots (SLOT_BOTTLE_1..4). Each is its own toggle so the player
++    // can start with any number of them. SLOT_BOTTLE_1 is also the FD mask's host slot (they cycle there).
++    if (hasToggle("bottle1")) gSaveContext.inventory.items[SLOT_BOTTLE_1] = ITEM_BOTTLE;
++    if (hasToggle("bottle2")) gSaveContext.inventory.items[SLOT_BOTTLE_2] = ITEM_BOTTLE;
++    if (hasToggle("bottle3")) gSaveContext.inventory.items[SLOT_BOTTLE_3] = ITEM_BOTTLE;
++    if (hasToggle("bottle4")) gSaveContext.inventory.items[SLOT_BOTTLE_4] = ITEM_BOTTLE;
 +
 +    // #13: varying-amount items — the editor's count spinner sets ammo[] and auto-grants the smallest
 +    // capacity upgrade able to hold it (merged with the explicit tier upgrades above; highest wins).
@@ -326,6 +365,34 @@ index b7ae40d55..c10745cea 100644
 +    int tradeAdult = tier("trade_adult");
 +    if (tradeAdult > 0) gSaveContext.inventory.items[SLOT_TRADE_ADULT] = (u8)(0x2C + tradeAdult);
 +
++    // Roc's Feather — Megaton Hammer's first optional SoH-exclusive item. It has no slot of its own; it
++    // shares SLOT_NAYRUS_LOVE. Turn on the enhancement CVar and re-run ShipInit for it so the jump hooks
++    // register even outside the randomizer, set the obtained flag, and drop the item into the Nayru slot.
++    if (hasToggle("rocs_feather")) {
++        CVarSetInteger(CVAR_ENHANCEMENT("MhRocsFeather"), 1);
++        ShipInit::Init(CVAR_ENHANCEMENT("MhRocsFeather"));
++        Flags_SetRandomizerInf(RAND_INF_OBTAINED_ROCS_FEATHER);
++        // Roc's Feather shares SLOT_NAYRUS_LOVE. Only drop it into the slot if empty — if the player also
++        // has Nayru's Love, leave that in place; the RAND_INF flag + the un-gated kaleido cycle let them
++        // switch between the two (otherwise Roc's would permanently displace Nayru's Love).
++        if (INV_CONTENT(ITEM_NAYRUS_LOVE) == ITEM_NONE) {
++            INV_CONTENT(ITEM_NAYRUS_LOVE) = ITEM_ROCS_FEATHER;
++        }
++        MhBootLog("[mh_inv] Roc's Feather enabled (CVar MhRocsFeather); slot now holds item " +
++                  std::to_string((int)INV_CONTENT(ITEM_NAYRUS_LOVE)));
++    }
++
++    // Fierce Deity's Mask (SoH-exclusive optional item, from the soh_fd port). Grant it exactly like any
++    // other inventory item — set only the owned flag; the player equips it themselves from the pause menu.
++    if (hasToggle("fd_mask")) {
++        // Just mark it owned, exactly like checking any other inventory item. soh_fd then surfaces the
++        // mask in the kaleido grid on the first bottle slot (A-scroll to reveal it, gated only on
++        // hasFierceDeityMask — see FierceDeityMaskCycle.c), the same manual flow as Roc's Feather.
++        // No auto C-button assignment, no give-item animation.
++        gSaveContext.ship.hasFierceDeityMask = 1;
++        MhBootLog("[mh_inv] Fierce Deity's Mask granted (owned; equip from the inventory like any item)");
++    }
++
 +    // Dump the resulting save fields so the editor can verify injection end-to-end via the boot log.
 +    MhBootLog("[mh_inv] applied: healthCap=" + std::to_string(gSaveContext.healthCapacity) +
 +              " equipment=0x" + StringHelper::Sprintf("%X", gSaveContext.inventory.equipment) +
@@ -345,22 +412,54 @@ index b7ae40d55..c10745cea 100644
 +// At boot we register an OnOpenText hook per id; when an actor opens that textId we build the line with
 +// the friendly-markup converter (& newline, ^ new box, %r/%g/%b/%y/%w/%p colour) and load it into the font,
 +// telling the engine to skip the normal message-table lookup.
++// One option's outcome: give a GetItem, deduct rupees, set a switch flag, and/or branch to another box.
++struct MhOutcomeC {
++    int give = -1;   // GetItem id to award (-1 = none)
++    int cost = 0;    // rupees to deduct (0 = free)
++    int flag = -1;   // switch flag to set (-1 = none)
++    int next = -1;   // textId to branch to (-1 = none/close)
++};
 +struct MhMsgEntry {
 +    std::string text;
-+    int type;
-+    int pos;
++    int type = 0;
++    int pos = 0;
++    bool prompt = false;            // true = a two-choice question
++    std::string choice1, choice2;   // option labels (prompt only)
++    MhOutcomeC o1, o2;              // outcome for a plain message / choice 1, and choice 2
++    int doneFlag = -1;
++    int afterId = -1;
 +};
 +static std::unordered_map<uint16_t, MhMsgEntry> sMhMessages;
++
++// The authored box currently open (0 = none) and whether its outcome has fired this open — read by the
++// per-frame MhDialogueInterpreter below to apply give/charge/branch when the player confirms.
++static uint16_t sMhOpenTextId = 0;
++static bool sMhOutcomeApplied = false;
 +
 +static void MhOnOpenText(uint16_t* textId, bool* loadFromMessageTable) {
 +    auto it = sMhMessages.find(*textId);
 +    if (it == sMhMessages.end()) {
 +        return; // not an authored id → let the normal table handle it
 +    }
-+    CustomMessage msg(it->second.text, (TextBoxType)it->second.type, (TextBoxPosition)it->second.pos);
++    const MhMsgEntry& e = it->second;
++    // A prompt appends the two-choice control code + the two option lines, so the in-game cursor selects
++    // between them; the interpreter reads msgCtx.choiceIndex and applies that option's outcome.
++    std::string body = e.text;
++    if (e.prompt) {
++        body += CustomMessage::NEWLINE();
++        body += CustomMessage::TWO_WAY_CHOICE();
++        body += e.choice1;
++        body += CustomMessage::NEWLINE();
++        body += e.choice2;
++    }
++    CustomMessage msg(body, (TextBoxType)e.type, (TextBoxPosition)e.pos);
 +    msg.AutoFormat();
 +    msg.LoadIntoFont();
 +    *loadFromMessageTable = false;
++    sMhOpenTextId = *textId;      // arm the interpreter for this box
++    sMhOutcomeApplied = false;
++    MhBootLog("[mh_dlg] open textId=0x" + StringHelper::Sprintf("%X", *textId) + " prompt=" +
++              std::to_string(e.prompt) + " o1.give=" + std::to_string(e.o1.give) + " o1.cost=" + std::to_string(e.o1.cost));
 +}
 +
 +static void MhLoadMessages() {
@@ -384,11 +483,113 @@ index b7ae40d55..c10745cea 100644
 +        if (id == 0) {
 +            continue;
 +        }
-+        sMhMessages[id] = MhMsgEntry{ e.value("text", std::string("")), e.value("type", 0), e.value("pos", 0) };
++        MhMsgEntry me;
++        me.text    = e.value("text", std::string(""));
++        me.type    = e.value("type", 0);
++        me.pos     = e.value("pos", 0);
++        me.prompt  = e.value("prompt", false);
++        me.choice1 = e.value("choice1", std::string(""));
++        me.choice2 = e.value("choice2", std::string(""));
++        auto parseOutcome = [](const nlohmann::json& j, MhOutcomeC& o) {
++            if (j.is_object()) {
++                o.give = j.value("give", -1);
++                o.cost = j.value("cost", 0);
++                o.flag = j.value("flag", -1);
++                o.next = j.value("next", -1);
++            }
++        };
++        if (e.contains("o1")) parseOutcome(e["o1"], me.o1);
++        if (e.contains("o2")) parseOutcome(e["o2"], me.o2);
++        me.doneFlag = e.value("doneFlag", -1);
++        me.afterId  = e.value("afterId", -1);
++        sMhMessages[id] = me;
 +        GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(id, MhOnOpenText);
 +        count++;
 +    }
 +    MhBootLog("[mh_msg] registered " + std::to_string(count) + " authored message(s)");
++}
++
++// Optional SoH-exclusive item placements (the editor's "SoH item" dropdown on a chest / freestanding item).
++// Each entry pairs a chest's treasure flag (0..31, or -1 for a non-chest placement given on load) with an
++// optional-item key. MhChestInterpreter grants the item when the chest is opened.
++static std::vector<std::pair<int, std::string>> sMhChests;
++static std::vector<char> sMhChestGranted;
++
++// Grant one optional item by key — the same effect as checking it in the playtest inventory (see
++// MhApplyCustomInventory). Idempotent: re-granting just re-sets the owned flags.
++static void MhGrantOptionalKey(const std::string& key) {
++    if (key == "rocs_feather") {
++        CVarSetInteger(CVAR_ENHANCEMENT("MhRocsFeather"), 1);
++        ShipInit::Init(CVAR_ENHANCEMENT("MhRocsFeather"));
++        Flags_SetRandomizerInf(RAND_INF_OBTAINED_ROCS_FEATHER);
++        if (INV_CONTENT(ITEM_NAYRUS_LOVE) == ITEM_NONE) {
++            INV_CONTENT(ITEM_NAYRUS_LOVE) = ITEM_ROCS_FEATHER;
++        }
++    } else if (key == "fd_mask") {
++        gSaveContext.ship.hasFierceDeityMask = 1;
++    } else {
++        MhBootLog("[mh_chest] unknown optional-item key: " + key);
++        return;
++    }
++    MhBootLog("[mh_chest] granted optional item '" + key + "'");
++}
++
++static void MhLoadChests() {
++    sMhChests.clear();
++    sMhChestGranted.clear();
++    auto ctx = Ship::Context::GetRawInstance();
++    if (ctx == nullptr || ctx->GetResourceManager() == nullptr) {
++        return;
++    }
++    auto file = ctx->GetResourceManager()->GetArchiveManager()->LoadFile("mh/chests");
++    if (file == nullptr || file->Buffer == nullptr || file->Buffer->empty()) {
++        return; // no custom-item placements in this mod
++    }
++    std::string body(file->Buffer->begin(), file->Buffer->end());
++    nlohmann::json arr = nlohmann::json::parse(body, nullptr, false);
++    if (arr.is_discarded() || !arr.is_array()) {
++        MhBootLog("[mh_boot] mh/chests JSON parse error");
++        return;
++    }
++    for (auto& e : arr) {
++        std::string key = e.value("key", std::string(""));
++        if (key.empty()) {
++            continue;
++        }
++        sMhChests.push_back({ e.value("flag", -1), key });
++    }
++    sMhChestGranted.assign(sMhChests.size(), 0);
++    MhBootLog("[mh_chest] loaded " + std::to_string(sMhChests.size()) + " custom-item placement(s)");
++}
++
++// Per-frame: grant a placement's optional item once the chest is opened (its treasure flag becomes set), or
++// immediately for a non-chest placement (flag == -1). Each placement fires exactly once per session.
++static void MhChestInterpreter() {
++    if (gPlayState == nullptr || sMhChests.empty()) {
++        return;
++    }
++    for (size_t i = 0; i < sMhChests.size(); i++) {
++        if (sMhChestGranted[i]) {
++            continue;
++        }
++        int flag = sMhChests[i].first;
++        const std::string& key = sMhChests[i].second;
++        if (flag < 0) {
++            // Non-chest placement (freestanding / given on load): grant silently.
++            MhGrantOptionalKey(key);
++            sMhChestGranted[i] = 1;
++        } else if (Flags_GetTreasure(gPlayState, flag)) {
++            // Chest opened: give the item with the normal acquisition animation so it doesn't feel empty.
++            // The mask's own give path (Item held overhead + textbox + fanfare) already sets the owned flag;
++            // for Roc's Feather there is no get-item entry, so fall back to the silent owned grant.
++            if (key == "fd_mask") {
++                GiveFierceDeityMask();
++            } else {
++                MhGrantOptionalKey(key);
++            }
++            sMhChestGranted[i] = 1;
++        }
++    }
 +}
 +
 +// #20: the debug scene-select list's appended Megaton Hammer entry name (defined in ovl_select/z_select.c).
@@ -416,6 +617,7 @@ index b7ae40d55..c10745cea 100644
 +    done = true;
 +
 +    MhLoadMessages();   // register any authored dialogue (mh/messages) before warping in
++    MhLoadChests();     // load optional-item chest/freestanding placements (mh/chests)
 +
 +    std::string info(file->Buffer->begin(), file->Buffer->end());
 +    MhBootLog("[mh_boot] mh/info loaded: " + info);
@@ -592,7 +794,76 @@ index b7ae40d55..c10745cea 100644
 +                  " player=" + (mhPlayer ? "yes" : "NULL") +
 +                  " equip=0x" + StringHelper::Sprintf("%X", gSaveContext.equips.equipment) +
 +                  " tunicOwned=0x" + StringHelper::Sprintf("%X", gSaveContext.inventory.equipment));
++        // Which age×time setup (alt-header) actually loaded — confirms the 0x18 selection per playtest pick.
++        MhBootLog("[mh_diag] sceneSetupIndex=" + std::to_string((int)gSaveContext.sceneSetupIndex) +
++                  " linkAge=" + std::to_string((int)gSaveContext.linkAge) +
++                  " nightFlag=" + std::to_string((int)gSaveContext.nightFlag));
 +        logged = true;
++    }
++}
++
++// Apply one authored dialogue outcome: charge rupees (only if affordable), award an item, set a switch
++// flag, and/or branch to another textbox. Mirrors the portable ovl_En_MhTalk interpreter, but driven from
++// the mh/messages resource so ANY actor that opens an authored textId (a sign, a talk region, a built-in
++// En_MhTalk) gets the full tree behaviour.
++static void MhApplyOutcome(const MhOutcomeC& o) {
++    MhBootLog("[mh_dlg] apply outcome: give=" + std::to_string(o.give) + " cost=" + std::to_string(o.cost) +
++              " flag=" + std::to_string(o.flag) + " next=" + std::to_string(o.next) +
++              " (rupees=" + std::to_string(gSaveContext.rupees) + ")");
++    if (o.cost > 0) {
++        if (gSaveContext.rupees < o.cost) {
++            MhBootLog("[mh_dlg]   can't afford — outcome skipped");
++            return; // can't afford — leave the transaction unfulfilled
++        }
++        Rupees_ChangeBy(-o.cost);
++    }
++    if (o.give >= 0) {
++        GetItemEntry gie = ItemTableManager::Instance->RetrieveItemEntry(MOD_NONE, o.give);
++        MhBootLog("[mh_dlg]   giving item id=" + std::to_string(o.give) + " (entry.itemId=" +
++                  std::to_string((int)gie.itemId) + ")");
++        GiveItemEntryWithoutActor(gPlayState, gie);
++    }
++    if (o.flag >= 0) {
++        Flags_SetSwitch(gPlayState, o.flag);
++    }
++    if (o.next >= 0) {
++        Message_ContinueTextbox(gPlayState, (u16)o.next);
++    }
++}
++
++// Per-frame dialogue interpreter: watches the authored box armed by MhOnOpenText and, when the player
++// confirms a choice (prompt) or advances past a plain message, applies that option's outcome exactly once.
++static void MhDialogueInterpreter() {
++    if (gPlayState == nullptr || sMhOpenTextId == 0) {
++        return;
++    }
++    auto it = sMhMessages.find(sMhOpenTextId);
++    if (it == sMhMessages.end()) {
++        sMhOpenTextId = 0;
++        return;
++    }
++    const MhMsgEntry& e = it->second;
++    MessageContext* msgCtx = &gPlayState->msgCtx;
++    u8 state = Message_GetState(msgCtx);
++
++    if (!sMhOutcomeApplied) {
++        if (e.prompt) {
++            if (state == TEXT_STATE_CHOICE && Message_ShouldAdvance(gPlayState)) {
++                MhApplyOutcome((msgCtx->choiceIndex & 1) ? e.o2 : e.o1);
++                sMhOutcomeApplied = true;
++            }
++        } else {
++            if (state == TEXT_STATE_DONE && Message_ShouldAdvance(gPlayState)) {
++                MhApplyOutcome(e.o1);
++                sMhOutcomeApplied = true;
++            }
++        }
++    }
++    // Disarm once the box is fully gone so the next open re-arms cleanly. (A branch reopens via MhOnOpenText,
++    // which re-arms with the new id.)
++    if (state == TEXT_STATE_NONE) {
++        sMhOpenTextId = 0;
++        sMhOutcomeApplied = false;
 +    }
 +}
 +
@@ -600,11 +871,13 @@ index b7ae40d55..c10745cea 100644
 +    // Megaton Hammer playtest auto-boot (runs once when a playtest mod O2R is mounted).
 +    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnZTitleUpdate>(MhPlaytestBootHook);
 +    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(MhPlaytestRenderProbe);
++    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(MhDialogueInterpreter);
++    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(MhChestInterpreter);
 +
      // Console
      CMD_REGISTER("file_select", { FileSelectHandler, "Returns to the file select." });
      CMD_REGISTER("reset", { ResetHandler, "Resets the game." });
-@@ -1528,6 +2063,13 @@ void DebugConsole_Init(void) {
+@@ -1528,6 +2307,13 @@ void DebugConsole_Init(void) {
      // Map & Location
      CMD_REGISTER("void", { VoidHandler, "Voids out of the current map." });
      CMD_REGISTER("reload", { ReloadHandler, "Reloads the current map." });
@@ -618,6 +891,217 @@ index b7ae40d55..c10745cea 100644
      CMD_REGISTER("fw", { FWHandler,
                           "Spawns the player where Farore's Wind is set.",
                           {
+diff --git a/soh/soh/Enhancements/randomizer/RocsFeather.cpp b/soh/soh/Enhancements/randomizer/RocsFeather.cpp
+index 6e4fa7169..6eaa793da 100644
+--- a/soh/soh/Enhancements/randomizer/RocsFeather.cpp
++++ b/soh/soh/Enhancements/randomizer/RocsFeather.cpp
+@@ -20,7 +20,10 @@ static uint8_t groundTimer = 0;
+ static f32 effectsScale = 1.0f;
+ 
+ void RegisterRocsFeather() {
+-    bool shouldRegister = IS_RANDO && RAND_GET_OPTION(RSK_ROCS_FEATHER);
++    // Also enable outside the randomizer when a Megaton Hammer playtest requests it (the editor sets this
++    // CVar + re-runs ShipInit for it), so a placed/given Roc's Feather actually functions in a normal boot.
++    bool shouldRegister = (IS_RANDO && RAND_GET_OPTION(RSK_ROCS_FEATHER)) ||
++                          CVarGetInteger(CVAR_ENHANCEMENT("MhRocsFeather"), 0);
+ 
+     COND_HOOK(OnPlayerUpdate, shouldRegister, []() {
+         Player* player = GET_PLAYER(gPlayState);
+@@ -99,4 +102,4 @@ void RegisterRocsFeather() {
+     });
+ }
+ 
+-static RegisterShipInitFunc registerRocsFeather(RegisterRocsFeather, { "IS_RANDO" });
++static RegisterShipInitFunc registerRocsFeather(RegisterRocsFeather, { "IS_RANDO", CVAR_ENHANCEMENT("MhRocsFeather") });
+diff --git a/soh/soh/util.cpp b/soh/soh/util.cpp
+index 7efa4b7d1..9f3e1c4bf 100644
+--- a/soh/soh/util.cpp
++++ b/soh/soh/util.cpp
+@@ -5,10 +5,33 @@
+ #include <algorithm>
+ #include <array>
+ #include <assert.h>
++#include <cstdint>
++#include <cstddef>
+ #include <spdlog/spdlog.h>
+ #include "Enhancements/randomizer/randomizerTypes.h"
+ #include <variables.h>
+ 
++// Megaton Hammer build fix: this toolchain's linked STL lib is older than its cl.exe, so the
++// vectorized single-char string-search helpers std::string::find_first_not_of / find_last_not_of
++// emit (__std_find_not_ch_1 / __std_find_last_not_ch_pos_1) are unresolved at link (LNK2001).
++// The 2Ship build links a newer STL and is fine; SoH pulls an older one. Provide the two functions
++// with their exact STL contract (scalar fallback) so the link resolves. No-op if the STL ever supplies
++// them (these are weak-equivalent definitions in our own TU; the STL lib doesn't export them here).
++extern "C" {
++const void* __std_find_not_ch_1(const void* first, const void* last, std::uint8_t ch) noexcept {
++    auto p = static_cast<const std::uint8_t*>(first);
++    auto e = static_cast<const std::uint8_t*>(last);
++    for (; p != e; ++p) if (*p != ch) return p;   // first byte != ch, else end
++    return e;
++}
++std::size_t __std_find_last_not_ch_pos_1(const void* first, const void* last, std::uint8_t ch) noexcept {
++    auto b = static_cast<const std::uint8_t*>(first);
++    auto p = static_cast<const std::uint8_t*>(last);
++    while (p != b) { --p; if (*p != ch) return static_cast<std::size_t>(p - b); }  // index of last byte != ch
++    return static_cast<std::size_t>(-1);          // npos: all bytes == ch
++}
++}
++
+ std::string invalidString = "";
+ 
+ std::vector<std::string> sceneNames = {
+diff --git a/soh/src/overlays/actors/ovl_En_MhTalk/z_en_mhtalk.c b/soh/src/overlays/actors/ovl_En_MhTalk/z_en_mhtalk.c
+new file mode 100644
+index 000000000..d8c4f800a
+--- /dev/null
++++ b/soh/src/overlays/actors/ovl_En_MhTalk/z_en_mhtalk.c
+@@ -0,0 +1,121 @@
++/*
++ * File: z_en_mhtalk.c
++ * Overlay: ovl_En_MhTalk
++ * Description: Megaton Hammer dialogue point. A visible, talkable beacon that opens
++ *              textId 0x1000 + (params & 0xFF) when talked to. The outcome of the
++ *              conversation (give item / rupees / branch) is handled elsewhere by the
++ *              per-frame debug-console interpreter; this actor only offers the talk
++ *              and opens its textId.
++ */
++
++#include "z_en_mhtalk.h"
++#include "objects/gameplay_keep/gameplay_keep.h"
++
++#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
++
++void EnMhTalk_Init(Actor* thisx, PlayState* play);
++void EnMhTalk_Destroy(Actor* thisx, PlayState* play);
++void EnMhTalk_Update(Actor* thisx, PlayState* play);
++void EnMhTalk_Draw(Actor* thisx, PlayState* play);
++
++const ActorInit En_MhTalk_InitVars = {
++    ACTOR_EN_MHTALK,
++    ACTORCAT_NPC,
++    FLAGS,
++    OBJECT_GAMEPLAY_KEEP,
++    sizeof(EnMhTalk),
++    (ActorFunc)EnMhTalk_Init,
++    (ActorFunc)EnMhTalk_Destroy,
++    (ActorFunc)EnMhTalk_Update,
++    (ActorFunc)EnMhTalk_Draw,
++    NULL,
++};
++
++static ColliderCylinderInit sCylinderInit = {
++    {
++        COLTYPE_NONE,
++        AT_NONE,
++        AC_NONE,
++        OC1_ON | OC1_TYPE_ALL,
++        OC2_TYPE_1,
++        COLSHAPE_CYLINDER,
++    },
++    {
++        ELEMTYPE_UNK0,
++        { 0x00000000, 0x00, 0x00 },
++        { 0x00000000, 0x00, 0x00 },
++        TOUCH_NONE,
++        BUMP_NONE,
++        OCELEM_ON,
++    },
++    { 20, 40, 0, { 0, 0, 0 } },
++};
++
++void EnMhTalk_Init(Actor* thisx, PlayState* play) {
++    EnMhTalk* this = (EnMhTalk*)thisx;
++
++    Collider_InitCylinder(play, &this->collider);
++    Collider_SetCylinder(play, &this->collider, &this->actor, &sCylinderInit);
++
++    // Visible beacon: draw the gameplay_keep rupee display list at a clearly-readable size.
++    Actor_SetScale(&this->actor, 0.06f);
++    ActorShape_Init(&this->actor.shape, 0.0f, ActorShadow_DrawCircle, 12.0f);
++
++    // Aim the talk/attention focus at the floating rupee, not the ground point.
++    Actor_SetFocus(&this->actor, 30.0f);
++
++    // Dialogue authored by the MH editor / debug-console interpreter lives at 0x1000 + index.
++    this->actor.textId = 0x1000 + (this->actor.params & 0xFF);
++
++    this->talkFlag = false;
++    this->talkTimer = 0;
++}
++
++void EnMhTalk_Destroy(Actor* thisx, PlayState* play) {
++    EnMhTalk* this = (EnMhTalk*)thisx;
++
++    Collider_DestroyCylinder(play, &this->collider);
++}
++
++void EnMhTalk_Update(Actor* thisx, PlayState* play) {
++    EnMhTalk* this = (EnMhTalk*)thisx;
++
++    // Slow spin so the beacon reads as an interactive marker (deterministic, no RNG).
++    this->actor.shape.rot.y += 0x0400;
++
++    // Keep the OC collider positioned on the actor and registered each frame so the
++    // player can walk into / target the beacon.
++    Collider_UpdateCylinder(&this->actor, &this->collider);
++    CollisionCheck_SetOC(play, &play->colChkCtx, &this->collider.base);
++
++    if (!this->talkFlag) {
++        if (this->talkTimer == 0) {
++            if (Actor_ProcessTalkRequest(&this->actor, play)) {
++                // Talk accepted; the Player opens this->actor.textId. The debug-console
++                // interpreter handles any resulting item/rupee/branch outcome.
++                this->talkFlag = true;
++            } else {
++                func_8002F2CC(&this->actor, play, 90.0f);
++            }
++        } else {
++            this->talkTimer--;
++        }
++    } else if (Actor_TextboxIsClosing(&this->actor, play)) {
++        this->talkFlag = false;
++        this->talkTimer = 20;
++    }
++}
++
++void EnMhTalk_Draw(Actor* thisx, PlayState* play) {
++    EnMhTalk* this = (EnMhTalk*)thisx;
++
++    OPEN_DISPS(play->state.gfxCtx);
++
++    Gfx_SetupDL_25Opa(play->state.gfxCtx);
++    func_8002EBCC(&this->actor, play, 0);
++    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
++    gSPSegment(POLY_OPA_DISP++, 0x08, SEGMENTED_TO_VIRTUAL(gRupeeGreenTex));
++    gSPDisplayList(POLY_OPA_DISP++, gRupeeDL);
++
++    CLOSE_DISPS(play->state.gfxCtx);
++}
+diff --git a/soh/src/overlays/actors/ovl_En_MhTalk/z_en_mhtalk.h b/soh/src/overlays/actors/ovl_En_MhTalk/z_en_mhtalk.h
+new file mode 100644
+index 000000000..7c9506ba8
+--- /dev/null
++++ b/soh/src/overlays/actors/ovl_En_MhTalk/z_en_mhtalk.h
+@@ -0,0 +1,18 @@
++#ifndef Z_EN_MHTALK_H
++#define Z_EN_MHTALK_H
++
++#include <libultraship/libultra.h>
++#include "global.h"
++
++struct EnMhTalk;
++
++typedef struct EnMhTalk {
++    /* 0x0000 */ Actor actor;
++    /* 0x014C */ ColliderCylinder collider;
++    /* 0x0198 */ s16 talkFlag;
++    /* 0x019A */ s16 talkTimer;
++} EnMhTalk; // size = 0x019C
++
++extern const ActorInit En_MhTalk_InitVars;
++
++#endif // Z_EN_MHTALK_H
 diff --git a/soh/src/overlays/gamestates/ovl_select/z_select.c b/soh/src/overlays/gamestates/ovl_select/z_select.c
 index 2be2df5f4..0ba004ff1 100644
 --- a/soh/src/overlays/gamestates/ovl_select/z_select.c
@@ -643,3 +1127,19 @@ index 2be2df5f4..0ba004ff1 100644
      { "title", "title", "Titelbildschirm", "Ecran-titre", Select_LoadTitle, 0 },
  };
  
+diff --git a/soh/src/overlays/misc/ovl_kaleido_scope/z_kaleido_item.c b/soh/src/overlays/misc/ovl_kaleido_scope/z_kaleido_item.c
+index 4f3824d38..1ebbbfe6f 100644
+--- a/soh/src/overlays/misc/ovl_kaleido_scope/z_kaleido_item.c
++++ b/soh/src/overlays/misc/ovl_kaleido_scope/z_kaleido_item.c
+@@ -386,7 +386,10 @@ void KaleidoScope_HandleItemCycles(PlayState* play) {
+                                        Randomizer_GetPrevAdultTradeItem(), Randomizer_GetNextAdultTradeItem(), true);
+ 
+     // Handle Nayru's Love/Roc's Feather
+-    KaleidoScope_HandleItemCycleExtras(play, SLOT_NAYRUS_LOVE, Randomizer_GetSettingValue(RSK_ROCS_FEATHER),
++    // Allow the Nayru's Love <-> Roc's Feather cycle in a Megaton Hammer playtest too (not just the randomizer),
++    // so a player granted both can switch between them instead of Roc's permanently occupying the shared slot.
++    KaleidoScope_HandleItemCycleExtras(play, SLOT_NAYRUS_LOVE,
++                                       Randomizer_GetSettingValue(RSK_ROCS_FEATHER) || CVarGetInteger(CVAR_ENHANCEMENT("MhRocsFeather"), 0),
+                                        Enhancement_GetPrevNayrusItem(), Enhancement_GetNextNayrusItem(), true);
+ 
+     // FD (2026-07-11): Handle the Fierce Deity's Mask hosted on the first bottle slot.

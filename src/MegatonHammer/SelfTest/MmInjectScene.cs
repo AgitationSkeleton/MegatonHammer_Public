@@ -98,7 +98,7 @@ public static class MmInjectScene
     /// false leaves the title→map-select flow (load entry "1"). Throws on a scene/room that doesn't fit.</summary>
     public static byte[] BuildPlaytestRom(string mmRomPath, byte[] sceneBytes, byte[] roomBytes, bool autoBoot,
                                           byte musicSeq = 0x15, byte[] crossGameSeq = null, int crossGameSrcSeqId = -1,
-                                          bool append = false)
+                                          bool append = false, byte day = 1, ushort time = 0x8000)
     {
         MusicSeq = musicSeq;   // the scene's chosen MM music (patched into the Termina Field sound command)
         var romImg = new RomImage(mmRomPath);
@@ -123,7 +123,7 @@ public static class MmInjectScene
         if (!ok) throw new InvalidOperationException($"MM playtest injection failed ({(append ? "append" : "overwrite")}): " + err);
         BakeLevelSelect(dec);
         BakePlayInitMenuFix(dec);
-        if (autoBoot) BakeAutoBoot(dec);
+        if (autoBoot) BakeAutoBoot(dec, day, time);
         OotCrc.Update(dec);
         return dec;
     }
@@ -518,12 +518,17 @@ public static class MmInjectScene
     // it from Setup directly would skip that. The Play_Init detour (BakePlayInitMenuFix) then does the
     // FileChoose-style runtime reset + gameMode=NORMAL as usual. ConsoleLogo_Main @ vram 0x8080066C →
     // overlay vrom 0xC7AB4C (ovl entry 2: vrom 0xC7A4E0 / vram 0x80800000). Routine lives in free code space.
-    private static void BakeAutoBoot(byte[] dec)
+    private static void BakeAutoBoot(byte[] dec, byte day = 1, ushort time = 0x8000)
     {
         const int ConsoleLogoMainVrom = 0xC7AB4C; // ConsoleLogo_Main[0]
         const int RoutineVrom         = 0xC53188; // free zero run in code (RAM 0x801BCC48)
         const uint RoutineRam         = 0x801BCC48;
         const int T0=8, T1=9, T2=10, T3=11, ZERO=0, SP=29, RA=31, A0=4;
+        // Playtest day/time baked into the boot save (BEFORE the scene loads) so day-gated (half-day) actor
+        // spawns + the day/night sky are correct — symmetric with the 2Ship boot hook. save.time @ save+0x0C
+        // (u16), save.isNight @ +0x10 (s32; MM re-derives it from time, we set it for the first frame), save.day
+        // @ +0x18 (s32; CURRENT_DAY = day%5). T0 = 0x801F0000, so +sign_ext(0xF6xx) lands in gSaveContext.save.
+        int isNight = (time < 0x4555 || time > 0xC000) ? 1 : 0;
         uint[] r =
         {
             Addiu(SP, SP, -0x20),
@@ -537,6 +542,9 @@ public static class MmInjectScene
             Lui(T0, 0x801F),
             Ori(T1, ZERO, 0x5400),
             Sw(T1, unchecked((short)0xF670), T0), // gSaveContext.save.entrance = ENTRANCE(TERMINA_FIELD,0)
+            Ori(T1, ZERO, time & 0xFFFF), Sh(T1, unchecked((short)0xF67C), T0), // save.time (u16 @ +0x0C)
+            Ori(T1, ZERO, isNight),       Sw(T1, unchecked((short)0xF680), T0), // save.isNight (@ +0x10)
+            Ori(T1, ZERO, day),           Sw(T1, unchecked((short)0xF688), T0), // save.day (@ +0x18)
             Lui(T2, 0x8016), Ori(T2, T2, unchecked((short)0xA2C8)), // Play_Init = 0x8016A2C8
             Sw(T2, 0x0C, A0),                 // this->init = Play_Init
             Lui(T3, 0x0001), Ori(T3, T3, 0x9258),                   // sizeof(PlayState) = 0x19258

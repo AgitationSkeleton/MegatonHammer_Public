@@ -578,7 +578,9 @@ public sealed class SelectTool : ITool
         SnapshotMoveTex();
         _moveActors.Clear();
         foreach (var a in _doc.PickableActors)
-            if (a.IsSelected) _moveActors[a] = a.Position;
+            // Anchored actors (Mir_Ray light beams, position-forcing bosses) are immovable — never add them to
+            // the drag set, so a group move leaves them pinned to their hardcoded location.
+            if (a.IsSelected && !Editor.AnchoredActors.IsAnchoredId(!_doc.IsMM, a.Number)) _moveActors[a] = a.Position;
         _moveDecals.Clear();
         foreach (var d in _doc.VisibleDecals)
             if (d.IsSelected) _moveDecals[d] = d.Position;
@@ -597,7 +599,9 @@ public sealed class SelectTool : ITool
         _move3DAnchor = RayPlaneXZ(ray, _move3DY);
         _moveActors.Clear();
         foreach (var a in _doc.PickableActors)
-            if (a.IsSelected) _moveActors[a] = a.Position;
+            // Anchored actors (Mir_Ray light beams, position-forcing bosses) are immovable — never add them to
+            // the drag set, so a group move leaves them pinned to their hardcoded location.
+            if (a.IsSelected && !Editor.AnchoredActors.IsAnchoredId(!_doc.IsMM, a.Number)) _moveActors[a] = a.Position;
         _moveSnap.Clear();
         foreach (var s in _doc.Solids)
             if (s.IsSelected) _moveSnap[s] = s.SnapshotPlanes();

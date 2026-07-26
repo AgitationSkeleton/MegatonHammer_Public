@@ -3,9 +3,10 @@
   Megaton Hammer - one-run build script (public edition)
 ================================================================================
   Builds the Megaton Hammer EDITOR (this repo) plus the three playtest engine
-  forks (SoH / 2Ship / PJ64). The engines are fetched from their ORIGINAL
-  upstreams (HarbourMasters / Project64) and Megaton Hammer's small changes are
-  applied on top from forks\ -- so this package depends on NObody's private fork.
+  forks (SoH / 2Ship / PJ64). The engines are fetched from public upstreams
+  (SoH from the Fierce Deity Shipwright fork soh_fd; 2Ship from HarbourMasters;
+  Project64 from its upstream) and Megaton Hammer's small changes are applied on
+  top from forks\ -- so this package depends on NObody's private fork.
 
   HOW TO RUN
     1. Clone this repo (it already contains the editor + the fork delta).
@@ -38,7 +39,9 @@ Set-Location $Root
 # Engine forks come from UPSTREAM, pinned to the commit Megaton Hammer's patches were made against
 # (see forks\README.md). PJ64 is overlaid from forks\pj64 rather than patched.
 $Forks = @(
-    @{ Name='SoH';   Dir='SoH';   Url='https://github.com/HarbourMasters/Shipwright.git';       Pin='948b84d8'; Rom='oot|ocarina|OOT' }
+    # SoH is the self-contained Fierce Deity Shipwright fork (soh_fd): the FD form + mask come from it
+    # verbatim, and it vendors libultraship/ZAPDTR (the recursive submodule init below is a harmless no-op).
+    @{ Name='SoH';   Dir='SoH';   Url='https://github.com/AgitationSkeleton/soh_fd.git';         Pin='86d1d896'; Rom='oot|ocarina|OOT' }
     @{ Name='2Ship'; Dir='2Ship'; Url='https://github.com/HarbourMasters/2ship2harkinian.git';  Pin='3545e62e'; Rom='mm|majora|MM'   }
 )
 $Pj64Url = 'https://github.com/project64/project64.git'

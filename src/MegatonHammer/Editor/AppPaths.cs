@@ -103,4 +103,43 @@ public static class AppPaths
         }
     }
     public static string Log(string file) => Path.Combine(LogDir, file);
+
+    // A writable per-user base for data the editor installs at runtime (downloaded playtest engines, their
+    // download cache). NEVER the exe folder — a public build may live under Program Files (read-only). Keyed
+    // off LocalApplicationData so a single-file exe and an installed copy both resolve the same place.
+    private static string LocalBase =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MegatonHammer");
+
+    private static string? _enginesDir;
+    /// <summary>Where the first-run bootstrap installs the downloaded SoH / 2Ship / PJ64 playtest engines
+    /// (one subfolder each). Writable per-user; created on demand.</summary>
+    public static string EnginesDir
+    {
+        get
+        {
+            if (_enginesDir == null)
+            {
+                _enginesDir = Path.Combine(LocalBase, "engines");
+                try { Directory.CreateDirectory(_enginesDir); } catch { _enginesDir = Path.Combine(Path.GetTempPath(), "MegatonHammer", "engines"); }
+            }
+            return _enginesDir;
+        }
+    }
+    /// <summary>The install directory for one engine (e.g. "SoH", "2Ship", "pj64") under <see cref="EnginesDir"/>.</summary>
+    public static string EngineDir(string name) => Path.Combine(EnginesDir, name);
+
+    private static string? _cacheDir;
+    /// <summary>Writable per-user scratch for downloaded archives before extraction.</summary>
+    public static string CacheDir
+    {
+        get
+        {
+            if (_cacheDir == null)
+            {
+                _cacheDir = Path.Combine(LocalBase, "cache");
+                try { Directory.CreateDirectory(_cacheDir); } catch { _cacheDir = Path.GetTempPath(); }
+            }
+            return _cacheDir;
+        }
+    }
 }

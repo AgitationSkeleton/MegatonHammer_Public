@@ -18,7 +18,8 @@ public static class InventoryIcons
         ["stick"] = 0x00, ["nut"] = 0x01, ["bomb"] = 0x02, ["bow"] = 0x03, ["fire_arrow"] = 0x04,
         ["dins_fire"] = 0x05, ["slingshot"] = 0x06, ["bombchu"] = 0x09, ["hookshot"] = 0x0A,
         ["ice_arrow"] = 0x0C, ["farores_wind"] = 0x0D, ["boomerang"] = 0x0E, ["lens"] = 0x0F,
-        ["bean"] = 0x10, ["hammer"] = 0x11, ["light_arrow"] = 0x12, ["nayrus_love"] = 0x13, ["bottle"] = 0x14,
+        ["bean"] = 0x10, ["hammer"] = 0x11, ["light_arrow"] = 0x12, ["nayrus_love"] = 0x13,
+        ["bottle1"] = 0x14, ["bottle2"] = 0x14, ["bottle3"] = 0x14, ["bottle4"] = 0x14,   // all four share the empty-bottle icon
         ["tunic_kokiri"] = 0x41, ["tunic_goron"] = 0x42, ["tunic_zora"] = 0x43,
         ["boots_kokiri"] = 0x44, ["boots_iron"] = 0x45, ["boots_hover"] = 0x46,
         // NOTE: OoT songs, medallions, spiritual stones and the Stone of Agony are NOT in icon_item_static
@@ -36,7 +37,8 @@ public static class InventoryIcons
         ["ocarina"] = 0x00, ["bow"] = 0x01, ["fire_arrow"] = 0x02, ["ice_arrow"] = 0x03, ["light_arrow"] = 0x04,
         ["bomb"] = 0x06, ["bombchu"] = 0x07, ["nut"] = 0x09, ["bean"] = 0x0A, ["powder_keg"] = 0x0C,
         ["pictograph"] = 0x0D, ["lens"] = 0x0E, ["hookshot"] = 0x0F, ["great_fairy_sword"] = 0x10,
-        ["bottle"] = 0x12, ["powder"] = 0x15,
+        ["bottle1"] = 0x12, ["bottle2"] = 0x12, ["bottle3"] = 0x12, ["bottle4"] = 0x12, ["bottle5"] = 0x12, ["bottle6"] = 0x12,   // six bottle slots, shared icon
+        ["stick"] = 0x08, ["powder"] = 0x15,
         ["mask_deku"] = 0x32, ["mask_goron"] = 0x33, ["mask_zora"] = 0x34, ["mask_fierce"] = 0x35,
         ["mask_truth"] = 0x36, ["mask_kafei"] = 0x37, ["mask_allnight"] = 0x38, ["mask_bunny"] = 0x39,
         ["mask_keaton"] = 0x3A, ["mask_garo"] = 0x3B, ["mask_romani"] = 0x3C, ["mask_circus"] = 0x3D,
@@ -74,6 +76,95 @@ public static class InventoryIcons
             g.FillEllipse(brush, 8f, 13f, 8f, 6f);
         }
         _note = bmp;
+        return bmp;
+    }
+
+    private static readonly Dictionary<string, Bitmap> _glyphs = new(StringComparer.Ordinal);
+
+    /// <summary>Drawn glyphs for optional SoH-exclusive items with no vanilla icon-atlas index
+    /// (Roc's Feather, Fierce Deity's Mask). Cached per key; null for anything else.</summary>
+    public static Bitmap? OptionalGlyph(string key)
+    {
+        if (_glyphs.TryGetValue(key, out var c)) return c;
+        // 1. Prefer the item's REAL icon embedded as Assets/item_<key>.png (present in the full/private build,
+        //    e.g. the actual Roc's Feather texture).
+        Bitmap? bmp = LoadEmbeddedItemIcon(key);
+        // 2. The Fierce Deity's Mask icon is a Nintendo MM texture, so it is NOT shipped in the asset-free
+        //    public build. Extract it at runtime from the user's own MM ROM instead (MM icon_item_static
+        //    index 0x35 — the same icon MM projects show for mask_fierce). No game data is redistributed.
+        if (bmp == null && key == "fd_mask") bmp = ExtractFdMaskFromMmRom();
+        // 3. Last resort: a drawn placeholder glyph (no ROM configured).
+        bmp ??= key switch
+        {
+            "rocs_feather" => Feather(),
+            "fd_mask"      => FierceDeityMask(),
+            _              => null,
+        };
+        if (bmp != null) _glyphs[key] = bmp;
+        return bmp;
+    }
+
+    // The Fierce Deity's Mask inventory icon, decoded from the user's MM ROM (icon_item_static index 0x35),
+    // so the asset-free build can show the real icon without redistributing the Nintendo texture. Null if no
+    // MM ROM is configured / the icon can't be located, in which case the caller draws a placeholder.
+    private static Bitmap? ExtractFdMaskFromMmRom()
+    {
+        try
+        {
+            var mm = EditorSettings.MmRomPath;
+            if (string.IsNullOrWhiteSpace(mm) || !System.IO.File.Exists(mm)) return null;
+            var src = new Rom.ItemIconSource(new Rom.RomImage(mm));
+            return src.Available ? src.Icon(0x35) : null;   // 0x35 = SLOT/ITEM index of the FD mask in MM icon_item_static
+        }
+        catch { return null; }
+    }
+
+    private static Bitmap? LoadEmbeddedItemIcon(string key)
+    {
+        try
+        {
+            using var s = typeof(InventoryIcons).Assembly.GetManifestResourceStream($"MegatonHammer.Assets.item_{key}.png");
+            return s == null ? null : new Bitmap(s);
+        }
+        catch { return null; }
+    }
+
+    // A light-blue jump feather: a leaf-shaped vane with a central quill.
+    private static Bitmap Feather()
+    {
+        var bmp = new Bitmap(24, 24);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.Clear(Color.Transparent);
+        using var vane = new SolidBrush(Color.FromArgb(160, 210, 240));
+        using var edge = new Pen(Color.FromArgb(90, 150, 200), 1.3f);
+        using var path = new GraphicsPath();
+        path.AddClosedCurve([new PointF(17, 3), new PointF(21, 10), new PointF(12, 20), new PointF(5, 21), new PointF(9, 11)]);
+        g.FillPath(vane, path);
+        g.DrawPath(edge, path);
+        using var shaft = new Pen(Color.FromArgb(245, 251, 255), 1.5f);
+        g.DrawLine(shaft, 17f, 3f, 6f, 21f);
+        return bmp;
+    }
+
+    // The Fierce Deity mask: a pale face with fierce white eyes and the purple/red cheek face-paint.
+    private static Bitmap FierceDeityMask()
+    {
+        var bmp = new Bitmap(24, 24);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.Clear(Color.Transparent);
+        using var face = new SolidBrush(Color.FromArgb(236, 236, 226));
+        g.FillEllipse(face, 5f, 2.5f, 14f, 18.5f);
+        using var edge = new Pen(Color.FromArgb(120, 120, 110), 1.1f);
+        g.DrawEllipse(edge, 5f, 2.5f, 14f, 18.5f);
+        using var eye = new SolidBrush(Color.FromArgb(70, 80, 105));
+        g.FillEllipse(eye, 8f, 9f, 3.2f, 2.4f);
+        g.FillEllipse(eye, 13f, 9f, 3.2f, 2.4f);
+        using var mark1 = new Pen(Color.FromArgb(130, 70, 160), 1.6f);
+        using var mark2 = new Pen(Color.FromArgb(195, 65, 65), 1.6f);
+        g.DrawLine(mark1, 7f, 13f, 10f, 16.5f);
+        g.DrawLine(mark2, 17f, 13f, 14f, 16.5f);
         return bmp;
     }
 }

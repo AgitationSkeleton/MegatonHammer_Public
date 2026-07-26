@@ -195,7 +195,10 @@ public static class Project64Playtest
                 // Append mode (parity with SoH/2Ship SCENE_MH_APPEND): clone Termina's scene into a spare slot
                 // + redirect its entrance, so the level plays without destroying Termina Field's real data.
                 bool mmAppend = playtest?.Append ?? false;
-                byte[] rom = SelfTest.MmInjectScene.BuildPlaytestRom(romPath!, sceneBytes, roomBytes[0], autoBoot, music, crossSeq, crossSrcId, mmAppend);
+                // Playtest day/time are baked into the boot save (before the scene loads) so day-gated actor
+                // spawns + the day/night sky are correct on vanilla MM — matching the 2Ship boot hook.
+                byte[] rom = SelfTest.MmInjectScene.BuildPlaytestRom(romPath!, sceneBytes, roomBytes[0], autoBoot, music, crossSeq, crossSrcId, mmAppend,
+                                                                     scene.Settings.PlaytestDay, scene.Settings.PlaytestTimeOfDay);
                 File.WriteAllBytes(romOut, rom);
                 DiagnosticLog.Ok($"MM ROM ({rom.Length} bytes, {(mmAppend ? $"APPEND spare slot 0x{SelfTest.MmInjectScene.AppendSlotId:X2}" : $"overwrite slot 0x{SelfTest.MmInjectScene.TargetSceneId:X2}")}, auto-boot {(autoBoot ? "ON" : "off")})");
                 DiagnosticLog.Step($"wrote {romOut}");
@@ -205,8 +208,11 @@ public static class Project64Playtest
                 // the live PlayState. Write a minimal params file (no entrance -> no double-warp).
                 int mmInv = playtest?.Inventory switch { "empty" => 2, "custom" => 1, _ => 0 };
                 int mmDbg = EditorSettings.PlaytestN64DebugControls ? 1 : 0;
-                File.WriteAllText(Path.Combine(dir, "mh_n64_playtest.txt"), $"inventory={mmInv}\ndebug={mmDbg}\n");
-                DiagnosticLog.Step($"MM N64 params: inventory={mmInv} debug={mmDbg}");
+                ushort mmTime = scene.Settings.PlaytestTimeOfDay;
+                byte mmDay = scene.Settings.PlaytestDay;
+                File.WriteAllText(Path.Combine(dir, "mh_n64_playtest.txt"),
+                    $"inventory={mmInv}\ndebug={mmDbg}\ntimeOfDay={mmTime}\nday={mmDay}\n");
+                DiagnosticLog.Step($"MM N64 params: inventory={mmInv} debug={mmDbg} timeOfDay=0x{mmTime:X4} day={mmDay}");
 
                 LogManifest(plog, emu, dir, romOut);   // verbatim params/save-poke files + rdb status
                 var psiMm = new ProcessStartInfo { FileName = emu, Arguments = $"\"{romOut}\"", UseShellExecute = false };

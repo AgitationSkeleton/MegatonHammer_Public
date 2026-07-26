@@ -156,15 +156,22 @@ public sealed class InventoryDialog : Form
                 Font = new Font("Segoe UI", 8f, FontStyle.Bold), Margin = new Padding(2, 8, 2, 2),
             });
             var grid = new TableLayoutPanel { AutoSize = true, ColumnCount = g.Columns, Margin = new Padding(2, 0, 2, 4) };
+            // Fixed, equal columns so every cell lines up in a clean grid (AutoSize columns drift when a row
+            // mixes ammo-spinner cells with plain toggles). Each column is exactly one cell wide + its margins.
+            // The SoH-Exclusive group has only 2 columns but long names ("Fierce Deity's Mask"), so give it
+            // wider cells — there's ample horizontal room next to a 2-column group.
+            int cw = g.Name.StartsWith("SoH-Exclusive", StringComparison.Ordinal) ? 210 : CellW;
+            for (int col = 0; col < g.Columns; col++)
+                grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, cw + 4));
             foreach (var (key, label) in g.Items)
             {
-                if (label == "—") { grid.Controls.Add(new Label { Width = CellW }); continue; }   // spacer to keep grid alignment
+                if (label == "—") { grid.Controls.Add(new Panel { Width = cw, Height = 26, Margin = new Padding(2) }); continue; }   // spacer keeps grid alignment
                 // Every item is a uniform composite cell: [icon][control]. #13 ammo items get a count
                 // spinner instead of a checkbox. Composite panels keep the icon clear of the checkbox glyph
                 // and the text, instead of overlapping it.
                 grid.Controls.Add(InventoryCatalog.AmmoFor(_oot, key) is { } ammo
                     ? MakeAmmoCell(key, label, ammo, initial.Amount(key))
-                    : MakeToggleCell(key, label, initial.Has(key)));
+                    : MakeToggleCell(key, label, initial.Has(key), cw));
             }
             content.Controls.Add(grid);
         }
@@ -192,12 +199,13 @@ public sealed class InventoryDialog : Form
     }
 
     // A toggle item: [icon] [checkbox + name]. UseMnemonic=false so '&' and long names show in full.
-    private Panel MakeToggleCell(string key, string label, bool isChecked)
+    // cellW lets a group (e.g. SoH-Exclusive) use wider cells so long names aren't clipped.
+    private Panel MakeToggleCell(string key, string label, bool isChecked, int cellW = CellW)
     {
-        var cell = new Panel { Width = CellW, Height = 26, Margin = new Padding(2) };
+        var cell = new Panel { Width = cellW, Height = 26, Margin = new Padding(2) };
         var cb = new CheckBox
         {
-            Text = label, AutoSize = false, Left = IconW + 4, Top = 0, Width = CellW - IconW - 6, Height = 26,
+            Text = label, AutoSize = false, Left = IconW + 4, Top = 0, Width = cellW - IconW - 6, Height = 26,
             ForeColor = FgNormal, UseMnemonic = false, Checked = isChecked, Font = new Font("Segoe UI", 8f),
             TextAlign = ContentAlignment.MiddleLeft,
         };
@@ -241,6 +249,7 @@ public sealed class InventoryDialog : Form
             if (raw != null) img = new Bitmap(raw, new Size(20, 20));
         }
         if (img == null && InventoryIcons.IsSong(key)) img = new Bitmap(InventoryIcons.NoteGlyph(), new Size(20, 20));
+        if (img == null && InventoryIcons.OptionalGlyph(key) is { } glyph) img = new Bitmap(glyph, new Size(20, 20));
         _iconCache[key] = img;
         return img;
     }
