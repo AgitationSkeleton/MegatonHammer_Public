@@ -1,3 +1,15 @@
+diff --git a/soh/include/functions.h b/soh/include/functions.h
+index c92319911..8693e19a4 100644
+--- a/soh/include/functions.h
++++ b/soh/include/functions.h
+@@ -1083,6 +1083,7 @@ u8 Item_Give(PlayState* play, u8 item);
+ // FD (2026-07-11): Fierce Deity mask acquisition helpers (src/code/fierce_deity_items.c).
+ void FierceDeity_EquipMaskToCButton(void);
+ void GiveFierceDeityMask(void);
++GetItemEntry FierceDeity_GetMaskGetItemEntry(void);
+ u16 Randomizer_Item_Give(PlayState* play, GetItemEntry giEntry);
+ u8 Item_CheckObtainability(u8 item);
+ void Inventory_DeleteItem(u16 item, u16 invSlot);
 diff --git a/soh/include/tables/actor_table.h b/soh/include/tables/actor_table.h
 index d05085f4d..f12c7731d 100644
 --- a/soh/include/tables/actor_table.h
@@ -62,13 +74,14 @@ index 1455b9c50..d18f03ef4 100644
  static std::unordered_map<u16, const char*> actorDescriptions =
      std::unordered_map<u16, const char*>(std::begin(actorDescriptionData), std::end(actorDescriptionData));
 diff --git a/soh/soh/Enhancements/debugconsole.cpp b/soh/soh/Enhancements/debugconsole.cpp
-index b7ae40d55..9ba75f6db 100644
+index b7ae40d55..05e44429a 100644
 --- a/soh/soh/Enhancements/debugconsole.cpp
 +++ b/soh/soh/Enhancements/debugconsole.cpp
-@@ -9,10 +9,12 @@
+@@ -9,10 +9,13 @@
  #include "soh/cvar_prefixes.h"
  #include <soh/Enhancements/item-tables/ItemTableManager.h>
  #include "soh/Enhancements/game-interactor/GameInteractor.h"
++#include "src/overlays/actors/ovl_En_Box/z_en_box.h" // EnBox, for the VB_GIVE_ITEM_FROM_CHEST hook
 +#include "soh/Enhancements/custom-message/CustomMessageManager.h"
  #include "soh/Enhancements/cosmetics/CosmeticsEditor.h"
  #include "soh/Enhancements/audio/AudioEditor.h"
@@ -78,7 +91,7 @@ index b7ae40d55..9ba75f6db 100644
  
  #define Path _Path
  #define PATH_HACK
-@@ -36,6 +38,15 @@ extern PlayState* gPlayState;
+@@ -36,6 +39,15 @@ extern PlayState* gPlayState;
  #include <libultraship/bridge.h>
  #include <libultraship/libultraship.h>
  
@@ -94,7 +107,7 @@ index b7ae40d55..9ba75f6db 100644
  #define CMD_REGISTER Ship::Context::GetRawInstance()->GetConsole()->AddCommand
  // TODO: Commands should be using the output passed in.
  #define ERROR_MESSAGE                                                                    \
-@@ -427,6 +438,55 @@ static bool EntranceHandler(std::shared_ptr<Ship::Console> Console, const std::v
+@@ -427,6 +439,55 @@ static bool EntranceHandler(std::shared_ptr<Ship::Console> Console, const std::v
      return 0;
  }
  
@@ -150,7 +163,7 @@ index b7ae40d55..9ba75f6db 100644
  static bool VoidHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
                          std::string* output) {
      if (gPlayState != nullptr) {
-@@ -1510,7 +1570,726 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
+@@ -1510,7 +1571,777 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
      return 0;
  }
  
@@ -562,8 +575,36 @@ index b7ae40d55..9ba75f6db 100644
 +    MhBootLog("[mh_chest] loaded " + std::to_string(sMhChests.size()) + " custom-item placement(s)");
 +}
 +
-+// Per-frame: grant a placement's optional item once the chest is opened (its treasure flag becomes set), or
-+// immediately for a non-chest placement (flag == -1). Each placement fires exactly once per session.
++extern "C" void Randomizer_DrawRocsFeather(PlayState* play, GetItemEntry* getItemEntry);
++
++// Fill *out with the GetItemEntry for the non-standard SoH item on the chest with this treasure flag (Fierce
++// Deity's Mask or Roc's Feather), or return false. Used by the VB_OPEN_CHEST hook so the chest gives the real
++// item through its own get-item flow. Both ride a valid vanilla vehicle model that drawFunc overrides, and use
++// a MOD_NONE ITEM_* id so the give routes through Item_Give() (ITEM_MASK_DEITY -> FD equip; ITEM_ROCS_FEATHER).
++// The actual owned flags are then ensured (idempotently) by MhChestInterpreter after the get finishes.
++static bool MhChestGetItemEntry(s32 treasureFlag, GetItemEntry* out) {
++    for (auto& c : sMhChests) {
++        if (c.first != (int)treasureFlag) {
++            continue;
++        }
++        if (c.second == "fd_mask") {
++            *out = FierceDeity_GetMaskGetItemEntry();
++            return true;
++        } else if (c.second == "rocs_feather") {
++            GetItemEntry rocs = GET_ITEM(ITEM_ROCS_FEATHER, OBJECT_GI_BOMB_2, GID_STONE_OF_AGONY,
++                                         TEXT_RANDOMIZER_CUSTOM_ITEM, 0x80, CHEST_ANIM_LONG, ITEM_CATEGORY_MAJOR,
++                                         MOD_NONE, GI_STONE_OF_AGONY);
++            rocs.drawFunc = Randomizer_DrawRocsFeather; // draw the real Roc's Feather over the vehicle model
++            *out = rocs;
++            return true;
++        }
++    }
++    return false;
++}
++
++// Per-frame: for a non-chest placement (flag == -1) grant the item immediately; for a chest (flag >= 0) the
++// chest's own get-item flow already shows + gives the item (VB_OPEN_CHEST set the entry), so here we just
++// ensure the owned flags once the get-cutscene ends. Idempotent; each placement fires once per session.
 +static void MhChestInterpreter() {
 +    if (gPlayState == nullptr || sMhChests.empty()) {
 +        return;
@@ -579,14 +620,15 @@ index b7ae40d55..9ba75f6db 100644
 +            MhGrantOptionalKey(key);
 +            sMhChestGranted[i] = 1;
 +        } else if (Flags_GetTreasure(gPlayState, flag)) {
-+            // Chest opened: give the item with the normal acquisition animation so it doesn't feel empty.
-+            // The mask's own give path (Item held overhead + textbox + fanfare) already sets the owned flag;
-+            // for Roc's Feather there is no get-item entry, so fall back to the silent owned grant.
-+            if (key == "fd_mask") {
-+                GiveFierceDeityMask();
-+            } else {
-+                MhGrantOptionalKey(key);
++            // Chest opened: its own get-item flow already showed + gave the item (VB_OPEN_CHEST set the entry).
++            // Wait until that get-cutscene ends, then ensure the owned flags (hasFierceDeityMask / Roc's
++            // RAND_INF + slot) once — Item_Give from the flow may not set them. Idempotent, and silent (no
++            // second animation).
++            Player* player = GET_PLAYER(gPlayState);
++            if (player == NULL || (player->stateFlags1 & PLAYER_STATE1_GETTING_ITEM)) {
++                continue; // still in the chest get-item cutscene — try again next frame
 +            }
++            MhGrantOptionalKey(key);
 +            sMhChestGranted[i] = 1;
 +        }
 +    }
@@ -874,10 +916,32 @@ index b7ae40d55..9ba75f6db 100644
 +    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(MhDialogueInterpreter);
 +    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(MhChestInterpreter);
 +
++    // Randomizer-style clean give for a chest holding a non-standard SoH-exclusive item (Fierce Deity's Mask,
++    // Roc's Feather) — items with no vanilla GetItem id. VB_OPEN_CHEST runs in z_player.c just BEFORE the chest
++    // resolves what to give (it reads player->getItemEntry); setting that here to the item's real GetItemEntry
++    // makes the chest's own get-item flow show + give it — one acquisition animation, the chest opens normally,
++    // no "empty chest crushes Link", no placeholder-then-item double give. The chest still carries a valid
++    // placeholder GetItem id in its params so the open path triggers (getItemId != GI_NONE); the owned flags
++    // (hasFierceDeityMask / Roc's RAND_INF+slot) are ensured by MhChestInterpreter once the get finishes.
++    // BACKPORT NOTE (vanilla OoT / PJ64, no GameInteractor): do the equivalent by writing player->getItemEntry
++    // (or the En_Box giEntry) before the chest give in z_player.c, gated on "is this treasure flag one of my
++    // custom-item chests?". See forks/CHEST-CUSTOM-ITEM-GIVE.md.
++    REGISTER_VB_SHOULD(VB_OPEN_CHEST, {
++        Player* mhPlayer = GET_PLAYER(gPlayState);
++        Actor* interacted = (mhPlayer != nullptr) ? mhPlayer->interactRangeActor : nullptr;
++        if (interacted != nullptr && interacted->id == ACTOR_EN_BOX) {
++            EnBox* chest = (EnBox*)interacted;
++            GetItemEntry entry;
++            if (MhChestGetItemEntry((s32)(chest->dyna.actor.params & 0x1F), &entry)) {
++                mhPlayer->getItemEntry = entry; // the chest gives the real SoH item, not the placeholder
++            }
++        }
++    });
++
      // Console
      CMD_REGISTER("file_select", { FileSelectHandler, "Returns to the file select." });
      CMD_REGISTER("reset", { ResetHandler, "Resets the game." });
-@@ -1528,6 +2307,13 @@ void DebugConsole_Init(void) {
+@@ -1528,6 +2359,13 @@ void DebugConsole_Init(void) {
      // Map & Location
      CMD_REGISTER("void", { VoidHandler, "Voids out of the current map." });
      CMD_REGISTER("reload", { ReloadHandler, "Reloads the current map." });
@@ -951,6 +1015,71 @@ index 7efa4b7d1..9f3e1c4bf 100644
  std::string invalidString = "";
  
  std::vector<std::string> sceneNames = {
+diff --git a/soh/src/code/fierce_deity_items.c b/soh/src/code/fierce_deity_items.c
+index 3595f596f..52dfe5dfc 100644
+--- a/soh/src/code/fierce_deity_items.c
++++ b/soh/src/code/fierce_deity_items.c
+@@ -67,18 +67,12 @@ void FierceDeity_EquipMaskToCButton(void) {
+     gSaveContext.buttonStatus[button] = BTN_ENABLED;
+ }
+ 
+-// FD (2026-07-11): Grant the FD mask through the full get-item acquisition sequence (Link holds the
+-// item overhead, custom textbox, item-get fanfare). The grant itself is completed by the player
+-// code, which calls Item_Give(play, ITEM_MASK_DEITY); Item_Give routes that custom id to
+-// FierceDeity_EquipMaskToCButton() (see z_parameter.c).
+-void GiveFierceDeityMask(void) {
+-    if (gPlayState == NULL) {
+-        return;
+-    }
+-
+-    // The GET_ITEM object/gid/gi still reference a valid vanilla mask so the get-item FLOW gates pass
+-    // (objectId != INVALID, getItemId != NONE), but drawFunc below OVERRIDES the held model with the
+-    // real Fierce Deity mask -- so the Goron model is never actually drawn.
++// FD (2026-07-11): The GetItemEntry that grants the Fierce Deity's Mask via the full acquisition sequence
++// (Link holds the item overhead, custom textbox, item-get fanfare). The GET_ITEM object/gid/gi reference a
++// valid vanilla mask so the get-item FLOW gates pass, but drawFunc OVERRIDES the held model with the real FD
++// mask. Item_Give(ITEM_MASK_DEITY) (when the animation completes) routes to FierceDeity_EquipMaskToCButton().
++// Reused for chest gives (Megaton Hammer sets player->getItemEntry to this in a VB_OPEN_CHEST hook).
++GetItemEntry FierceDeity_GetMaskGetItemEntry(void) {
+     GetItemEntry fdMask = GET_ITEM(ITEM_MASK_DEITY,       // itemId  -> what Item_Give() receives
+                                    OBJECT_GI_GOLONMASK,   // objectId (flow gate only; model overridden)
+                                    GID_MASK_GORON,        // drawId  (flow gate only; model overridden)
+@@ -87,7 +81,16 @@ void GiveFierceDeityMask(void) {
+                                    CHEST_ANIM_LONG, ITEM_CATEGORY_MAJOR, MOD_NONE,
+                                    GI_MASK_GORON);         // getItemId (must be a valid GI for the draw)
+     fdMask.drawFunc = FierceDeity_DrawGiMask; // FD (2026-07-11): draw the real FD mask model, not the Goron fallback
++    return fdMask;
++}
+ 
++// FD (2026-07-11): Grant the FD mask through the full get-item acquisition sequence. The grant itself is
++// completed by the player code, which calls Item_Give(play, ITEM_MASK_DEITY).
++void GiveFierceDeityMask(void) {
++    if (gPlayState == NULL) {
++        return;
++    }
++    GetItemEntry fdMask = FierceDeity_GetMaskGetItemEntry();
+     // Show the overhead-hold acquisition animation + textbox + fanfare. Item_Give() (called by the
+     // player code when the animation completes) performs the actual grant via the guard above.
+     if (!GiveItemEntryWithoutActor(gPlayState, fdMask)) {
+diff --git a/soh/src/code/z_parameter.c b/soh/src/code/z_parameter.c
+index 752eada24..a095da9c9 100644
+--- a/soh/src/code/z_parameter.c
++++ b/soh/src/code/z_parameter.c
+@@ -2615,6 +2615,14 @@ u8 Item_Give(PlayState* play, u8 item) {
+ }
+ 
+ u8 Item_CheckObtainability(u8 item) {
++    // MH: Fierce Deity's Mask / Sword and Roc's Feather are custom items that live OUTSIDE the vanilla slot
++    // tables (gItemSlots has only ~0x36 entries), so SLOT(item) and gSaveContext.inventory.items[slot] below
++    // would index out of bounds and crash. They are managed by their own give paths and are never treated as
++    // "already held" here, so report them obtainable (ITEM_NONE). This path is reached when a chest awards one
++    // via MhChestGetItemEntry (debugconsole.cpp VB_OPEN_CHEST hook) -> the z_player.c chest reroute check.
++    if (item == ITEM_MASK_DEITY || item == ITEM_SWORD_DEITY || item == ITEM_ROCS_FEATHER) {
++        return ITEM_NONE;
++    }
+     s16 i;
+     s16 slot = SLOT(item);
+     s32 temp;
 diff --git a/soh/src/overlays/actors/ovl_En_MhTalk/z_en_mhtalk.c b/soh/src/overlays/actors/ovl_En_MhTalk/z_en_mhtalk.c
 new file mode 100644
 index 000000000..d8c4f800a

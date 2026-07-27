@@ -400,9 +400,11 @@ public static class TestTempleBuilder
         AddBox(room, (-H, 220, -H), (H, 240, H), "Stone");           // ceiling
         st.SpawnPos = new Vector3(0, 8, H - 60); st.SpawnRoom = 0; st.SpawnYaw = unchecked((short)0x8000);
 
-        // The chest: En_Box (0x000A), treasure flag 1 (Variable bits 0-4). The "SoH item" = fd_mask is carried
-        // out-of-band in mh/chests; opening the chest (setting treasure flag 1) makes the fork grant the mask.
-        room.Actors.Add(new ZActor { Number = 0x000A, Variable = 0x0001, MhCustomItem = "fd_mask",
+        // The chest: En_Box (0x000A), treasure flag 1 (Variable bits 0-4), native contents = Recovery Heart
+        // (get-item 0x48, bits 5-11 → (0x48<<5)|1 = 0x0901) as a valid placeholder so the chest doesn't crush
+        // Link on an empty give. The "SoH item" = fd_mask is carried out-of-band in mh/chests; opening the chest
+        // (setting treasure flag 1) makes the fork give the mask right after the placeholder get.
+        room.Actors.Add(new ZActor { Number = 0x000A, Variable = 0x0901, MhCustomItem = "fd_mask",
                                      XPos = 0, YPos = 0, ZPos = -120 });
         // A talkable sign-post NPC explaining the test (authored one-line message, textId 0x1000).
         room.Actors.Add(new ZActor { Number = Editor.ActorDatabase.MhTalkIdOot, Variable = 0,
