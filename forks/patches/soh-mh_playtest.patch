@@ -73,8 +73,20 @@ index 1455b9c50..d18f03ef4 100644
  };
  static std::unordered_map<u16, const char*> actorDescriptions =
      std::unordered_map<u16, const char*>(std::begin(actorDescriptionData), std::end(actorDescriptionData));
+diff --git a/soh/soh/Enhancements/custom-message/CustomMessageTypes.h b/soh/soh/Enhancements/custom-message/CustomMessageTypes.h
+index f2114de92..187d550df 100644
+--- a/soh/soh/Enhancements/custom-message/CustomMessageTypes.h
++++ b/soh/soh/Enhancements/custom-message/CustomMessageTypes.h
+@@ -241,6 +241,7 @@ typedef enum {
+     TEXT_CARPET_SALESMAN_MYSTERIOUS = 0x9211,
+     TEXT_CARPET_SALESMAN_ARMS_DEALER = 0x9212,
+     TEXT_FIERCE_DEITY_MASK = 0x9300, // FD (2026-07-11): custom FD-mask acquisition textbox
++    TEXT_MH_ROCS_FEATHER = 0x9301,   // MH: custom Roc's Feather acquisition textbox (chest give, non-rando)
+     // FD (2026-07-12) #7/#8: transformation-mask safeguards (RE fd_build text 0x71B3-0x71B5; reuse those free ids).
+     TEXT_TRANSFORM_TOO_BIG = 0x71B3,       // Epona mount block ("You're too big!!")
+     TEXT_TRANSFORM_CANT_DO_THAT = 0x71B4,  // Master Sword pedestal block ("...current form!")
 diff --git a/soh/soh/Enhancements/debugconsole.cpp b/soh/soh/Enhancements/debugconsole.cpp
-index b7ae40d55..fa88b0ad1 100644
+index b7ae40d55..83216f441 100644
 --- a/soh/soh/Enhancements/debugconsole.cpp
 +++ b/soh/soh/Enhancements/debugconsole.cpp
 @@ -9,10 +9,13 @@
@@ -592,7 +604,7 @@ index b7ae40d55..fa88b0ad1 100644
 +            return true;
 +        } else if (c.second == "rocs_feather") {
 +            GetItemEntry rocs = GET_ITEM(ITEM_ROCS_FEATHER, OBJECT_GI_BOMB_2, GID_STONE_OF_AGONY,
-+                                         TEXT_RANDOMIZER_CUSTOM_ITEM, 0x80, CHEST_ANIM_LONG, ITEM_CATEGORY_MAJOR,
++                                         TEXT_MH_ROCS_FEATHER, 0x80, CHEST_ANIM_LONG, ITEM_CATEGORY_MAJOR,
 +                                         MOD_NONE, GI_STONE_OF_AGONY);
 +            rocs.drawFunc = Randomizer_DrawRocsFeather; // draw the real Roc's Feather over the vehicle model
 +            *out = rocs;
@@ -980,10 +992,26 @@ index b7ae40d55..fa88b0ad1 100644
                           "Spawns the player where Farore's Wind is set.",
                           {
 diff --git a/soh/soh/Enhancements/randomizer/RocsFeather.cpp b/soh/soh/Enhancements/randomizer/RocsFeather.cpp
-index 6e4fa7169..6eaa793da 100644
+index 6e4fa7169..ee3c405eb 100644
 --- a/soh/soh/Enhancements/randomizer/RocsFeather.cpp
 +++ b/soh/soh/Enhancements/randomizer/RocsFeather.cpp
-@@ -20,7 +20,10 @@ static uint8_t groundTimer = 0;
+@@ -1,9 +1,15 @@
+ #include <soh/OTRGlobals.h>
++#include "soh/Enhancements/game-interactor/GameInteractor.h"
+ #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
++#include "soh/Enhancements/custom-message/CustomMessageManager.h"
++#include "soh/Enhancements/custom-message/CustomMessageTypes.h"
+ #include "soh/Enhancements/randomizer/SeedContext.h"
+ #include "soh/ShipInit.hpp"
+ #include <soh_assets.h>
+ 
++#include <cstdarg>
++#include <cstring>
++
+ extern "C" {
+ #include <z64.h>
+ #include "functions.h"
+@@ -20,7 +26,10 @@ static uint8_t groundTimer = 0;
  static f32 effectsScale = 1.0f;
  
  void RegisterRocsFeather() {
@@ -995,12 +1023,82 @@ index 6e4fa7169..6eaa793da 100644
  
      COND_HOOK(OnPlayerUpdate, shouldRegister, []() {
          Player* player = GET_PLAYER(gPlayState);
-@@ -99,4 +102,4 @@ void RegisterRocsFeather() {
+@@ -99,4 +108,74 @@ void RegisterRocsFeather() {
      });
  }
  
 -static RegisterShipInitFunc registerRocsFeather(RegisterRocsFeather, { "IS_RANDO" });
 +static RegisterShipInitFunc registerRocsFeather(RegisterRocsFeather, { "IS_RANDO", CVAR_ENHANCEMENT("MhRocsFeather") });
++
++// MH: custom get-item textbox for the Roc's Feather when it's given OUTSIDE the randomizer (a Megaton Hammer
++// chest give). Rando serves Roc's via TEXT_RANDOMIZER_CUSTOM_ITEM, but that machinery is off in a plain boot,
++// so the chest's GetItemEntry uses TEXT_MH_ROCS_FEATHER and this serves it: item icon on the left + a
++// description of what it does, matching the Fierce Deity's Mask / Ocarina get-item messages. Registered
++// unconditionally on boot — the hooks only fire when that specific textId is opened, so they never touch any
++// other message. Mirrors soh/Enhancements/FierceDeityMask.cpp.
++#define MH_ROCS_FEATHER_MESSAGE_TABLE_ID "MhRocsFeather"
++
++// Per-language X offset for the 32x32 get-item icon (mirrors z_message's sIconItem32XOffsets). MUST be at file
++// scope, NOT inside the COND_VB_SHOULD body: the preprocessor treats the brace-initializer commas as extra
++// macro arguments ("too many arguments for COND_VB_SHOULD").
++static const s16 sMhRocsIconItem32XOffsets[] = { 74, 74, 74, 54 };
++
++static void RegisterRocsFeatherMessage() {
++    CustomMessageManager* cmm = CustomMessageManager::Instance;
++    cmm->AddCustomMessageTable(MH_ROCS_FEATHER_MESSAGE_TABLE_ID);
++
++    // Get-item parity with the Ocarina/FD-mask messages: item icon (\x13 + itemId), BLUE textbox, RED item
++    // name (%r..%w), the yellow C-button glyph (\xA1 = [C], wrapped %y..%w). '&' = CustomMessage newline.
++    std::string rocsText = std::string("\x13", 1) + std::string(1, (char)ITEM_ROCS_FEATHER) +
++                           "You got the %rRoc's Feather%w!&Set it to %y" + std::string(1, (char)0xA1) +
++                           "%w, then press&it to leap high into the air!";
++    cmm->CreateMessage(MH_ROCS_FEATHER_MESSAGE_TABLE_ID, TEXT_MH_ROCS_FEATHER,
++                       CustomMessage(rocsText, TEXTBOX_TYPE_BLUE));
++
++    // When the Roc's-Feather acquisition textbox opens, serve the custom text instead of the vanilla table.
++    COND_ID_HOOK(OnOpenText, TEXT_MH_ROCS_FEATHER, true, [](u16* textId, bool* loadFromMessageTable) {
++        CustomMessage msg = CustomMessageManager::Instance->RetrieveMessage(
++            MH_ROCS_FEATHER_MESSAGE_TABLE_ID, TEXT_MH_ROCS_FEATHER, MF_FORMATTED);
++        *loadFromMessageTable = false;
++        msg.LoadIntoFont();
++    });
++
++    // LOAD: stage the Roc's-Feather icon into the textbox segment and advance msgBufPos past the id byte. The
++    // vanilla LoadItemIcon path is gated id < ITEM_CUSTOM and skips 0x9D, so we do it ourselves (as FD does).
++    COND_VB_SHOULD(VB_LOAD_ITEM_ICON, true, {
++        if (*should == false && gPlayState != NULL &&
++            gPlayState->msgCtx.textId == TEXT_MH_ROCS_FEATHER) {
++            MessageContext* msgCtx = &gPlayState->msgCtx;
++            if ((u8)msgCtx->font.msgBuf[msgCtx->msgBufPos + 1] == ITEM_ROCS_FEATHER) {
++                bool displayAsEnglish = static_cast<bool>(va_arg(args, int));
++                u8 language = displayAsEnglish ? LANGUAGE_ENG : gSaveContext.language;
++                R_TEXTBOX_ICON_XPOS = R_TEXT_INIT_XPOS - sMhRocsIconItem32XOffsets[language];
++                R_TEXTBOX_ICON_YPOS = (R_TEXTBOX_Y + 10) + 6;
++                R_TEXTBOX_ICON_SIZE = 32;
++                strcpy((char*)((uintptr_t)msgCtx->textboxSegment + MESSAGE_STATIC_TEX_SIZE),
++                       (const char*)gItemIcons[ITEM_ROCS_FEATHER]);
++                msgCtx->msgBufPos++;
++                msgCtx->choiceNum = 1;
++            }
++        }
++    });
++
++    // DRAW: emit the 32x32 RGBA texture block for the icon the LOAD hook staged.
++    COND_VB_SHOULD(VB_DRAW_ITEM_ICON, true, {
++        if (*should == false && gPlayState != NULL &&
++            gPlayState->msgCtx.textId == TEXT_MH_ROCS_FEATHER) {
++            MessageContext* msgCtx = &gPlayState->msgCtx;
++            Gfx** p = va_arg(args, Gfx**);
++            Gfx* gfx = *p;
++            gDPLoadTextureBlock(gfx++, (uintptr_t)msgCtx->textboxSegment + MESSAGE_STATIC_TEX_SIZE,
++                                G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_NOMIRROR | G_TX_WRAP,
++                                G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
++            *p = gfx;
++        }
++    });
++}
++
++static RegisterShipInitFunc registerRocsFeatherMessage(RegisterRocsFeatherMessage);
 diff --git a/soh/soh/util.cpp b/soh/soh/util.cpp
 index 7efa4b7d1..9f3e1c4bf 100644
 --- a/soh/soh/util.cpp
