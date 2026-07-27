@@ -398,10 +398,19 @@ public sealed class GLViewport : Panel
             if (_itemIcons.Available && !mm)
             {
                 var chestHolos = Document.VisibleActors
-                    .Where(a => a.Number == 0x000A)
+                    .Where(a => a.Number == 0x000A && Editor.ChestContentsUi.SohHologramKey(a) == null)
                     .Select(a => (a, Editor.GetItemTable.IconForGi((a.Variable >> 5) & 0x7F)))
                     .Where(t => t.Item2 >= 0).ToList();
                 if (chestHolos.Count > 0) _billboards!.RenderHologram(chestHolos, _itemIcons, cam, w, h);
+
+                // SoH-exclusive chest contents (Fierce Deity's Mask, Roc's Feather) have no ROM icon, so float
+                // their editor icon (embedded PNG / extracted from the user's MM ROM) as the hologram instead.
+                var sohHolos = Document.VisibleActors
+                    .Select(a => (a, key: Editor.ChestContentsUi.SohHologramKey(a)))
+                    .Where(t => t.key != null)
+                    .Select(t => (t.a, t.key!, (System.Drawing.Bitmap?)Editor.InventoryIcons.OptionalGlyph(t.key!)))
+                    .Where(t => t.Item3 != null).ToList();
+                if (sohHolos.Count > 0) _billboards!.RenderCustomHologram(sohHolos, cam, w, h);
 
                 // #6: pot (Obj_Tsubo 0x111) contents preview — float the drop's actual model above the pot,
                 // like the chest hologram. Rupees (coloured per type) and recovery hearts have real

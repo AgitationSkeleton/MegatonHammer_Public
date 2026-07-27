@@ -74,7 +74,7 @@ index 1455b9c50..d18f03ef4 100644
  static std::unordered_map<u16, const char*> actorDescriptions =
      std::unordered_map<u16, const char*>(std::begin(actorDescriptionData), std::end(actorDescriptionData));
 diff --git a/soh/soh/Enhancements/debugconsole.cpp b/soh/soh/Enhancements/debugconsole.cpp
-index b7ae40d55..05e44429a 100644
+index b7ae40d55..fa88b0ad1 100644
 --- a/soh/soh/Enhancements/debugconsole.cpp
 +++ b/soh/soh/Enhancements/debugconsole.cpp
 @@ -9,10 +9,13 @@
@@ -163,7 +163,7 @@ index b7ae40d55..05e44429a 100644
  static bool VoidHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
                          std::string* output) {
      if (gPlayState != nullptr) {
-@@ -1510,7 +1571,777 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
+@@ -1510,7 +1571,801 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
      return 0;
  }
  
@@ -605,9 +605,27 @@ index b7ae40d55..05e44429a 100644
 +// Per-frame: for a non-chest placement (flag == -1) grant the item immediately; for a chest (flag >= 0) the
 +// chest's own get-item flow already shows + gives the item (VB_OPEN_CHEST set the entry), so here we just
 +// ensure the owned flags once the get-cutscene ends. Idempotent; each placement fires once per session.
++// Chest-flag state captured the first frame we're actually in the playtest scene, so a treasure flag that
++// is ALREADY set on entry never counts as "the player opened this chest this session" (which would grant the
++// item without the chest ever being touched). Only a clear->set transition after entry is a real open.
++static u32  sMhChestBaseline = 0;
++static bool sMhChestBaselineTaken = false;
++
 +static void MhChestInterpreter() {
 +    if (gPlayState == nullptr || sMhChests.empty()) {
 +        return;
++    }
++    // Only operate once we're actually inside the playtest scene — otherwise transient chest-flag state in a
++    // title/transition/other scene could be mistaken for an open.
++    if (sMhPlaytestScene < 0 || gPlayState->sceneNum != sMhPlaytestScene) {
++        sMhChestBaselineTaken = false; // re-baseline on the next entry
++        return;
++    }
++    if (!sMhChestBaselineTaken) {
++        sMhChestBaseline = gPlayState->actorCtx.flags.chest;
++        sMhChestBaselineTaken = true;
++        MhBootLog("[mh_chest] baseline chest flags on scene entry = 0x" +
++                  StringHelper::Sprintf("%X", sMhChestBaseline));
 +    }
 +    for (size_t i = 0; i < sMhChests.size(); i++) {
 +        if (sMhChestGranted[i]) {
@@ -619,11 +637,11 @@ index b7ae40d55..05e44429a 100644
 +            // Non-chest placement (freestanding / given on load): grant silently.
 +            MhGrantOptionalKey(key);
 +            sMhChestGranted[i] = 1;
-+        } else if (Flags_GetTreasure(gPlayState, flag)) {
-+            // Chest opened: its own get-item flow already showed + gave the item (VB_OPEN_CHEST set the entry).
-+            // Wait until that get-cutscene ends, then ensure the owned flags (hasFierceDeityMask / Roc's
-+            // RAND_INF + slot) once — Item_Give from the flow may not set them. Idempotent, and silent (no
-+            // second animation).
++        } else if (Flags_GetTreasure(gPlayState, flag) && !(sMhChestBaseline & (1u << flag))) {
++            // The chest went from closed->open THIS session: its own get-item flow already showed + gave the
++            // item (VB_OPEN_CHEST set the entry). Wait until that get-cutscene ends, then ensure the owned
++            // flags (hasFierceDeityMask / Roc's RAND_INF + slot) once — Item_Give from the flow may not set
++            // them. Idempotent, and silent (no second animation).
 +            Player* player = GET_PLAYER(gPlayState);
 +            if (player == NULL || (player->stateFlags1 & PLAYER_STATE1_GETTING_ITEM)) {
 +                continue; // still in the chest get-item cutscene — try again next frame
@@ -934,6 +952,12 @@ index b7ae40d55..05e44429a 100644
 +            GetItemEntry entry;
 +            if (MhChestGetItemEntry((s32)(chest->dyna.actor.params & 0x1F), &entry)) {
 +                mhPlayer->getItemEntry = entry; // the chest gives the real SoH item, not the placeholder
++                // Keep id + entry consistent, exactly as GiveItemEntryFromActor/WithoutActor do (z_actor.c
++                // 2049-2050, 2097-2098). Without this, the chest-open site (z_player.c ~8567, checks only
++                // objectId) uses our entry, but the get-item TEXTBOX site (func_8084DFF4 ~15726, also requires
++                // getItemId == getItemEntry.getItemId) falls back to ItemTable_Retrieve(placeholder) and opens a
++                // bogus textId -> Message_OpenText memcpy crash (0xC0000005).
++                mhPlayer->getItemId = entry.getItemId;
 +            }
 +        }
 +    });
@@ -941,7 +965,7 @@ index b7ae40d55..05e44429a 100644
      // Console
      CMD_REGISTER("file_select", { FileSelectHandler, "Returns to the file select." });
      CMD_REGISTER("reset", { ResetHandler, "Resets the game." });
-@@ -1528,6 +2359,13 @@ void DebugConsole_Init(void) {
+@@ -1528,6 +2383,13 @@ void DebugConsole_Init(void) {
      // Map & Location
      CMD_REGISTER("void", { VoidHandler, "Voids out of the current map." });
      CMD_REGISTER("reload", { ReloadHandler, "Reloads the current map." });

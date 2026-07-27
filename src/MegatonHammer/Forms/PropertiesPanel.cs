@@ -207,51 +207,14 @@ public sealed class PropertiesPanel : UserControl
                     a.Position = anchor;
                 Bubble();
             }
-            // Unified chest picker: the En_Box "Contents" dropdown lists None, then the enabled SoH-exclusive
-            // items (Roc's Feather, Fierce Deity's Mask) right at the TOP so they're easy to find, then every
-            // valid vanilla get-item. Vanilla items ride the 7-bit Contents field (native chest give, works on
-            // cartridge); SoH-exclusive ones can't (no vanilla GetItem id), so they're stored in MhCustomItem
-            // and granted by the SoH fork's chest hook on open. Rows map to (MhCustomItem key | vanilla getItemId)
-            // via parallel lists so the SoH items don't need a fake getItemId (which is what crashed: picking a
-            // raw high id like 0x7F "(unused)" makes the chest give an invalid item).
-            bool isChestContents = f.Kind == Editor.ActorParamSchema.FieldKind.Enum
-                                   && _nativeIsOoT && a.Number == 0x000A && f.Name == "Contents";
-            if (isChestContents)
+            // Unified chest "Contents" picker (En_Box) — the SHARED control used by both this panel and the
+            // double-click Entity dialog (Editor/ChestContentsUi.cs), so they can't drift apart. Lists None, the
+            // enabled SoH-exclusive items (blue, at top) then every valid vanilla get-item. Put() writes the
+            // native id; the helper also sets ZActor.MhCustomItem for a SoH pick.
+            if (Editor.ChestContentsUi.BuildCombo(a, f, _nativeIsOoT, BgInput, FgNormal,
+                    UiFonts.Get("Segoe UI", 8f), Cur, Put, () => _loading, () => { }) is { } chestCombo)
             {
-                var sohOpts = Editor.OptionalItems.Enabled(Editor.OptionalItemEngine.Soh).ToList();
-                var combo = new ComboBox
-                {
-                    Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = BgInput,
-                    ForeColor = FgNormal, FlatStyle = FlatStyle.Flat, Font = UiFonts.Get("Segoe UI", 8f),
-                    Margin = new Padding(2), MaxDropDownItems = 24, Tag = f.Desc,
-                };
-                var rowKey = new System.Collections.Generic.List<string?>();  // non-null → SoH item; null → vanilla getItemId in rowGi
-                var rowGi = new System.Collections.Generic.List<int>();
-                combo.Items.Add(f.Options![0]); rowKey.Add(null); rowGi.Add(0);                 // None (empty)
-                foreach (var oi in sohOpts) { combo.Items.Add("★ " + oi.DisplayName + " (SoH-only)"); rowKey.Add(oi.Key); rowGi.Add(0); }
-                for (int gi = 1; gi < f.Options.Count; gi++)
-                {
-                    if (f.Options[gi].Contains("(unused)")) continue;          // invalid GetItem → omit (crashes the chest)
-                    combo.Items.Add(f.Options[gi]); rowKey.Add(null); rowGi.Add(gi);
-                }
-                int cur = Cur(), sel = 0;
-                if (!string.IsNullOrEmpty(a.MhCustomItem))
-                { for (int r = 0; r < rowKey.Count; r++) if (rowKey[r] == a.MhCustomItem) { sel = r; break; } }
-                else
-                { for (int r = 0; r < rowKey.Count; r++) if (rowKey[r] == null && rowGi[r] == cur) { sel = r; break; } }
-                combo.SelectedIndex = sel;
-                combo.SelectedIndexChanged += (_, _) =>
-                {
-                    if (_loading) return;
-                    int i = combo.SelectedIndex;
-                    if (i < 0 || i >= rowKey.Count) return;
-                    // SoH item: the fork grants it on open. The chest still needs a VALID native get-item so
-                    // OoT's "empty chest" path doesn't crush Link — use a Recovery Heart (0x48) as the placeholder;
-                    // the fork gives the real SoH item right after that placeholder's get-animation finishes.
-                    if (rowKey[i] != null) { a.MhCustomItem = rowKey[i]; Put(0x48); }
-                    else { a.MhCustomItem = null; Put(rowGi[i]); }                   // vanilla item: native chest give
-                };
-                AddRow(f.Name, combo);
+                AddRow(f.Name, chestCombo);
             }
             else if (f.Kind == Editor.ActorParamSchema.FieldKind.Enum && f.Options is { Count: > 0 })
             {

@@ -494,6 +494,16 @@ public sealed class EntityConfigDialog : Form
         switch (f.Kind)
         {
             case ActorParamSchema.FieldKind.Enum:
+                // Unified chest "Contents" picker — the SAME shared control the docked Properties panel uses
+                // (Editor/ChestContentsUi.cs), so the two never diverge (this is why the FD mask / Roc's Feather
+                // weren't offered here before). Falls through to the generic enum for every other field.
+                if (ChestContentsUi.BuildCombo(_actor, f, _isOoT, BgInput, FgNormal, UiFonts.Get("Segoe UI", 8.5f),
+                        () => f.Get(_actor.Variable), gi => ApplyField(f, gi), () => _loading, () => { }) is { } chestCombo)
+                {
+                    AttachOverflowTip(chestCombo);
+                    input = chestCombo;
+                    break;
+                }
                 var combo = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList,
                     BackColor = BgInput, ForeColor = FgNormal, FlatStyle = FlatStyle.Flat,
                     Font = UiFonts.Get("Segoe UI", 8.5f), Margin = new Padding(2) };

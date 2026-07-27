@@ -239,6 +239,60 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.3) discard; fragColor = v
         GL.BindTexture(TextureTarget.Texture2D, 0);
     }
 
+    private readonly Dictionary<string, int> _customTex = new();
+
+    /// <summary>Like <see cref="RenderHologram"/>, but the icon is a supplied Bitmap keyed by a string — for
+    /// SoH-exclusive chest items (Fierce Deity's Mask, Roc's Feather) that have no ROM icon index. Each unique
+    /// key uploads its texture once; a null bitmap is skipped.</summary>
+    public void RenderCustomHologram(IReadOnlyList<(ZActor actor, string key, Bitmap? bmp)> items,
+                                     Camera3D cam, int w, int h, float elevation = 95f, float alpha = 0.6f)
+    {
+        if (items.Count == 0) return;
+        _holoShader ??= new Shader(Vert, HoloFrag);
+        cam.UpdateVectors();
+        Vector3 right = cam.Right, up = cam.Up;
+        var mvp = cam.GetViewMatrix() * cam.GetProjectionMatrix(w, h);
+
+        _holoShader.Use();
+        _holoShader.SetMatrix4("uMVP", mvp);
+        GL.ActiveTexture(TextureUnit.Texture0);
+        GL.Uniform1(GL.GetUniformLocation(_holoShader.Handle, "uTex"), 0);
+        GL.Uniform1(GL.GetUniformLocation(_holoShader.Handle, "uAlpha"), alpha);
+        GL.Enable(EnableCap.DepthTest);
+        GL.DepthFunc(DepthFunction.Less);
+        GL.Disable(EnableCap.CullFace);
+        GL.Enable(EnableCap.Blend);
+        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+        float hh = SpriteHeight * 0.4f, hw = hh;
+        foreach (var grp in items.GroupBy(it => it.key))
+        {
+            if (!_customTex.TryGetValue(grp.Key, out int tex))
+            {
+                var bmp = grp.First().bmp;
+                tex = bmp != null ? UploadBitmap(bmp) : 0;
+                _customTex[grp.Key] = tex;
+            }
+            if (tex == 0) continue;
+            GL.BindTexture(TextureTarget.Texture2D, tex);
+            var buf = new List<float>();
+            foreach (var (a, _, _) in grp)
+            {
+                Vector3 c = a.Position + new Vector3(0, elevation, 0);
+                Vector3 r = right * hw, u = up * hh;
+                Quad(buf, c - r - u, c + r - u, c + r + u, c - r + u);
+            }
+            if (buf.Count == 0) continue;
+            GL.BindVertexArray(_vao);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo);
+            GL.BufferData(BufferTarget.ArrayBuffer, buf.Count * sizeof(float), buf.ToArray(), BufferUsageHint.StreamDraw);
+            GL.DrawArrays(PrimitiveType.Triangles, 0, buf.Count / 5);
+        }
+        GL.Disable(EnableCap.Blend);
+        GL.BindVertexArray(0);
+        GL.BindTexture(TextureTarget.Texture2D, 0);
+    }
+
     // ── Path waypoint markers (billboard sprites) ───────────────────────────────────────────────────
     private int _pathGlyph = -1, _pathGlyphSel = -1;
 
