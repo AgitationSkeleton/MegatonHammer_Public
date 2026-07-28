@@ -41,7 +41,7 @@ Set-Location $Root
 $Forks = @(
     # SoH is the self-contained Fierce Deity Shipwright fork (soh_fd): the FD form + mask come from it
     # verbatim, and it vendors libultraship/ZAPDTR (the recursive submodule init below is a harmless no-op).
-    @{ Name='SoH';   Dir='SoH';   Url='https://github.com/AgitationSkeleton/soh_fd.git';         Pin='86b00c3c'; Rom='oot|ocarina|OOT' }
+    @{ Name='SoH';   Dir='SoH';   Url='https://github.com/AgitationSkeleton/soh_fd.git';         Pin='8f8d3b02'; Rom='oot|ocarina|OOT' }
     @{ Name='2Ship'; Dir='2Ship'; Url='https://github.com/HarbourMasters/2ship2harkinian.git';  Pin='3545e62e'; Rom='mm|majora|MM'   }
 )
 $Pj64Url = 'https://github.com/project64/project64.git'
