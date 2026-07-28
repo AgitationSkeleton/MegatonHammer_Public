@@ -4,8 +4,6 @@ namespace MegatonHammer;
 
 static class Program
 {
-    private static readonly string LogPath = Editor.AppPaths.Log("crash.log");
-
     // USER-object count for this process (GR_USEROBJECTS = 1) — window handles etc. A control leak shows
     // up here, not in Process.HandleCount (which counts kernel objects, not HWNDs).
     [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -55,7 +53,24 @@ static class Program
             uint final = UserObjects();
             int growth = (int)final - (int)baseline;
             Console.WriteLine($"[handleleak] 550 rebuilds: USER objects {baseline} -> {final} (growth {growth})");
-            Console.WriteLine($"[handleleak] {(growth < 200 ? "PASS — bounded, no per-rebuild handle leak" : "FAIL — handles grow per rebuild")}");
+            Console.WriteLine($"[handleleak] docked panel {(growth < 200 ? "PASS — bounded, no per-rebuild handle leak" : "FAIL — handles grow per rebuild")}");
+
+            // Also exercise the POP-OUT actor-properties dialog (EntityConfigDialog) open→close cycle on the
+            // chest — the path the user's "Error creating window handle" crash came from (its Contents dropdown).
+            // A modeless Form.Close() disposes it; if handles still grow per open, the dialog leaks controls.
+            uint dlgBase = UserObjects();
+            for (int i = 0; i < 80; i++)
+            {
+                var d = new EntityConfigDialog(chest, db, true, doc);
+                d.Show(form); System.Windows.Forms.Application.DoEvents();
+                d.Close(); System.Windows.Forms.Application.DoEvents();
+                if (i == 8) dlgBase = UserObjects();
+                if (i % 20 == 0) Console.WriteLine($"  popout {i,3}: USER objects = {UserObjects()}");
+            }
+            uint dlgFinal = UserObjects();
+            int dlgGrowth = (int)dlgFinal - (int)dlgBase;
+            Console.WriteLine($"[handleleak] 80 pop-out open/close: USER objects {dlgBase} -> {dlgFinal} (growth {dlgGrowth})");
+            Console.WriteLine($"[handleleak] pop-out dialog {(dlgGrowth < 200 ? "PASS — bounded" : "FAIL — dialog leaks handles per open")}");
             form.Hide();
             return;
         }
@@ -1892,13 +1907,10 @@ static class Program
             return;
         }
 
-        AppDomain.CurrentDomain.UnhandledException += (s, e) =>
-            File.AppendAllText(LogPath, $"UNHANDLED: {e.ExceptionObject}\n\n");
-
-        Application.ThreadException += (s, e) =>
-            File.AppendAllText(LogPath, $"THREAD EX: {e.Exception}\n\n");
-
-        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        // Robust crash + first-chance capture: window-handle count, UI breadcrumbs, swallowed exceptions,
+        // written to several findable places (see Editor/CrashLog.cs). Replaces the old one-line handlers that
+        // left "Error creating window handle" and in-event crashes with no usable log.
+        Editor.CrashLog.Install();
 
         try
         {
@@ -1966,9 +1978,9 @@ static class Program
         }
         catch (Exception ex)
         {
-            File.AppendAllText(LogPath, $"MAIN EX: {ex}\n\n");
-            MessageBox.Show($"Fatal error:\n{ex.Message}\n\nSee crash.log", "Megaton Hammer",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Editor.CrashLog.Fatal("Main message loop", ex);
+            MessageBox.Show($"Fatal error:\n{ex.Message}\n\nSee crash.log ({Editor.AppPaths.Log("crash.log")})",
+                "Megaton Hammer", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }

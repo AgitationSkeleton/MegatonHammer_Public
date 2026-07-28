@@ -75,15 +75,23 @@ public static class ChestContentsUi
         { int cur = getGi(); for (int r = 0; r < rows.Count; r++) if (!rows[r].IsSoH && rows[r].VanillaGi == cur) { sel = r; break; } }
         combo.SelectedIndex = sel;
 
+        // Breadcrumbs so a crash anywhere in this control is captured with context (this combo has a
+        // history of handle/paint crashes). The dropdown open is the likely handle-exhaustion trigger.
+        combo.DropDown += (_, _) => CrashLog.Breadcrumb($"chest Contents dropdown open (actor 0x{a.Number:X})");
         combo.SelectedIndexChanged += (_, _) =>
         {
             if (isLoading()) return;
-            int i = combo.SelectedIndex;
-            if (i < 0 || i >= rows.Count) return;
-            var r = rows[i];
-            a.MhCustomItem = r.IsSoH ? r.SohKey : null;
-            putGi(r.VanillaGi);   // SoH → the placeholder; vanilla → its get-item id
-            onChanged();
+            try
+            {
+                int i = combo.SelectedIndex;
+                if (i < 0 || i >= rows.Count) return;
+                var r = rows[i];
+                CrashLog.Breadcrumb($"set chest Contents -> {r.Display}");
+                a.MhCustomItem = r.IsSoH ? r.SohKey : null;
+                putGi(r.VanillaGi);   // SoH → the placeholder; vanilla → its get-item id
+                onChanged();
+            }
+            catch (Exception ex) { CrashLog.Fatal("chest Contents change", ex); }
         };
         return combo;
     }

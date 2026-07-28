@@ -86,7 +86,7 @@ index f2114de92..187d550df 100644
      TEXT_TRANSFORM_TOO_BIG = 0x71B3,       // Epona mount block ("You're too big!!")
      TEXT_TRANSFORM_CANT_DO_THAT = 0x71B4,  // Master Sword pedestal block ("...current form!")
 diff --git a/soh/soh/Enhancements/debugconsole.cpp b/soh/soh/Enhancements/debugconsole.cpp
-index b7ae40d55..83216f441 100644
+index b7ae40d55..ac9dbb075 100644
 --- a/soh/soh/Enhancements/debugconsole.cpp
 +++ b/soh/soh/Enhancements/debugconsole.cpp
 @@ -9,10 +9,13 @@
@@ -175,7 +175,7 @@ index b7ae40d55..83216f441 100644
  static bool VoidHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
                          std::string* output) {
      if (gPlayState != nullptr) {
-@@ -1510,7 +1571,801 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
+@@ -1510,7 +1571,807 @@ static bool AvailableChecksRecalculateHandler(std::shared_ptr<Ship::Console> Con
      return 0;
  }
  
@@ -963,12 +963,18 @@ index b7ae40d55..83216f441 100644
 +            EnBox* chest = (EnBox*)interacted;
 +            GetItemEntry entry;
 +            if (MhChestGetItemEntry((s32)(chest->dyna.actor.params & 0x1F), &entry)) {
++                // A CHEST get uses a NEGATIVE getItemId (the En_Box convention: it offers -(id)). The sign is
++                // what selects the box acquisition CUTSCENE — kneel + thrust the item overhead + hold + the box
++                // get-item fanfare (NA_SE_SY_GET_BOXITEM, z_player.c:8460) — instead of the NPC-style hand-off.
++                // An earlier fix set a POSITIVE id here, which ran the NPC give path and broke the animation,
++                // timing and fanfare for the custom items. Negate BOTH the entry's getItemId and player->getItemId
++                // so they still MATCH (func_8084DFF4 ~15726 / func_808332F4 use our custom entry — hence the
++                // custom textbox + model — only when getItemId == getItemEntry.getItemId), while keeping the
++                // negative-id chest behavior. itemId (what Item_Give receives) and gi/drawId are untouched.
++                if (entry.getItemId > 0) {
++                    entry.getItemId = -entry.getItemId;
++                }
 +                mhPlayer->getItemEntry = entry; // the chest gives the real SoH item, not the placeholder
-+                // Keep id + entry consistent, exactly as GiveItemEntryFromActor/WithoutActor do (z_actor.c
-+                // 2049-2050, 2097-2098). Without this, the chest-open site (z_player.c ~8567, checks only
-+                // objectId) uses our entry, but the get-item TEXTBOX site (func_8084DFF4 ~15726, also requires
-+                // getItemId == getItemEntry.getItemId) falls back to ItemTable_Retrieve(placeholder) and opens a
-+                // bogus textId -> Message_OpenText memcpy crash (0xC0000005).
 +                mhPlayer->getItemId = entry.getItemId;
 +            }
 +        }
@@ -977,7 +983,7 @@ index b7ae40d55..83216f441 100644
      // Console
      CMD_REGISTER("file_select", { FileSelectHandler, "Returns to the file select." });
      CMD_REGISTER("reset", { ResetHandler, "Resets the game." });
-@@ -1528,6 +2383,13 @@ void DebugConsole_Init(void) {
+@@ -1528,6 +2389,13 @@ void DebugConsole_Init(void) {
      // Map & Location
      CMD_REGISTER("void", { VoidHandler, "Voids out of the current map." });
      CMD_REGISTER("reload", { ReloadHandler, "Reloads the current map." });
